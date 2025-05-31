@@ -107,6 +107,41 @@ export default function ProductFlex({ title }) {
     slideToIndex(newIndex);
   }, [currentIndex, config, slideToIndex]);
 
+  // Handle wheel events for desktop scrolling
+  const handleWheel = useCallback((event) => {
+    // Only handle wheel events on desktop (non-touch devices)
+    if (window.innerWidth < 768) return;
+    
+    event.preventDefault();
+    
+    // Debounce wheel events to prevent too rapid scrolling
+    if (isAnimating) return;
+    
+    const deltaY = event.deltaY;
+    const threshold = 50; // Minimum wheel delta to trigger scroll
+    
+    if (Math.abs(deltaY) > threshold) {
+      const newIndex = deltaY > 0 
+        ? Math.min(currentIndex + 1, config.maxIndex)
+        : Math.max(currentIndex - 1, 0);
+      
+      if (newIndex !== currentIndex) {
+        slideToIndex(newIndex);
+      }
+    }
+  }, [currentIndex, config.maxIndex, isAnimating, slideToIndex]);
+
+  // Add wheel event listener
+  useEffect(() => {
+    const sliderElement = document.querySelector('[data-slider="true"]');
+    if (sliderElement) {
+      sliderElement.addEventListener('wheel', handleWheel, { passive: false });
+      return () => {
+        sliderElement.removeEventListener('wheel', handleWheel);
+      };
+    }
+  }, [handleWheel]);
+
   const dragConstraints = {
     left: -config.maxIndex * config.itemWidth - 100,
     right: 100
@@ -120,7 +155,7 @@ export default function ProductFlex({ title }) {
         </h2>
       )}
       
-      <div className="overflow-hidden px-4 md:px-6">
+      <div className="overflow-hidden px-4 md:px-6" data-slider="true">
         <motion.div
           drag="x"
           dragConstraints={dragConstraints}
