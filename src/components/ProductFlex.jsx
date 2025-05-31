@@ -11,19 +11,27 @@ export default function ProductFlex({ title }) {
 
   return (
     <section className="space-y-4">
-      <h2 className="text-2xl font-medium">{title}</h2>
+      <h2 className="text-2xl font-medium pl-6 lg:pl-20">{title}</h2>
       <div className="overflow-x-auto no-scrollbar ">
-        <div className="flex gap-4 w-max">
+        <div className="flex gap-4 lg:gap-10 w-max pl-6 lg:pl-20">
           {dummyData.map((item) => (
             <div
               key={item.id}
-              className="w-[560px] bg-white rounded-xl shadow/5 overflow-hidden"
+              className="w-[200px] lg:w-[400px] bg-white"
             >
-              <img
-                src={`https://picsum.photos/seed/${item.id}/700/400`}
-                alt={item.name}
-                className="w-full h-60 object-cover"
-              />
+              <div className="rounded-xl shadow/5 overflow-hidden">
+                <img
+                  src={`https://picsum.photos/seed/${item.id}/500/400`}
+                  alt={item.name}
+                  className="w-full h-60 object-cover hidden lg:block"
+                />
+
+                <img
+                  src={`https://picsum.photos/seed/${item.id}/300/700`}
+                  alt={item.name}
+                  className="w-full h-60 object-cover lg:hidden"
+                />
+              </div>
               <div className="w-full p-2 text-center font-medium text-sm">
                 {item.name}
               </div>
