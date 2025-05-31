@@ -11,7 +11,7 @@ export default function Header() {
       <div className="relative w-full lg:my-6">
         <div className="w-full flex flex-col lg:flex-row items-center justify-center">
           <div className="w-full ">
-            <img src={logo} alt="" className="mx-auto h-4 mt-2 lg:mt-0 lg:h-6 bg-cover" />
+            <img src={logo} alt="" className="mx-auto h-4 my-4 lg:my-0 lg:h-6 bg-cover" />
           </div>
           <div className="space-x-4 md:absolute w-full lg:w-auto right-0 top-0 mt-6 lg:-mt-2 lg:mr-6">
             <div className="grid grid-cols-4 gap-4 lg:gap-16 justify-between">
