@@ -13,7 +13,7 @@ export default function App() {
   return (
     <div className="bg-[#5F44F0]">
       <Header />
-      <div className=" bg-white rounded-t-4xl lg:rounded-none min-h-screen">
+      <div className=" bg-white rounded-t-4xl lg:rounded-none min-h-screen overflow-hidden">
         <Routes>
           <Route path="/">
             <Route index element={<Home />} />
