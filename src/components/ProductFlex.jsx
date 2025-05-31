@@ -48,7 +48,7 @@ const ProductCard = ({ item, width }) => (
       />
 
       <img
-        src={`https://picsum.photos/seed/${item.id}/300/700`}
+        src={`https://picsum.photos/seed/${item.id}/300/460`}
         alt={item.name}
         className="w-full h-full object-cover lg:hidden"
         draggable={false}
