@@ -148,7 +148,7 @@ export default function ProductFlex({ title }) {
   };
 
   return (
-    <section className="py-6">
+    <section className="">
       {title && (
         <h2 className="text-xl lg:text-3xl font-semibold mb-6 px-4 md:px-6">
           {title}
