@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@layer utilities {
     .no-scrollbar::-webkit-scrollbar {
         display: none;
     }
@@ -16,4 +15,32 @@
         -webkit-user-select: none;
         -ms-user-select: none;
     }
-}
+
+    .clean-youtube-embed {
+        @apply relative overflow-hidden;
+      }
+      
+      .clean-youtube-iframe {
+        @apply w-full h-full scale-110 -translate-y-1 pointer-events-none border-0;
+        filter: contrast(1.05) saturate(1.05);
+      }
+      
+      .youtube-overlay {
+        @apply absolute inset-0 pointer-events-none bg-transparent;
+      }
+      
+      /* Sembunyikan watermark YouTube jika muncul */
+      .clean-youtube-embed::after {
+        @apply absolute bottom-2 right-2 w-20 h-5 bg-transparent;
+        content: '';
+        z-index: 10;
+      }
+    
+      .no-youtube-controls {
+        @apply scale-105 contrast-110 saturate-110;
+        transform-origin: center;
+      }
+      
+      .block-interaction {
+        @apply pointer-events-none select-none;
+      }
