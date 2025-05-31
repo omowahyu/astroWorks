@@ -24,13 +24,13 @@ export default function ProductFlex({ title }) {
                 <img
                   src={`https://picsum.photos/seed/${item.id}/500/400`}
                   alt={item.name}
-                  className="w-full h-60 object-cover hidden lg:block"
+                  className="w-full h-60 object-cover hidden lg:block select-none"
                 />
 
                 <img
                   src={`https://picsum.photos/seed/${item.id}/300/700`}
                   alt={item.name}
-                  className="w-full h-60 object-cover lg:hidden"
+                  className="w-full h-60 object-cover lg:hidden select-none"
                 />
               </div>
               <div className="w-full p-2 text-center font-medium text-sm">
