@@ -17,7 +17,7 @@ const useResponsiveSlider = (itemCount) => {
     const updateConfig = () => {
       const isMobile = window.innerWidth < 768;
       const newConfig = {
-        itemWidth: isMobile ? 200 : 320,
+        itemWidth: isMobile ? 200 : 460,
         gap: isMobile ? 12 : 24,
         visibleItems: isMobile ? 1.8 : 3.2,
         maxIndex: Math.max(0, itemCount - (isMobile ? 1.8 : 3.2))
@@ -50,7 +50,7 @@ const ProductCard = ({ item, width }) => (
       <img
         src={`https://picsum.photos/seed/${item.id}/300/460`}
         alt={item.name}
-        className="w-full h-full object-cover lg:hidden"
+        className="w-full h-60 object-cover lg:hidden"
         draggable={false}
       />
     </div>
