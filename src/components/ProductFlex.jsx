@@ -11,7 +11,7 @@ export default function ProductFlex({ title }) {
 
   return (
     <section className="space-y-4">
-      <h2 className="text-4xl font- pb-2 pl-6 lg:pl-20">{title}</h2>
+      <h2 className="text-2xl lg:text-4xl font-medium pb-2 pl-6 lg:pl-20">{title}</h2>
       <div className="overflow-x-auto lg:no-scrollbar ">
         <div className="flex gap-4 lg:gap-10 w-max pl-6 lg:pl-20">
           {dummyData.map((item) => (
