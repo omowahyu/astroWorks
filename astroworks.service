@@ -1,0 +1,49 @@
+[Unit]
+Description=AstroWorks Podman Pod
+Documentation=https://podman.io/
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=%t/containers
+
+[Service]
+Type=exec
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=300
+TimeoutStopSec=300
+
+# Environment
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# User and group
+User=1000
+Group=1000
+
+# Working directory
+WorkingDirectory=/home/user/astroworks
+
+# Start command
+ExecStartPre=/bin/bash -c 'cd /home/user/astroworks && ./podman-setup.sh cleanup || true'
+ExecStart=/bin/bash -c 'cd /home/user/astroworks && ./podman-setup.sh'
+
+# Stop command
+ExecStop=/usr/bin/podman pod stop astroworks-pod
+ExecStopPost=/usr/bin/podman pod rm -f astroworks-pod
+
+# Reload command
+ExecReload=/usr/bin/podman pod restart astroworks-pod
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/user/astroworks/storage /home/user/astroworks/bootstrap/cache
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target

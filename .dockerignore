@@ -1,0 +1,80 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.*
+
+# Dependencies (will be installed in container)
+node_modules
+vendor
+
+# Build artifacts and caches
+public/build
+public/hot
+public/storage
+storage/app/*
+!storage/app/.gitignore
+storage/framework/cache/*
+!storage/framework/cache/.gitignore
+storage/framework/sessions/*
+!storage/framework/sessions/.gitignore
+storage/framework/testing/*
+!storage/framework/testing/.gitignore
+storage/framework/views/*
+!storage/framework/views/.gitignore
+storage/logs/*
+!storage/logs/.gitignore
+bootstrap/cache/*
+!bootstrap/cache/.gitignore
+
+# Testing
+phpunit.xml
+tests
+.phpunit.result.cache
+coverage
+
+# Documentation
+README.md
+PODMAN_README.md
+*.md
+
+# Podman/Docker specific files
+docker-compose.yml
+podman-setup.sh
+astroworks.service
+Makefile
+
+# NPM/Node
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+package-lock.json
+
+# Temporary files
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Laravel specific
+storage/debugbar
+
+# Development tools
+.prettierrc
+.prettierignore
+.editorconfig
+eslint.config.js
+tsconfig.json
+vite.config.ts
+components.json
