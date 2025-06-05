@@ -24,6 +24,7 @@
     },
     "dependencies": {
         "@headlessui/react": "^2.2.0",
+        "@heroicons/react": "^2.2.0",
         "@inertiajs/react": "^2.0.0",
         "@radix-ui/react-avatar": "^1.1.3",
         "@radix-ui/react-checkbox": "^1.1.4",
@@ -46,15 +47,19 @@
         "clsx": "^2.1.1",
         "concurrently": "^9.0.1",
         "globals": "^15.14.0",
+        "immer": "^10.1.1",
+        "keen-slider": "^6.8.6",
         "laravel-vite-plugin": "^1.0",
         "lucide-react": "^0.475.0",
+        "motion": "^12.16.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
         "tailwind-merge": "^3.0.1",
         "tailwindcss": "^4.0.0",
         "tailwindcss-animate": "^1.0.7",
         "typescript": "^5.7.2",
-        "vite": "^6.0"
+        "vite": "^6.0",
+        "zustand": "^5.0.5"
     },
     "optionalDependencies": {
         "@rollup/rollup-linux-x64-gnu": "4.9.5",
