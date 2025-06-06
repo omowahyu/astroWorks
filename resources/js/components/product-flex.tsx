@@ -1,6 +1,7 @@
 import 'keen-slider/keen-slider.min.css';
 import { useKeenSlider } from 'keen-slider/react';
 import { useCallback, useEffect, useRef } from 'react';
+import { Link } from '@inertiajs/react';
 
 // Define types
 interface Product {
@@ -19,22 +20,24 @@ interface ProductFlexProps {
 // Product card component
 const ProductCard = ({ item }: ProductCardProps) => (
     <div className="keen-slider__slide">
-        <div className="overflow-hidden rounded-xl shadow/5">
-            <img
-                src={`https://picsum.photos/seed/${item.id}/600/400`}
-                alt={item.name}
-                className="no-dragable hidden h-full w-full min-w-[400px] object-cover lg:block"
-                draggable={false}
-            />
+        <Link href={route('product.purchase', item.id)} className="block">
+            <div className="overflow-hidden rounded-xl shadow/5 hover:shadow-lg transition-shadow">
+                <img
+                    src={`https://picsum.photos/seed/${item.id}/600/400`}
+                    alt={item.name}
+                    className="no-dragable hidden h-full w-full min-w-[400px] object-cover lg:block"
+                    draggable={false}
+                />
 
-            <img
-                src={`https://picsum.photos/seed/${item.id}/300/460`}
-                alt={item.name}
-                className="h-60 w-full object-cover lg:hidden"
-                draggable={false}
-            />
-        </div>
-        <div className="w-full p-2 text-center text-sm font-medium lg:text-xl dark:text-white">{item.name}</div>
+                <img
+                    src={`https://picsum.photos/seed/${item.id}/300/460`}
+                    alt={item.name}
+                    className="h-60 w-full object-cover lg:hidden"
+                    draggable={false}
+                />
+            </div>
+            <div className="w-full p-2 text-center text-sm font-medium lg:text-xl dark:text-white hover:text-blue-600 transition-colors">{item.name}</div>
+        </Link>
     </div>
 );
 
