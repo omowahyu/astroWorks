@@ -16,9 +16,19 @@ class CategoryFactory extends Factory
      */
     public function definition(): array
     {
+        $categories = [
+            ['name' => 'Kitchen', 'is_accessory' => false],
+            ['name' => 'Wardrobe', 'is_accessory' => false],
+            ['name' => 'Living Room', 'is_accessory' => false],
+            ['name' => 'Bedroom', 'is_accessory' => false],
+            ['name' => 'Accessories', 'is_accessory' => true],
+        ];
+
+        $selected = $this->faker->randomElement($categories);
+
         return [
-            'name' => $this->faker->randomElement(['Kitchen Set', 'Wardrobe', 'Living Room', 'Accessories']),
-            'is_accessory' => $this->faker->boolean(25), // 25% kemungkinan adalah accessories
+            'name' => $selected['name'],
+            'is_accessory' => $selected['is_accessory'],
         ];
     }
 }

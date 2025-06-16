@@ -9,19 +9,126 @@ use Inertia\Inertia;
 
 class ProductController extends Controller
 {
+    public function show($slug)
+    {
+        $product = Product::with([
+            'thumbnailImages',
+            'galleryImages',
+            'heroImages',
+            'mainThumbnail',
+            'unitTypes',
+            'miscOptions',
+            'defaultUnit',
+            'defaultMisc',
+            'categories'
+        ])->where('slug', $slug)->first();
+
+        if (!$product) {
+            // Try to find by ID if slug doesn't work
+            $product = Product::with([
+                'thumbnailImages',
+                'galleryImages',
+                'heroImages',
+                'mainThumbnail',
+                'unitTypes',
+                'miscOptions',
+                'defaultUnit',
+                'defaultMisc',
+                'categories'
+            ])->find($slug);
+        }
+
+        if (!$product) {
+            abort(404, 'Product not found');
+        }
+
+        // Get accessory products
+        $accessories = Product::whereHas('categories', function ($query) {
+            $query->where('is_accessory', true);
+        })->with(['defaultUnit', 'defaultMisc', 'unitTypes', 'miscOptions', 'mainThumbnail'])->get();
+
+        // Format product data with complete image information
+        $productData = [
+            'id' => $product->id,
+            'name' => $product->name,
+            'description' => $product->description,
+            'slug' => $product->slug,
+            'images' => [
+                'thumbnails' => $product->thumbnailImages->map(function ($image) {
+                    return [
+                        'id' => $image->id,
+                        'image_type' => $image->image_type,
+                        'is_thumbnail' => $image->is_thumbnail,
+                        'is_primary' => $image->is_primary,
+                        'display_order' => $image->display_order,
+                        'alt_text' => $image->alt_text,
+                        'image_url' => $image->image_url,
+                        'variants' => $image->image_variants
+                    ];
+                }),
+                'gallery' => $product->galleryImages->map(function ($image) {
+                    return [
+                        'id' => $image->id,
+                        'image_type' => $image->image_type,
+                        'is_thumbnail' => $image->is_thumbnail,
+                        'is_primary' => $image->is_primary,
+                        'display_order' => $image->display_order,
+                        'alt_text' => $image->alt_text,
+                        'image_url' => $image->image_url,
+                        'variants' => $image->image_variants
+                    ];
+                }),
+                'hero' => $product->heroImages->map(function ($image) {
+                    return [
+                        'id' => $image->id,
+                        'image_type' => $image->image_type,
+                        'is_thumbnail' => $image->is_thumbnail,
+                        'is_primary' => $image->is_primary,
+                        'display_order' => $image->display_order,
+                        'alt_text' => $image->alt_text,
+                        'image_url' => $image->image_url,
+                        'variants' => $image->image_variants
+                    ];
+                }),
+                'main_thumbnail' => $product->mainThumbnail ? [
+                    'id' => $product->mainThumbnail->id,
+                    'image_type' => $product->mainThumbnail->image_type,
+                    'is_thumbnail' => $product->mainThumbnail->is_thumbnail,
+                    'is_primary' => $product->mainThumbnail->is_primary,
+                    'display_order' => $product->mainThumbnail->display_order,
+                    'alt_text' => $product->mainThumbnail->alt_text,
+                    'image_url' => $product->mainThumbnail->image_url,
+                    'variants' => $product->mainThumbnail->image_variants
+                ] : null
+            ],
+            'unit_types' => $product->unitTypes,
+            'misc_options' => $product->miscOptions,
+            'default_unit' => $product->defaultUnit,
+            'default_misc' => $product->defaultMisc,
+            'categories' => $product->categories
+        ];
+
+        return Inertia::render('product/Show', [
+            'product' => $productData,
+            'accessories' => $accessories
+        ]);
+    }
+
     public function purchase($id)
     {
         $product = Product::with([
             'unitTypes',
             'miscOptions',
             'defaultUnit',
-            'defaultMisc'
+            'defaultMisc',
+            'images',
+            'primaryImage'
         ])->findOrFail($id);
 
         // Get accessory products
         $accessories = Product::whereHas('categories', function ($query) {
             $query->where('is_accessory', true);
-        })->with(['defaultUnit', 'defaultMisc', 'unitTypes', 'miscOptions'])->get();
+        })->with(['defaultUnit', 'defaultMisc', 'unitTypes', 'miscOptions', 'primaryImage'])->get();
 
         return Inertia::render('ProductPurchase', [
             'product' => $product,
@@ -76,7 +183,7 @@ class ProductController extends Controller
     public function cart()
     {
         $cart = session()->get('cart', []);
-        
+
         return Inertia::render('Cart', [
             'cart' => $cart
         ]);
