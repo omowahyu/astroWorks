@@ -58,9 +58,7 @@ class ProductController extends Controller
                     return [
                         'id' => $image->id,
                         'image_type' => $image->image_type,
-                        'is_thumbnail' => $image->is_thumbnail,
-                        'is_primary' => $image->is_primary,
-                        'display_order' => $image->display_order,
+                        'sort_order' => $image->sort_order,
                         'alt_text' => $image->alt_text,
                         'image_url' => $image->image_url,
                         'variants' => $image->image_variants
@@ -70,9 +68,7 @@ class ProductController extends Controller
                     return [
                         'id' => $image->id,
                         'image_type' => $image->image_type,
-                        'is_thumbnail' => $image->is_thumbnail,
-                        'is_primary' => $image->is_primary,
-                        'display_order' => $image->display_order,
+                        'sort_order' => $image->sort_order,
                         'alt_text' => $image->alt_text,
                         'image_url' => $image->image_url,
                         'variants' => $image->image_variants
@@ -82,9 +78,7 @@ class ProductController extends Controller
                     return [
                         'id' => $image->id,
                         'image_type' => $image->image_type,
-                        'is_thumbnail' => $image->is_thumbnail,
-                        'is_primary' => $image->is_primary,
-                        'display_order' => $image->display_order,
+                        'sort_order' => $image->sort_order,
                         'alt_text' => $image->alt_text,
                         'image_url' => $image->image_url,
                         'variants' => $image->image_variants
@@ -93,9 +87,7 @@ class ProductController extends Controller
                 'main_thumbnail' => $product->mainThumbnail ? [
                     'id' => $product->mainThumbnail->id,
                     'image_type' => $product->mainThumbnail->image_type,
-                    'is_thumbnail' => $product->mainThumbnail->is_thumbnail,
-                    'is_primary' => $product->mainThumbnail->is_primary,
-                    'display_order' => $product->mainThumbnail->display_order,
+                    'sort_order' => $product->mainThumbnail->sort_order,
                     'alt_text' => $product->mainThumbnail->alt_text,
                     'image_url' => $product->mainThumbnail->image_url,
                     'variants' => $product->mainThumbnail->image_variants

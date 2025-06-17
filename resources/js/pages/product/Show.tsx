@@ -1,23 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Head, usePage, Link } from '@inertiajs/react';
-import DynamicImageSingle from '../../components/image/DynamicImageSingle';
-import DynamicImageGallery from '../../components/image/DynamicImageGallery';
+import DynamicImageSingle from '../../components/image/dynamic-image-single';
+import DynamicImageGallery from '../../components/image/dynamic-image-gallery';
 
 // TypeScript interfaces
 interface ProductImageData {
   id: number;
   image_type: 'thumbnail' | 'gallery' | 'hero';
-  is_thumbnail: boolean;
-  is_primary: boolean;
-  display_order: number;
+  sort_order: number;
   alt_text: string;
   image_url: string;
-  variants: {
-    original: string;
-    mobile_portrait: string | null;
-    mobile_square: string | null;
-    desktop_landscape: string | null;
-  };
+  variants?: any;
 }
 
 interface ProductImages {
@@ -374,7 +367,7 @@ export default function ProductShow() {
                 </div>
 
                 {/* Unit Type Selector */}
-                {product.unit_types.length > 0 && (
+                {product.unit_types && product.unit_types.length > 0 ? (
                   <div className="space-y-3">
                     <h3 className="text-lg font-semibold text-gray-900">Ukuran/Dimensi</h3>
                     <div className="grid grid-cols-2 gap-3">
@@ -394,10 +387,18 @@ export default function ProductShow() {
                       ))}
                     </div>
                   </div>
+                ) : (
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-gray-900">Ukuran/Dimensi</h3>
+                    <div className="p-4 bg-gray-50 rounded-lg text-center">
+                      <p className="text-gray-500">Ukuran belum tersedia untuk produk ini.</p>
+                      <p className="text-sm text-gray-400 mt-1">Hubungi kami untuk informasi lebih lanjut.</p>
+                    </div>
+                  </div>
                 )}
 
                 {/* Misc Options */}
-                {product.misc_options.length > 0 && (
+                {product.misc_options && product.misc_options.length > 0 ? (
                   <div className="space-y-3">
                     <h3 className="text-lg font-semibold text-gray-900">Warna/Tema</h3>
                     {/* Group misc options by label */}
@@ -427,6 +428,14 @@ export default function ProductShow() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-gray-900">Warna/Tema</h3>
+                    <div className="p-4 bg-gray-50 rounded-lg text-center">
+                      <p className="text-gray-500">Pilihan warna/tema belum tersedia untuk produk ini.</p>
+                      <p className="text-sm text-gray-400 mt-1">Hubungi kami untuk informasi lebih lanjut.</p>
+                    </div>
                   </div>
                 )}
 

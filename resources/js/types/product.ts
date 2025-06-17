@@ -43,12 +43,18 @@ export interface ProductImage {
     image_path: string;
     /** Alternative text for accessibility */
     alt_text?: string;
-    /** Whether this is the primary/main image */
-    is_primary: boolean;
+    /** Image type: thumbnail, gallery, or hero */
+    image_type: 'thumbnail' | 'gallery' | 'hero';
     /** Sort order for displaying images */
     sort_order: number;
     /** Full URL to the image */
     image_url: string;
+    /** Image variants for responsive display */
+    variants?: {
+        mobile_portrait?: string;
+        mobile_square?: string;
+        desktop_landscape?: string;
+    };
 }
 
 /**

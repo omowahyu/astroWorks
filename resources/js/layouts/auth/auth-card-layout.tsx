@@ -1,4 +1,4 @@
-import AppLogoIcon from '@/components/AppLogoIcon';
+// import AppLogoIcon from '@/components/AppLogoIcon'; // File tidak ada
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';

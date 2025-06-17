@@ -9,7 +9,7 @@ use Inertia\Inertia;
 
 /**
  * Admin Video Controller
- * 
+ *
  * Handles CRUD operations for homepage videos
  */
 class VideoController extends Controller
@@ -21,7 +21,7 @@ class VideoController extends Controller
     {
         $videos = Video::ordered()->paginate(10);
 
-        return Inertia::render('Admin/Videos/Index', [
+        return Inertia::render('dashboard/videos/index', [
             'videos' => $videos
         ]);
     }
@@ -31,7 +31,7 @@ class VideoController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Admin/Videos/Create');
+        return Inertia::render('dashboard/videos/create');
     }
 
     /**
@@ -52,7 +52,7 @@ class VideoController extends Controller
 
         // Extract YouTube ID
         $youtubeId = Video::extractYouTubeId($validated['youtube_url']);
-        
+
         if (!$youtubeId) {
             return back()->withErrors(['youtube_url' => 'Invalid YouTube URL']);
         }
@@ -75,7 +75,7 @@ class VideoController extends Controller
      */
     public function show(Video $video)
     {
-        return Inertia::render('Admin/Videos/Show', [
+        return Inertia::render('dashboard/videos/show', [
             'video' => $video
         ]);
     }
@@ -85,7 +85,7 @@ class VideoController extends Controller
      */
     public function edit(Video $video)
     {
-        return Inertia::render('Admin/Videos/Edit', [
+        return Inertia::render('dashboard/videos/edit', [
             'video' => $video
         ]);
     }
@@ -109,11 +109,11 @@ class VideoController extends Controller
         // Extract YouTube ID if URL changed
         if ($validated['youtube_url'] !== $video->youtube_url) {
             $youtubeId = Video::extractYouTubeId($validated['youtube_url']);
-            
+
             if (!$youtubeId) {
                 return back()->withErrors(['youtube_url' => 'Invalid YouTube URL']);
             }
-            
+
             $validated['youtube_id'] = $youtubeId;
         }
 

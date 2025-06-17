@@ -5,77 +5,55 @@ use Inertia\Inertia;
 use App\Http\Controllers\ProductController;
 
 Route::get('/', function () {
-    $featuredVideo = \App\Models\Video::active()->ordered()->first();
+    // Cache homepage data for 10 minutes (more aggressive caching)
+    $featuredVideo = \Illuminate\Support\Facades\Cache::remember('homepage.featured_video', 600, function () {
+        return \App\Models\Video::active()->ordered()->first();
+    });
 
-    // Get categories with their products and complete image data
-    $categoriesWithProducts = \App\Models\Category::with([
-        'products.thumbnailImages',
-        'products.galleryImages',
-        'products.heroImages',
-        'products.mainThumbnail',
-        'products.defaultUnit'
-    ])
-        ->whereHas('products') // Only categories that have products
-        ->get()
-        ->map(function ($category) {
+    // Optimized query with selective fields and limited data + longer caching
+    $categoriesWithProducts = \Illuminate\Support\Facades\Cache::remember('homepage.categories', 600, function () {
+        return \App\Models\Category::select(['categories.id', 'categories.name', 'categories.is_accessory'])
+        ->with([
+            'products' => function ($query) {
+                $query->select(['products.id', 'products.name', 'products.description', 'products.slug'])
+                      ->take(6); // Limit products per category for homepage
+            },
+            'products.thumbnailImages' => function ($query) {
+                $query->select(['product_images.id', 'product_images.product_id', 'product_images.image_path', 'product_images.alt_text', 'product_images.sort_order'])
+                      ->orderBy('product_images.sort_order')
+                      ->take(1); // Only first thumbnail for homepage
+            },
+            'products.defaultUnit' => function ($query) {
+                $query->select(['unit_types.id', 'unit_types.product_id', 'unit_types.label', 'unit_types.price']);
+            }
+        ])
+            ->whereHas('products') // Only categories that have products
+            ->get()
+            ->map(function ($category) {
             return [
                 'id' => $category->id,
                 'name' => $category->name,
                 'is_accessory' => $category->is_accessory,
                 'products' => $category->products->map(function ($product) {
+                    $thumbnail = $product->thumbnailImages->first();
                     return [
                         'id' => $product->id,
                         'name' => $product->name,
                         'description' => $product->description,
                         'slug' => $product->slug,
                         'primary_image_url' => $product->primary_image_url,
-                        'image_variants' => $product->image_variants,
                         'images' => [
-                            'thumbnails' => $product->thumbnailImages->map(function ($image) {
-                                return [
-                                    'id' => $image->id,
-                                    'image_type' => $image->image_type,
-                                    'is_thumbnail' => $image->is_thumbnail,
-                                    'is_primary' => $image->is_primary,
-                                    'display_order' => $image->display_order,
-                                    'alt_text' => $image->alt_text,
-                                    'image_url' => $image->image_url,
-                                    'variants' => $image->image_variants
-                                ];
-                            }),
-                            'gallery' => $product->galleryImages->map(function ($image) {
-                                return [
-                                    'id' => $image->id,
-                                    'image_type' => $image->image_type,
-                                    'is_thumbnail' => $image->is_thumbnail,
-                                    'is_primary' => $image->is_primary,
-                                    'display_order' => $image->display_order,
-                                    'alt_text' => $image->alt_text,
-                                    'image_url' => $image->image_url,
-                                    'variants' => $image->image_variants
-                                ];
-                            }),
-                            'hero' => $product->heroImages->map(function ($image) {
-                                return [
-                                    'id' => $image->id,
-                                    'image_type' => $image->image_type,
-                                    'is_thumbnail' => $image->is_thumbnail,
-                                    'is_primary' => $image->is_primary,
-                                    'display_order' => $image->display_order,
-                                    'alt_text' => $image->alt_text,
-                                    'image_url' => $image->image_url,
-                                    'variants' => $image->image_variants
-                                ];
-                            }),
-                            'main_thumbnail' => $product->mainThumbnail ? [
-                                'id' => $product->mainThumbnail->id,
-                                'image_type' => $product->mainThumbnail->image_type,
-                                'is_thumbnail' => $product->mainThumbnail->is_thumbnail,
-                                'is_primary' => $product->mainThumbnail->is_primary,
-                                'display_order' => $product->mainThumbnail->display_order,
-                                'alt_text' => $product->mainThumbnail->alt_text,
-                                'image_url' => $product->mainThumbnail->image_url,
-                                'variants' => $product->mainThumbnail->image_variants
+                            'thumbnails' => $thumbnail ? [[
+                                'id' => $thumbnail->id,
+                                'image_url' => $thumbnail->image_url,
+                                'alt_text' => $thumbnail->alt_text
+                            ]] : [],
+                            'gallery' => [], // Not needed for homepage
+                            'hero' => [], // Not needed for homepage
+                            'main_thumbnail' => $thumbnail ? [
+                                'id' => $thumbnail->id,
+                                'image_url' => $thumbnail->image_url,
+                                'alt_text' => $thumbnail->alt_text
                             ] : null
                         ],
                         'default_unit' => $product->defaultUnit ? [
@@ -86,10 +64,11 @@ Route::get('/', function () {
                 })
             ];
         });
+    });
 
     return Inertia::render('Homepage', [
         'featuredVideo' => $featuredVideo,
-        'categoriesWithProducts' => $categoriesWithProducts
+        'categories' => $categoriesWithProducts
     ]);
 })->name('home');
 
@@ -144,8 +123,12 @@ Route::prefix('products')->group(function () {
     Route::get('{product}/thumbnail', [App\Http\Controllers\Api\ProductImageController::class, 'getMainThumbnail']);
 });
 
-// Admin routes
-Route::prefix('admin')->name('admin.')->group(function () {
+// Dashboard management routes
+Route::prefix('dashboard')->name('dashboard.')->middleware(['auth', 'verified'])->group(function () {
+    // Categories management
+    Route::resource('categories', App\Http\Controllers\Admin\CategoryController::class);
+
+    // Products management
     Route::resource('products', App\Http\Controllers\Admin\ProductController::class);
     Route::post('products/{product}/images', [App\Http\Controllers\Admin\ProductController::class, 'uploadImages'])
         ->name('products.upload-images');
@@ -154,6 +137,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::patch('images/{image}/primary', [App\Http\Controllers\Admin\ProductController::class, 'setPrimaryImage'])
         ->name('images.set-primary');
 
+    // Videos management
     Route::resource('videos', App\Http\Controllers\Admin\VideoController::class);
     Route::patch('videos/{video}/toggle-active', [App\Http\Controllers\Admin\VideoController::class, 'toggleActive'])
         ->name('videos.toggle-active');

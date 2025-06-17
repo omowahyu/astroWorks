@@ -93,7 +93,10 @@ class Product extends Model
      */
     public function primaryImage(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(ProductImage::class)->where('is_primary', true);
+        return $this->hasOne(ProductImage::class)
+                    ->where('image_type', ProductImage::TYPE_THUMBNAIL)
+                    ->orderBy('sort_order')
+                    ->orderBy('created_at');
     }
 
     /**
@@ -101,7 +104,7 @@ class Product extends Model
      */
     public function thumbnailImages(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(ProductImage::class)->thumbnails()->orderedByDisplay();
+        return $this->hasMany(ProductImage::class)->thumbnails()->ordered();
     }
 
     /**
@@ -109,7 +112,7 @@ class Product extends Model
      */
     public function galleryImages(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(ProductImage::class)->gallery()->orderedByDisplay();
+        return $this->hasMany(ProductImage::class)->gallery()->ordered();
     }
 
     /**
@@ -117,7 +120,7 @@ class Product extends Model
      */
     public function heroImages(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(ProductImage::class)->hero()->orderedByDisplay();
+        return $this->hasMany(ProductImage::class)->hero()->ordered();
     }
 
     /**
@@ -127,7 +130,7 @@ class Product extends Model
     {
         return $this->hasOne(ProductImage::class)
                     ->thumbnails()
-                    ->orderBy('display_order')
+                    ->orderBy('sort_order')
                     ->orderBy('created_at');
     }
 
@@ -146,8 +149,21 @@ class Product extends Model
      */
     public function getPrimaryImageUrlAttribute(): string
     {
-        if ($this->primaryImage) {
-            return $this->primaryImage->image_url;
+        // Try to get main thumbnail first
+        if ($this->mainThumbnail) {
+            return $this->mainThumbnail->image_url;
+        }
+
+        // Fallback to any thumbnail
+        $thumbnail = $this->thumbnailImages()->first();
+        if ($thumbnail) {
+            return $thumbnail->image_url;
+        }
+
+        // Fallback to any image
+        $anyImage = $this->images()->first();
+        if ($anyImage) {
+            return $anyImage->image_url;
         }
 
         // Check if there are any images in storage

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Head, usePage, Link } from '@inertiajs/react';
-import DynamicImageSingle from '@/components/image/DynamicImageSingle';
-import DynamicImageGallery from '@/components/image/DynamicImageGallery';
+import DynamicImageSingle from '@/components/image/dynamic-image-single';
+import DynamicImageGallery from '@/components/image/dynamic-image-gallery';
 
 // TypeScript interfaces
 interface ProductImageData {

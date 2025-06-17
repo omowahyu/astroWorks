@@ -13,7 +13,7 @@ use App\Services\ImageOptimizationService;
 
 /**
  * Admin Product Controller
- * 
+ *
  * Handles CRUD operations for products in the admin dashboard
  */
 class ProductController extends Controller
@@ -29,11 +29,42 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::with(['primaryImage', 'categories', 'defaultUnit'])
-            ->paginate(10);
+        $products = Product::with(['primaryImage', 'categories', 'defaultUnit', 'thumbnailImages'])
+            ->latest()
+            ->paginate(15);
 
-        return Inertia::render('Admin/Products/Index', [
-            'products' => $products
+        // Format products data for frontend
+        $formattedProducts = $products->through(function ($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'description' => $product->description,
+                'slug' => $product->slug,
+                'created_at' => $product->created_at,
+                'updated_at' => $product->updated_at,
+                'categories' => $product->categories->map(function ($category) {
+                    return [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'is_accessory' => $category->is_accessory
+                    ];
+                }),
+                'primary_image_url' => $product->primary_image_url,
+                'thumbnail_image' => $product->thumbnailImages->first() ? [
+                    'id' => $product->thumbnailImages->first()->id,
+                    'image_url' => $product->thumbnailImages->first()->image_url,
+                    'alt_text' => $product->thumbnailImages->first()->alt_text
+                ] : null,
+                'default_unit' => $product->defaultUnit ? [
+                    'id' => $product->defaultUnit->id,
+                    'label' => $product->defaultUnit->label,
+                    'price' => $product->defaultUnit->price
+                ] : null
+            ];
+        });
+
+        return Inertia::render('dashboard/products/index', [
+            'products' => $formattedProducts
         ]);
     }
 
@@ -42,10 +73,16 @@ class ProductController extends Controller
      */
     public function create()
     {
-        $categories = Category::all();
+        $categories = Category::orderBy('name')->get();
 
-        return Inertia::render('Admin/Products/Create', [
-            'categories' => $categories
+        return Inertia::render('dashboard/products/create', [
+            'categories' => $categories->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'is_accessory' => $category->is_accessory
+                ];
+            })
         ]);
     }
 
@@ -128,7 +165,7 @@ class ProductController extends Controller
             }
         }
 
-        return redirect()->route('admin.products.index')
+        return redirect()->route('dashboard.products.index')
             ->with('success', 'Product created successfully.');
     }
 
@@ -139,7 +176,7 @@ class ProductController extends Controller
     {
         $product->load(['images', 'unitTypes', 'miscOptions', 'categories']);
 
-        return Inertia::render('Admin/Products/Show', [
+        return Inertia::render('dashboard/products/show', [
             'product' => $product
         ]);
     }
@@ -149,12 +186,49 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
-        $product->load(['images', 'unitTypes', 'miscOptions', 'categories']);
-        $categories = Category::all();
+        $product->load(['images', 'unitTypes', 'categories']);
+        $categories = Category::orderBy('name')->get();
 
-        return Inertia::render('Admin/Products/Edit', [
-            'product' => $product,
-            'categories' => $categories
+        return Inertia::render('dashboard/products/edit', [
+            'product' => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'description' => $product->description,
+                'slug' => $product->slug,
+                'created_at' => $product->created_at,
+                'updated_at' => $product->updated_at,
+                'categories' => $product->categories->map(function ($category) {
+                    return [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'is_accessory' => $category->is_accessory
+                    ];
+                }),
+                'unit_types' => $product->unitTypes->map(function ($unitType) {
+                    return [
+                        'id' => $unitType->id,
+                        'label' => $unitType->label,
+                        'price' => $unitType->price,
+                        'is_default' => $unitType->is_default
+                    ];
+                }),
+                'images' => $product->images->map(function ($image) {
+                    return [
+                        'id' => $image->id,
+                        'image_path' => $image->image_path,
+                        'alt_text' => $image->alt_text,
+                        'image_type' => $image->image_type,
+                        'sort_order' => $image->sort_order
+                    ];
+                })
+            ],
+            'categories' => $categories->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'is_accessory' => $category->is_accessory
+                ];
+            })
         ]);
     }
 
@@ -167,7 +241,12 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'categories' => 'array',
-            'categories.*' => 'exists:categories,id'
+            'categories.*' => 'exists:categories,id',
+            'unit_types' => 'required|array|min:1',
+            'unit_types.*.id' => 'nullable|exists:unit_types,id',
+            'unit_types.*.label' => 'required|string|max:255',
+            'unit_types.*.price' => 'required|numeric|min:0',
+            'unit_types.*.is_default' => 'boolean'
         ]);
 
         $product->update([
@@ -180,7 +259,39 @@ class ProductController extends Controller
             $product->categories()->sync($validated['categories']);
         }
 
-        return redirect()->route('admin.products.index')
+        // Update unit types
+        if (isset($validated['unit_types'])) {
+            // Get existing unit type IDs
+            $existingIds = $product->unitTypes()->pluck('id')->toArray();
+            $submittedIds = array_filter(array_column($validated['unit_types'], 'id'));
+
+            // Delete unit types that are not in the submitted data
+            $toDelete = array_diff($existingIds, $submittedIds);
+            if (!empty($toDelete)) {
+                $product->unitTypes()->whereIn('id', $toDelete)->delete();
+            }
+
+            // Update or create unit types
+            foreach ($validated['unit_types'] as $index => $unitTypeData) {
+                if (isset($unitTypeData['id']) && $unitTypeData['id']) {
+                    // Update existing
+                    $product->unitTypes()->where('id', $unitTypeData['id'])->update([
+                        'label' => $unitTypeData['label'],
+                        'price' => $unitTypeData['price'],
+                        'is_default' => $unitTypeData['is_default'] ?? false
+                    ]);
+                } else {
+                    // Create new
+                    $product->unitTypes()->create([
+                        'label' => $unitTypeData['label'],
+                        'price' => $unitTypeData['price'],
+                        'is_default' => $unitTypeData['is_default'] ?? false
+                    ]);
+                }
+            }
+        }
+
+        return redirect()->route('dashboard.products.index')
             ->with('success', 'Product updated successfully.');
     }
 
@@ -200,7 +311,7 @@ class ProductController extends Controller
 
         $product->delete();
 
-        return redirect()->route('admin.products.index')
+        return redirect()->route('dashboard.products.index')
             ->with('success', 'Product deleted successfully.');
     }
 
@@ -225,15 +336,9 @@ class ProductController extends Controller
                 ProductImage::create([
                     'product_id' => $product->id,
                     'image_path' => $imageData['original_path'],
-                    'mobile_portrait_path' => $imageData['mobile_portrait_path'],
-                    'mobile_square_path' => $imageData['mobile_square_path'],
-                    'desktop_landscape_path' => $imageData['desktop_landscape_path'],
                     'alt_text' => "{$product->name} - Image {$imageNumber}",
-                    'is_primary' => $existingImagesCount === 0 && $index === 0,
-                    'sort_order' => $existingImagesCount + $index,
-                    'original_file_size' => $imageData['original_file_size'],
-                    'optimized_file_size' => $imageData['optimized_file_size'],
-                    'image_metadata' => $imageData['image_metadata']
+                    'image_type' => $existingImagesCount === 0 && $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
+                    'sort_order' => $existingImagesCount + $index
                 ]);
             } catch (\Exception $e) {
                 \Log::error("Failed to process additional image for product {$product->id}: " . $e->getMessage());
@@ -264,16 +369,17 @@ class ProductController extends Controller
     }
 
     /**
-     * Set primary image
+     * Set primary image (now sets as thumbnail)
      */
     public function setPrimaryImage(ProductImage $image)
     {
-        // Remove primary status from other images
+        // Remove thumbnail status from other images of the same product
         ProductImage::where('product_id', $image->product_id)
-            ->update(['is_primary' => false]);
+            ->where('image_type', ProductImage::TYPE_THUMBNAIL)
+            ->update(['image_type' => ProductImage::TYPE_GALLERY]);
 
-        // Set this image as primary
-        $image->update(['is_primary' => true]);
+        // Set this image as thumbnail (primary)
+        $image->update(['image_type' => ProductImage::TYPE_THUMBNAIL]);
 
         return back()->with('success', 'Primary image updated successfully.');
     }

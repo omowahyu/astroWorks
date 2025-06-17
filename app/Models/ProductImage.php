@@ -134,14 +134,14 @@ class ProductImage extends Model
     }
 
     /**
-     * Scope to get only primary images
+     * Scope to get only thumbnail images (replaces primary functionality)
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopePrimary($query)
     {
-        return $query->where('is_primary', true);
+        return $query->where('image_type', self::TYPE_THUMBNAIL);
     }
 
     /**
@@ -155,16 +155,7 @@ class ProductImage extends Model
         return $query->orderBy('sort_order')->orderBy('created_at');
     }
 
-    /**
-     * Scope to order images by display order (new ordering system)
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeOrderedByDisplay($query)
-    {
-        return $query->orderBy('display_order')->orderBy('created_at');
-    }
+
 
     /**
      * Scope to get images by type
@@ -186,8 +177,7 @@ class ProductImage extends Model
      */
     public function scopeThumbnails($query)
     {
-        return $query->where('image_type', self::TYPE_THUMBNAIL)
-                    ->orWhere('is_thumbnail', true);
+        return $query->where('image_type', self::TYPE_THUMBNAIL);
     }
 
     /**
@@ -213,25 +203,25 @@ class ProductImage extends Model
     }
 
     /**
-     * Boot the model to handle primary image logic
+     * Boot the model to handle thumbnail image logic
      */
     protected static function booted(): void
     {
-        // Ensure only one primary image per product
+        // Ensure only one thumbnail image per product
         static::saving(function ($image) {
-            if ($image->is_primary) {
+            if ($image->image_type === self::TYPE_THUMBNAIL) {
                 static::query()
                     ->where('product_id', $image->product_id)
                     ->where('id', '!=', $image->id)
-                    ->update(['is_primary' => false]);
+                    ->update(['image_type' => self::TYPE_GALLERY]);
             }
         });
 
-        // If this is the first image for a product, make it primary
+        // If this is the first image for a product, make it thumbnail
         static::created(function ($image) {
             $imageCount = static::where('product_id', $image->product_id)->count();
-            if ($imageCount === 1) {
-                $image->update(['is_primary' => true]);
+            if ($imageCount === 1 && $image->image_type !== self::TYPE_THUMBNAIL) {
+                $image->update(['image_type' => self::TYPE_THUMBNAIL]);
             }
         });
     }

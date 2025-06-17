@@ -1,4 +1,4 @@
-import AppLogoIcon from '@/components/AppLogoIcon';
+// import AppLogoIcon from '@/components/AppLogoIcon'; // File tidak ada
 import { type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
