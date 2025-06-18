@@ -40,41 +40,37 @@ jobs:
           ssh-add <(echo "$SSH_PRIVATE_KEY")
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Deploy to server
+      - name: Deploy via SSH with Git Pull
         env:
           SERVER_HOST: ${{ secrets.REMOTE_HOST }}
           SERVER_USER: ${{ secrets.REMOTE_USER }}
           SERVER_PORT: ${{ secrets.REMOTE_PORT }}
           DEPLOY_PATH: ${{ secrets.REMOTE_TARGET }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          rsync -avz --delete --no-times \
-            -e "ssh -o StrictHostKeyChecking=no -p $SERVER_PORT" \
-            ./ $SERVER_USER@$SERVER_HOST:$DEPLOY_PATH
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
 
-          ssh -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'EOF'
+          ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'EOF'
             set -e
             cd $DEPLOY_PATH
 
-            if [ ! -f artisan ]; then
-              echo "Laravel not found. Aborting."
-              exit 1
-            fi
+            echo "Pulling latest changes..."
+            git reset --hard
+            git pull origin main
 
-            if [ ! -f .env ] || ! grep -q "APP_KEY=" .env || grep -q "APP_KEY=$" .env; then
-              echo "Generating application key..."
-              php artisan key:generate --force
-            fi
+            echo "Installing PHP dependencies..."
+            composer install --no-interaction --prefer-dist --optimize-autoloader
 
             echo "Running migrations..."
             php artisan migrate --force
-            echo "Seeding admin..."
             php artisan db:seed --class=AdminUserSeeder --force
 
-            echo "Clearing & caching configs..."
+            echo "Optimizing app..."
             php artisan config:clear
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
-            echo "Done!"
           EOF
+
+          rm private_key
