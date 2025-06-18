@@ -7,9 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Plus, Trash2, Upload, X, GripVertical } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 
 interface Category {
     id: number;
@@ -80,8 +79,7 @@ const breadcrumbs = (productId: number): BreadcrumbItem[] => [
 ];
 
 export default function ProductEdit({ product, categories }: Props) {
-    const [unitTypes, setUnitTypes] = useState<UnitType[]>(product.unit_types || []);
-    const [miscOptions, setMiscOptions] = useState<MiscOption[]>(product.misc_options || []);
+    // Removed unused state variables
     const [imagesPreviews, setImagesPreviews] = useState<ImagePreview[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string>('');
 
@@ -153,43 +151,7 @@ export default function ProductEdit({ product, categories }: Props) {
         });
     };
 
-    const addUnitType = () => {
-        setUnitTypes([...unitTypes, { label: '', price: '', is_default: false }]);
-    };
-
-    const removeUnitType = (index: number) => {
-        if (unitTypes.length > 1) {
-            const newUnitTypes = unitTypes.filter((_, i) => i !== index);
-            setUnitTypes(newUnitTypes);
-        }
-    };
-
-    const updateUnitType = (index: number, field: keyof UnitType, value: string | boolean) => {
-        const newUnitTypes = [...unitTypes];
-        if (field === 'is_default' && value === true) {
-            newUnitTypes.forEach((ut, i) => {
-                ut.is_default = i === index;
-            });
-        } else {
-            newUnitTypes[index] = { ...newUnitTypes[index], [field]: value };
-        }
-        setUnitTypes(newUnitTypes);
-    };
-
-    const addMiscOption = () => {
-        setMiscOptions([...miscOptions, { label: '', value: '', is_default: false }]);
-    };
-
-    const removeMiscOption = (index: number) => {
-        const newMiscOptions = miscOptions.filter((_, i) => i !== index);
-        setMiscOptions(newMiscOptions);
-    };
-
-    const updateMiscOption = (index: number, field: keyof MiscOption, value: string | boolean) => {
-        const newMiscOptions = [...miscOptions];
-        newMiscOptions[index] = { ...newMiscOptions[index], [field]: value };
-        setMiscOptions(newMiscOptions);
-    };
+    // Removed unused functions - these are not used in the current form
 
     const handleCategoryChange = (value: string) => {
         if (value && !data.categories.includes(parseInt(value))) {
@@ -202,39 +164,7 @@ export default function ProductEdit({ product, categories }: Props) {
         setData('categories', data.categories.filter(id => id !== categoryId));
     };
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const files = Array.from(e.target.files);
-            const newPreviews: ImagePreview[] = files.map(file => ({
-                file,
-                url: URL.createObjectURL(file),
-                id: Math.random().toString(36).substr(2, 9)
-            }));
-
-            setImagesPreviews(prev => [...prev, ...newPreviews]);
-            setData('images', [...data.images, ...files]);
-        }
-    };
-
-    const removeImage = (imageId: string) => {
-        const imageToRemove = imagesPreviews.find(img => img.id === imageId);
-        if (imageToRemove) {
-            if (imageToRemove.url.startsWith('blob:')) {
-                URL.revokeObjectURL(imageToRemove.url);
-            }
-            setImagesPreviews(prev => prev.filter(img => img.id !== imageId));
-            if (imageToRemove.file) {
-                setData('images', data.images.filter(file => file !== imageToRemove.file));
-            }
-        }
-    };
-
-    const moveImage = (fromIndex: number, toIndex: number) => {
-        const newPreviews = [...imagesPreviews];
-        const [movedPreview] = newPreviews.splice(fromIndex, 1);
-        newPreviews.splice(toIndex, 0, movedPreview);
-        setImagesPreviews(newPreviews);
-    };
+    // Removed unused image handling functions - these are not used in the current form
 
     // Cleanup object URLs on unmount
     useEffect(() => {

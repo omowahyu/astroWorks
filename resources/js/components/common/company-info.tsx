@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card"
+// Removed unused imports
 
 export default function CompanyInfo() {
     return (

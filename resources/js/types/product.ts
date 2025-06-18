@@ -139,7 +139,7 @@ export interface ProductPurchasePageProps {
     /** Available accessories for the product */
     accessories: Accessory[];
     /** Additional props that might be passed from Inertia */
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 /**

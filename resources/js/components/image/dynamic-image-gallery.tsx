@@ -49,9 +49,7 @@ interface DynamicImageGalleryProps {
 
 const DynamicImageGallery: React.FC<DynamicImageGalleryProps> = ({
   productId,
-  name,
   className = '',
-  imageCount = 3,
   autoAdvance = false,
   autoAdvanceInterval = 5000,
   rounded = '2xl',
@@ -64,12 +62,10 @@ const DynamicImageGallery: React.FC<DynamicImageGalleryProps> = ({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [galleryImages, setGalleryImages] = useState<GalleryImageData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isIntersecting, setIsIntersecting] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   // Touch/swipe state
   const [touchStartX, setTouchStartX] = useState(0);
-  const [touchEndX, setTouchEndX] = useState(0);
 
   // Refs
   const galleryContainer = useRef<HTMLDivElement>(null);
@@ -125,7 +121,7 @@ const DynamicImageGallery: React.FC<DynamicImageGalleryProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [productId, imageCount, name, debug, productImages]);
+  }, [productId, debug, productImages]);
 
   /**
    * Setup Intersection Observer for lazy loading
@@ -137,13 +133,10 @@ const DynamicImageGallery: React.FC<DynamicImageGalleryProps> = ({
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            setIsIntersecting(true);
             if (!hasLoadedOnce) {
               setHasLoadedOnce(true);
               loadGalleryImages();
             }
-          } else {
-            setIsIntersecting(false);
           }
         });
       },
@@ -180,7 +173,7 @@ const DynamicImageGallery: React.FC<DynamicImageGalleryProps> = ({
     setTimeout(() => {
       setIsTransitioning(false);
     }, 300);
-  }, [isTransitioning, currentIndex, galleryImages.length]);
+  }, [isTransitioning, currentIndex, galleryImages.length, resetAutoAdvance]);
 
   /**
    * Navigate to previous image

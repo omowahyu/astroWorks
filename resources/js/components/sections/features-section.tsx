@@ -1,4 +1,4 @@
-import { Award } from "lucide-react"
+// Removed unused Award import
 
 export default function FeaturesSection() {
     return (

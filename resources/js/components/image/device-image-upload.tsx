@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
+// Removed unused Button import
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -53,7 +53,7 @@ const DeviceImageUpload: React.FC<DeviceImageUploadProps> = ({
                 onDesktopUpload(files, compressionLevel);
             }
         }
-    }, [onMobileUpload, onDesktopUpload]);
+    }, [onMobileUpload, onDesktopUpload, compressionLevel]);
 
     const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>, deviceType: 'mobile' | 'desktop') => {
         const files = e.target.files;
@@ -66,7 +66,7 @@ const DeviceImageUpload: React.FC<DeviceImageUploadProps> = ({
         }
         // Reset input value to allow selecting the same file again
         e.target.value = '';
-    }, [onMobileUpload, onDesktopUpload]);
+    }, [onMobileUpload, onDesktopUpload, compressionLevel]);
 
     const renderUploadArea = (deviceType: 'mobile' | 'desktop') => {
         const isDragOver = dragOver === deviceType;

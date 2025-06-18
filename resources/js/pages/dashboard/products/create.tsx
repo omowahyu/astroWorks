@@ -75,11 +75,11 @@ export default function ProductCreate({ categories }: Props) {
     // Sync unitTypes and miscOptions with form data
     useEffect(() => {
         setData('unit_types', unitTypes);
-    }, [unitTypes]);
+    }, [unitTypes, setData]);
 
     useEffect(() => {
         setData('misc_options', miscOptions);
-    }, [miscOptions]);
+    }, [miscOptions, setData]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

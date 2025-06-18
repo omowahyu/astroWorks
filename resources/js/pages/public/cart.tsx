@@ -24,7 +24,7 @@ interface PageProps {
         BANK_ACCOUNT_NAME: string;
         BANK_ACCOUNT_NUMBER: string;
     };
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export default function Cart() {

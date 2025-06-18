@@ -4,7 +4,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2, Eye } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import DynamicImageSingle from '@/components/image/dynamic-image-single';
 
@@ -58,8 +58,17 @@ interface Product {
 interface Props {
     products: {
         data: Product[];
-        links: any[];
-        meta: any;
+        links: Array<{
+            url: string | null;
+            label: string;
+            active: boolean;
+        }>;
+        meta: {
+            current_page: number;
+            last_page: number;
+            per_page: number;
+            total: number;
+        };
     };
 }
 

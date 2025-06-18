@@ -25,22 +25,9 @@ export const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
     product, 
     className = '' 
 }) => {
-    // ALWAYS use placeholder to avoid 403 errors
-    const getImageUrls = () => {
-        return [
-            `/images/placeholder-product.svg`,
-            `/images/placeholder-product.svg`,
-            `/images/placeholder-product.svg`,
-            `/images/placeholder-product.svg`,
-            `/images/placeholder-product.svg`,
-            `/images/placeholder-product.svg`,
-        ];
-    };
-
-    const imageUrls = getImageUrls();
+    // Removed unused getImageUrls function
 
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-    const [imageLoadError, setImageLoadError] = useState<Record<number, boolean>>({});
 
     /**
      * Handle thumbnail click to change main image
@@ -48,20 +35,6 @@ export const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
     const handleThumbnailClick = useCallback((index: number) => {
         setSelectedImageIndex(index);
     }, []);
-
-    /**
-     * Handle image load error
-     */
-    const handleImageError = useCallback((index: number) => {
-        setImageLoadError(prev => ({ ...prev, [index]: true }));
-    }, []);
-
-    /**
-     * Get fallback image URL for failed loads
-     */
-    const getFallbackImageUrl = useCallback((index: number) => {
-        return `https://picsum.photos/seed/${product.id + index}/800/600`;
-    }, [product.id]);
 
     return (
         <div className={`space-y-4 ${className}`}>

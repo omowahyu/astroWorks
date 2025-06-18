@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 
 // --- React project imports ---
 import DynamicImageSingle from '../image/dynamic-image-single'; // TSX component with new database schema
@@ -11,7 +11,7 @@ interface ProductImageData {
     sort_order: number;
     alt_text: string;
     image_url: string;
-    variants: any;
+    variants: Record<string, unknown>;
 }
 
 interface ProductImages {
@@ -27,7 +27,7 @@ interface Product {
     description: string;
     slug?: string;
     primary_image_url?: string;
-    image_variants?: any;
+    image_variants?: Record<string, unknown>;
     images: ProductImages;
     default_unit?: {
         label: string;
@@ -48,7 +48,7 @@ interface Props {
 }
 
 // --- Helper Functions (can be defined outside the component) ---
-const getBadgeForProduct = (product: any): string | null => {
+const getBadgeForProduct = (product: Product & { is_featured?: boolean; is_new?: boolean; is_popular?: boolean }): string | null => {
     if (product.is_featured) return 'BEST';
     if (product.is_new) return 'NEW';
     if (product.is_popular) return 'HOT';

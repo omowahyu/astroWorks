@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Head, usePage, Link, router } from '@inertiajs/react';
 import DynamicImageSingle from '@/components/image/dynamic-image-single';
-import DynamicImageGallery from '@/components/image/dynamic-image-gallery';
 
 // TypeScript interfaces
 interface ProductImageData {
@@ -10,7 +9,7 @@ interface ProductImageData {
   sort_order: number;
   alt_text: string;
   image_url: string;
-  variants?: any;
+  variants?: Record<string, unknown>;
 }
 
 interface ProductImages {
@@ -223,7 +222,7 @@ export default function ProductShow() {
         alert('Failed to add to cart. Please try again.');
       }
     });
-  }, [product, selectedUnitType, selectedMiscOptions, selectedAccessories, quantity, basePrice, finalTotal, router]);
+  }, [product, selectedUnitType, selectedMiscOptions, selectedAccessories, quantity, basePrice, finalTotal]);
 
   return (
     <>

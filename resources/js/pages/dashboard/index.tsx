@@ -13,8 +13,17 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 interface DashboardPageProps {
-    productsOverview?: any;
-    videosOverview?: any;
+    productsOverview?: {
+        total: number;
+        published: number;
+        draft: number;
+        recent: unknown[];
+    };
+    videosOverview?: {
+        total: number;
+        published: number;
+        recent: unknown[];
+    };
 }
 
 export default function Dashboard() {

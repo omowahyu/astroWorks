@@ -3,9 +3,16 @@ import { lazy, Suspense } from 'react';
 // Lazy load the heavy ProductCarousel component
 const ProductCarousel = lazy(() => import('./product-carousel'));
 
+interface Category {
+    id: number;
+    name: string;
+    is_accessory: boolean;
+    products: unknown[];
+}
+
 interface ProductCarouselLazyProps {
     className?: string;
-    categoriesWithProducts?: any[];
+    categoriesWithProducts?: Category[];
 }
 
 // Loading skeleton component

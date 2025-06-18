@@ -8,14 +8,33 @@ import ProductCarouselLazy from '@/components/product/product-carousel-lazy';
 import HomeDefaultLayout from '@/layouts/home/home-default-layout';
 
 // Define the type for the props
+interface Video {
+    id: number;
+    title: string;
+    youtube_id: string;
+    youtube_url: string;
+    is_active: boolean;
+    autoplay: boolean;
+    loop: boolean;
+    muted: boolean;
+    sort_order: number;
+}
+
+interface Category {
+    id: number;
+    name: string;
+    is_accessory: boolean;
+    products: unknown[];
+}
+
 interface PageProps extends SharedData {
-    featuredVideo?: any;
-    categories?: any[];
+    featuredVideo?: Video;
+    categories?: Category[];
 }
 
 // React functional component
 export default function Welcome() {
-    const { auth, featuredVideo, categories } = usePage<PageProps>().props;
+    const { featuredVideo, categories } = usePage<PageProps>().props;
 
     return (
         <HomeDefaultLayout

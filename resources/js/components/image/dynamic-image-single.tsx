@@ -58,10 +58,8 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
   style = {},
   debug = false,
   rounded = '',
-  useDatabase = true,
   preferThumbnail = false,
   imageType = 'thumbnail',
-  deviceType = 'auto',
   productImages
 }) => {
   // Component state
@@ -93,7 +91,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
   `)}`;
 
   // Fallback image paths to try - ALWAYS use placeholder for missing data
-  const getFallbackPaths = useCallback((productId: string, index: number): string[] => {
+  const getFallbackPaths = useCallback((): string[] => {
     return [placeholderSvg];
   }, [placeholderSvg]);
 
@@ -134,7 +132,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
     const filterImagesByDevice = (images: ProductImageData[], targetDevice: string) => {
       return images.filter(img => {
         // If image has device_type property, use it; otherwise assume desktop for backward compatibility
-        const imgDeviceType = (img as any).device_type || 'desktop';
+        const imgDeviceType = (img as ProductImageData & { device_type?: string }).device_type || 'desktop';
         return imgDeviceType === targetDevice;
       });
     };
@@ -154,7 +152,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
 
     // Select mobile image
     let mobileImage: ProductImageData | null = null;
-    if (preferThumbnail && productImages.main_thumbnail && (productImages.main_thumbnail as any).device_type === 'mobile') {
+    if (preferThumbnail && productImages.main_thumbnail && (productImages.main_thumbnail as ProductImageData & { device_type?: string }).device_type === 'mobile') {
       mobileImage = productImages.main_thumbnail;
     } else if (imageType === 'thumbnail' && mobileImages.thumbnails.length > 0) {
       mobileImage = mobileImages.thumbnails[0];
@@ -166,7 +164,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
 
     // Select desktop image
     let desktopImage: ProductImageData | null = null;
-    if (preferThumbnail && productImages.main_thumbnail && (productImages.main_thumbnail as any).device_type === 'desktop') {
+    if (preferThumbnail && productImages.main_thumbnail && (productImages.main_thumbnail as ProductImageData & { device_type?: string }).device_type === 'desktop') {
       desktopImage = productImages.main_thumbnail;
     } else if (imageType === 'thumbnail' && desktopImages.thumbnails.length > 0) {
       desktopImage = desktopImages.thumbnails[0];
@@ -207,15 +205,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
     }
   }, [productId, imageType, preferThumbnail, index, debug, productImages]);
 
-  /**
-   * Preload image to reduce delay and ensure smooth transitions
-   */
-  const preloadImage = useCallback((url: string): void => {
-    if (typeof window !== 'undefined' && url && url !== placeholderSvg) {
-      const img = new Image();
-      img.src = url;
-    }
-  }, [placeholderSvg]);
+  // Removed unused preloadImage function
 
   /**
    * Setup Intersection Observer for efficient lazy loading
@@ -269,7 +259,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
    * Try fallback images when primary image fails
    */
   const tryFallbackImage = useCallback(async (isMobile: boolean): Promise<void> => {
-    const fallbackPaths = getFallbackPaths(productId, index);
+    const fallbackPaths = getFallbackPaths();
 
     for (const path of fallbackPaths) {
       try {
@@ -301,7 +291,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
     // All fallbacks failed, use placeholder
     if (debug) console.warn('🖼️ All fallback images failed for:', productId);
     setImageError(true);
-  }, [productId, index, getFallbackPaths, debug]);
+  }, [getFallbackPaths, debug, productId]);
 
   /**
    * Handle image load error with fallback logic
@@ -328,7 +318,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
       setHasLoadedOnce(true);
       loadImageFromProps();
     }
-  }, [productId, productImages, isIntersecting, hasLoadedOnce]);
+  }, [productId, productImages, isIntersecting, hasLoadedOnce, loadImageFromProps]);
 
   // Load image immediately if productImages are available (no need to wait for intersection)
   useEffect(() => {
@@ -336,7 +326,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
       setHasLoadedOnce(true);
       loadImageFromProps();
     }
-  }, [productId, productImages, hasLoadedOnce]);
+  }, [productId, productImages, hasLoadedOnce, loadImageFromProps]);
 
   // Reset loading states when URLs change
   useEffect(() => {

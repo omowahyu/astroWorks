@@ -53,7 +53,7 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
      * Get the appropriate image source based on device and format
      * Mobile: 4:5 portrait only, Desktop: 16:9 landscape only
      */
-    const getImageSource = (): string => {
+    const getImageSource = useCallback((): string => {
         if (isMobile()) {
             // Mobile device - use 4:5 portrait format exclusively
             if (variants.mobile_portrait) {
@@ -68,7 +68,7 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
 
         // Fallback to original image
         return variants.original;
-    };
+    }, [variants]);
 
     /**
      * Update image source on mount and window resize
@@ -86,7 +86,7 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
 
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, [variants, mobileFormat]);
+    }, [variants, mobileFormat, getImageSource]);
 
     /**
      * Handle image load error
