@@ -14,6 +14,7 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
+
     esbuild: {
         jsx: 'automatic',
         drop: ['console', 'debugger'], // Remove console.log in production
