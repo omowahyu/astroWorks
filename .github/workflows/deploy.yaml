@@ -1,4 +1,4 @@
-name: Deploy Laravel 12 with Inertia and React
+name: Deploy Laravel App
 
 on:
   push:
@@ -10,79 +10,69 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout kode project
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Setup PHP environment
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, bcmath, curl, dom, fileinfo, json, mysql, pdo, tokenizer, zip
+          extensions: mbstring, bcmath, curl, dom, fileinfo, openssl, pdo, tokenizer, xml
           coverage: none
 
-      # Setup Node.js untuk build frontend
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
-      # Install dependencies Laravel
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-interaction --optimize-autoloader
-
-      # Install dan build frontend
-      - name: Install NPM dependencies and build
+      - name: Install npm dependencies & build assets
         run: |
           npm install
           npm run build
 
-      # Deploy ke server via SSH
-      - name: Deploy via SSH with Git Pull
+      - name: Deploy to Server
         env:
-          SERVER_HOST: ${{ secrets.REMOTE_HOST }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SERVER_USER: ${{ secrets.REMOTE_USER }}
+          SERVER_HOST: ${{ secrets.REMOTE_HOST }}
           SERVER_PORT: ${{ secrets.REMOTE_PORT }}
           DEPLOY_PATH: ${{ secrets.REMOTE_TARGET }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key
           chmod 600 private_key
+
+          rsync -avz --delete --no-times \
+            -e "ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT" \
+            ./ $SERVER_USER@$SERVER_HOST:$DEPLOY_PATH
 
           ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'EOF'
             set -e
             cd $DEPLOY_PATH
 
-            echo "Pulling latest changes..."
-            git reset --hard
-            git pull origin main
+            if [ ! -f artisan ]; then
+              echo "Laravel not found. Aborting."
+              exit 1
+            fi
 
-            echo "Installing backend dependencies..."
-            composer install --no-interaction --prefer-dist --optimize-autoloader
-
-            echo "Building frontend (optional, if needed on server)..."
-            npm install && npm run build || echo "Frontend build skipped"
-
-            echo "Generating app key if needed..."
             if [ ! -f .env ] || ! grep -q "APP_KEY=" .env || grep -q "APP_KEY=$" .env; then
+              echo "Generating application key..."
               php artisan key:generate --force
             fi
 
-            echo "Running database migrations..."
+            echo "Running migrations..."
             php artisan migrate --force
-
             echo "Seeding admin..."
             php artisan db:seed --class=AdminUserSeeder --force
 
-            echo "Optimizing application..."
+            echo "Clearing & caching config..."
             php artisan config:clear
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
-
-            echo "✅ Deployment complete!"
+            echo "✅ Done deploying"
           EOF
 
           rm private_key
