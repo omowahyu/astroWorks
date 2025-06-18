@@ -51,7 +51,36 @@ jobs:
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key
           chmod 600 private_key
+
+          # Create backup on server first
+          ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'BACKUP_EOF'
+            if [ -d "${{ secrets.REMOTE_TARGET }}" ]; then
+              echo "Creating backup..."
+              sudo cp -r ${{ secrets.REMOTE_TARGET }} ${{ secrets.REMOTE_TARGET }}.backup.$(date +%Y%m%d_%H%M%S)
+              echo "Backup created successfully"
+            fi
+          BACKUP_EOF
+
+          # Sync files with proper exclusions
           rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='.env' \
+            --exclude='.env.local' \
+            --exclude='.env.example' \
+            --exclude='storage/logs/*' \
+            --exclude='storage/framework/cache/*' \
+            --exclude='storage/framework/sessions/*' \
+            --exclude='storage/framework/views/*' \
+            --exclude='storage/app/public/*' \
+            --exclude='bootstrap/cache/*' \
+            --exclude='tests' \
+            --exclude='*.log' \
+            --exclude='.phpunit.result.cache' \
+            --exclude='deploy.sh' \
+            --exclude='README.md' \
+            --exclude='private_key' \
             -e "ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT" \
             ./ $SERVER_USER@$SERVER_HOST:$DEPLOY_PATH
           ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << EOF
