@@ -18,6 +18,7 @@ export default defineConfig({
         jsx: 'automatic',
         drop: ['console', 'debugger'], // Remove console.log in production
     },
+
     build: {
         rollupOptions: {
             output: {
