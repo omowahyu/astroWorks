@@ -40,9 +40,11 @@ jobs:
       - name: Build assets
         run: npm run build
 
-      # Generate application key for testing
-      - name: Generate application key
-        run: php artisan key:generate
+      # Create .env file and generate application key for testing
+      - name: Create .env file and generate application key
+        run: |
+          echo "${{ secrets.ENV }}" > .env
+          php artisan key:generate
         env:
           APP_ENV: testing
 
