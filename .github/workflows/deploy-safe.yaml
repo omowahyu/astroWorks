@@ -1,0 +1,230 @@
+name: Safe Deploy with Rollback
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      rollback:
+        description: 'Rollback to previous version'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.rollback }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip, pdo, pdo_mysql
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          composer install --prefer-dist --no-interaction --optimize-autoloader
+          npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Run tests
+        run: php artisan test
+
+      - name: Create deployment package
+        run: |
+          # Create a clean deployment package
+          mkdir -p deployment-package
+          
+          # Copy application files
+          rsync -av --exclude-from=.deployignore . deployment-package/
+          
+          # Create deployment archive
+          cd deployment-package
+          tar -czf ../astrokabinet-$(date +%Y%m%d-%H%M%S).tar.gz .
+          cd ..
+          
+          # Keep only the latest archive
+          ARCHIVE_NAME=$(ls astrokabinet-*.tar.gz | tail -1)
+          mv "$ARCHIVE_NAME" deployment.tar.gz
+          rm -rf deployment-package
+
+      - name: Deploy to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_HOST: ${{ secrets.REMOTE_HOST }}
+          SERVER_USER: ${{ secrets.REMOTE_USER }}
+          SERVER_PORT: ${{ secrets.REMOTE_PORT }}
+          DEPLOY_PATH: ${{ secrets.REMOTE_TARGET }}
+        run: |
+          # Setup SSH
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+          
+          # Upload and deploy
+          scp -i private_key -o StrictHostKeyChecking=no -P $SERVER_PORT \
+              deployment.tar.gz $SERVER_USER@$SERVER_HOST:/tmp/
+          
+          # Execute deployment on server
+          ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'EOF'
+            set -e
+            
+            DEPLOY_PATH="${{ secrets.REMOTE_TARGET }}"
+            BACKUP_PATH="/var/www/backups"
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            
+            echo "🚀 Starting deployment..."
+            
+            # Create backup directory
+            sudo mkdir -p $BACKUP_PATH
+            
+            # Backup current deployment
+            if [ -d "$DEPLOY_PATH" ]; then
+              echo "📦 Creating backup..."
+              sudo tar -czf $BACKUP_PATH/backup_$TIMESTAMP.tar.gz -C $DEPLOY_PATH .
+              echo "✅ Backup created: $BACKUP_PATH/backup_$TIMESTAMP.tar.gz"
+            fi
+            
+            # Create deployment directory
+            sudo mkdir -p $DEPLOY_PATH
+            
+            # Extract new version
+            echo "📂 Extracting new version..."
+            cd $DEPLOY_PATH
+            sudo tar -xzf /tmp/deployment.tar.gz
+            sudo rm /tmp/deployment.tar.gz
+            
+            # Set permissions
+            echo "🔐 Setting permissions..."
+            sudo chown -R www-data:www-data $DEPLOY_PATH
+            sudo chmod -R 755 $DEPLOY_PATH
+            sudo chmod -R 775 $DEPLOY_PATH/storage
+            sudo chmod -R 775 $DEPLOY_PATH/bootstrap/cache
+            
+            # Setup environment
+            if [ -f .env.production ]; then
+              sudo cp .env.production .env
+            fi
+            
+            # Install dependencies
+            echo "📦 Installing dependencies..."
+            sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
+            
+            # Generate key if needed
+            if ! grep -q "APP_KEY=base64:" .env 2>/dev/null; then
+              echo "🔑 Generating application key..."
+              sudo -u www-data php artisan key:generate --force
+            fi
+            
+            # Run migrations
+            echo "🗄️ Running migrations..."
+            sudo -u www-data php artisan migrate --force
+            
+            # Create storage link
+            sudo -u www-data php artisan storage:link 2>/dev/null || true
+            
+            # Optimize application
+            echo "⚡ Optimizing application..."
+            sudo -u www-data php artisan config:cache
+            sudo -u www-data php artisan route:cache
+            sudo -u www-data php artisan view:cache
+            
+            # Restart services
+            echo "🔄 Restarting services..."
+            sudo systemctl reload nginx
+            sudo systemctl restart php8.3-fpm 2>/dev/null || sudo systemctl restart php8.2-fpm 2>/dev/null || true
+            
+            echo "✅ Deployment completed successfully!"
+          EOF
+          
+          # Cleanup
+          rm -f private_key deployment.tar.gz
+
+      - name: Health check
+        run: |
+          echo "🏥 Running health check..."
+          sleep 15
+          
+          for i in {1..5}; do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://astrokabinet.id || echo "000")
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Health check passed (HTTP $HTTP_STATUS)"
+              exit 0
+            fi
+            echo "⏳ Attempt $i: HTTP $HTTP_STATUS, retrying in 10 seconds..."
+            sleep 10
+          done
+          
+          echo "⚠️ Health check failed after 5 attempts"
+          exit 1
+
+  rollback:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.rollback }}
+    steps:
+      - name: Rollback deployment
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_HOST: ${{ secrets.REMOTE_HOST }}
+          SERVER_USER: ${{ secrets.REMOTE_USER }}
+          SERVER_PORT: ${{ secrets.REMOTE_PORT }}
+          DEPLOY_PATH: ${{ secrets.REMOTE_TARGET }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+          
+          ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'EOF'
+            set -e
+            
+            DEPLOY_PATH="${{ secrets.REMOTE_TARGET }}"
+            BACKUP_PATH="/var/www/backups"
+            
+            echo "🔄 Starting rollback..."
+            
+            # Find latest backup
+            LATEST_BACKUP=$(ls -t $BACKUP_PATH/backup_*.tar.gz 2>/dev/null | head -1)
+            
+            if [ -z "$LATEST_BACKUP" ]; then
+              echo "❌ No backup found for rollback"
+              exit 1
+            fi
+            
+            echo "📦 Rolling back to: $LATEST_BACKUP"
+            
+            # Extract backup
+            cd $DEPLOY_PATH
+            sudo tar -xzf "$LATEST_BACKUP"
+            
+            # Set permissions
+            sudo chown -R www-data:www-data $DEPLOY_PATH
+            sudo chmod -R 755 $DEPLOY_PATH
+            sudo chmod -R 775 $DEPLOY_PATH/storage
+            sudo chmod -R 775 $DEPLOY_PATH/bootstrap/cache
+            
+            # Clear caches
+            sudo -u www-data php artisan cache:clear
+            sudo -u www-data php artisan config:cache
+            sudo -u www-data php artisan route:cache
+            sudo -u www-data php artisan view:cache
+            
+            # Restart services
+            sudo systemctl reload nginx
+            sudo systemctl restart php8.3-fpm 2>/dev/null || sudo systemctl restart php8.2-fpm 2>/dev/null || true
+            
+            echo "✅ Rollback completed successfully!"
+          EOF
+          
+          rm -f private_key
