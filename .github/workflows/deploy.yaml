@@ -40,6 +40,12 @@ jobs:
       - name: Build assets
         run: npm run build
 
+      # Generate application key for testing
+      - name: Generate application key
+        run: php artisan key:generate
+        env:
+          APP_ENV: testing
+
       # Run tests (optional, remove if not needed)
       - name: Run tests
         run: php artisan test
@@ -63,6 +69,10 @@ jobs:
             ./ $SERVER_USER@$SERVER_HOST:$DEPLOY_PATH
           ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'EOF'
             cd $DEPLOY_PATH
+            # Generate application key if not exists
+            if [ ! -f .env ] || ! grep -q "APP_KEY=" .env || grep -q "APP_KEY=$" .env; then
+              php artisan key:generate --force
+            fi
             php artisan migrate --force
             php artisan optimize
             php artisan cache:clear
