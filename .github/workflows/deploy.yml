@@ -84,6 +84,15 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Create target directory if it doesn't exist
+            sudo mkdir -p ${{ secrets.REMOTE_TARGET }}
+
+            # Copy files from temp location to target directory
+            sudo rsync -av --delete /tmp/astrokabinet-deploy/ ${{ secrets.REMOTE_TARGET }}/
+
+            # Set proper ownership
+            sudo chown -R ${{ secrets.REMOTE_USER }}:www-data ${{ secrets.REMOTE_TARGET }}
+
             # Navigate to the application directory
             cd ${{ secrets.REMOTE_TARGET }}
 
