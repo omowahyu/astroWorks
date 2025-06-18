@@ -12,13 +12,13 @@ export default function VideoSection() {
                                 className="object-cover w-full h-full"
                             />
                         </div>
-                        <h3 className="text-4xl font-semibold">Ads Video</h3>
+                        <h3 className="text-4xl font-semibold text-black">Ads Video</h3>
                     </div>
                     <div className="text-center">
                         <div className=" mb-4">
                             <img src="/images/statics/company/imwBxBc%231%203.png" alt="Product Showcase"  className="object-cover w-full h-full" />
                         </div>
-                        <h3 className="text-4xl font-semibold">Product Video</h3>
+                        <h3 className="text-4xl font-semibold  text-black">Product Video</h3>
                     </div>
                 </div>
             </div>
