@@ -39,16 +39,34 @@ class ProductImage extends Model
         self::TYPE_HERO,
     ];
 
+    // Device type constants
+    public const DEVICE_MOBILE = 'mobile';
+    public const DEVICE_DESKTOP = 'desktop';
+
+    public const DEVICE_TYPES = [
+        self::DEVICE_MOBILE,
+        self::DEVICE_DESKTOP,
+    ];
+
+    // Aspect ratio constants
+    public const ASPECT_RATIO_MOBILE = 0.8; // 4:5
+    public const ASPECT_RATIO_DESKTOP = 1.78; // 16:9
+
     protected $fillable = [
         'product_id',
         'image_path',
         'alt_text',
         'sort_order',
-        'image_type'
+        'image_type',
+        'device_type',
+        'aspect_ratio',
+        'image_dimensions'
     ];
 
     protected $casts = [
-        'sort_order' => 'integer'
+        'sort_order' => 'integer',
+        'aspect_ratio' => 'decimal:2',
+        'image_dimensions' => 'array'
     ];
 
     /**
@@ -68,14 +86,26 @@ class ProductImage extends Model
      */
     public function getImageUrlAttribute(): string
     {
-        // Check if the image exists in public/storage/images/
+        // If image_path is already a full URL (like Picsum), return it directly
+        if (filter_var($this->image_path, FILTER_VALIDATE_URL)) {
+            return $this->image_path;
+        }
+
+        // For local files, check if they exist before returning URL
         $publicPath = "storage/images/" . basename($this->image_path);
         if (file_exists(public_path($publicPath))) {
             return asset($publicPath);
         }
 
-        // Fallback to storage path
-        return asset('storage/' . $this->image_path);
+        // If local file doesn't exist, return a placeholder instead of broken link
+        return "data:image/svg+xml;base64," . base64_encode('
+            <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+                <rect width="100%" height="100%" fill="#f3f4f6"/>
+                <text x="200" y="150" text-anchor="middle" font-family="system-ui" font-size="14" fill="#6b7280">
+                    Gambar tidak tersedia
+                </text>
+            </svg>
+        ');
     }
 
     /**
@@ -200,6 +230,64 @@ class ProductImage extends Model
     public function scopeHero($query)
     {
         return $query->where('image_type', self::TYPE_HERO);
+    }
+
+    /**
+     * Scope to get images by device type
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $deviceType
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeForDevice($query, string $deviceType)
+    {
+        return $query->where('device_type', $deviceType);
+    }
+
+    /**
+     * Scope to get mobile images (4:5 aspect ratio)
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeMobile($query)
+    {
+        return $query->where('device_type', self::DEVICE_MOBILE);
+    }
+
+    /**
+     * Scope to get desktop images (16:9 aspect ratio)
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeDesktop($query)
+    {
+        return $query->where('device_type', self::DEVICE_DESKTOP);
+    }
+
+    /**
+     * Check if image has correct aspect ratio for device type
+     *
+     * @return bool
+     */
+    public function hasCorrectAspectRatio(): bool
+    {
+        if (!$this->aspect_ratio) {
+            return false;
+        }
+
+        $tolerance = 0.1; // Allow 10% tolerance
+
+        if ($this->device_type === self::DEVICE_MOBILE) {
+            return abs($this->aspect_ratio - self::ASPECT_RATIO_MOBILE) <= $tolerance;
+        }
+
+        if ($this->device_type === self::DEVICE_DESKTOP) {
+            return abs($this->aspect_ratio - self::ASPECT_RATIO_DESKTOP) <= $tolerance;
+        }
+
+        return false;
     }
 
     /**

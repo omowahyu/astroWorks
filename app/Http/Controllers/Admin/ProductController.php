@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\ProductImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use App\Services\ImageOptimizationService;
 
@@ -29,12 +30,17 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::with(['primaryImage', 'categories', 'defaultUnit', 'thumbnailImages'])
+        $products = Product::with(['images', 'categories', 'defaultUnit'])
             ->latest()
             ->paginate(15);
 
         // Format products data for frontend
         $formattedProducts = $products->through(function ($product) {
+            // Group images by type for DynamicImageSingle
+            $thumbnails = $product->images->where('image_type', 'thumbnail');
+            $gallery = $product->images->where('image_type', 'gallery');
+            $hero = $product->images->where('image_type', 'hero');
+
             return [
                 'id' => $product->id,
                 'name' => $product->name,
@@ -50,16 +56,84 @@ class ProductController extends Controller
                     ];
                 }),
                 'primary_image_url' => $product->primary_image_url,
-                'thumbnail_image' => $product->thumbnailImages->first() ? [
-                    'id' => $product->thumbnailImages->first()->id,
-                    'image_url' => $product->thumbnailImages->first()->image_url,
-                    'alt_text' => $product->thumbnailImages->first()->alt_text
+                'thumbnail_image' => $thumbnails->first() ? [
+                    'id' => $thumbnails->first()->id,
+                    'image_url' => $thumbnails->first()->image_url,
+                    'alt_text' => $thumbnails->first()->alt_text
                 ] : null,
                 'default_unit' => $product->defaultUnit ? [
                     'id' => $product->defaultUnit->id,
                     'label' => $product->defaultUnit->label,
                     'price' => $product->defaultUnit->price
-                ] : null
+                ] : null,
+                'images' => [
+                    'thumbnails' => $thumbnails->map(function ($image) {
+                        return [
+                            'id' => $image->id,
+                            'image_type' => $image->image_type,
+                            'is_thumbnail' => $image->image_type === 'thumbnail',
+                            'is_primary' => $image->image_type === 'thumbnail',
+                            'display_order' => $image->sort_order,
+                            'alt_text' => $image->alt_text,
+                            'image_url' => $image->image_url,
+                            'variants' => [
+                                'original' => $image->image_url,
+                                'mobile_portrait' => null,
+                                'mobile_square' => null,
+                                'desktop_landscape' => null,
+                            ]
+                        ];
+                    })->values(),
+                    'gallery' => $gallery->map(function ($image) {
+                        return [
+                            'id' => $image->id,
+                            'image_type' => $image->image_type,
+                            'is_thumbnail' => false,
+                            'is_primary' => false,
+                            'display_order' => $image->sort_order,
+                            'alt_text' => $image->alt_text,
+                            'image_url' => $image->image_url,
+                            'variants' => [
+                                'original' => $image->image_url,
+                                'mobile_portrait' => null,
+                                'mobile_square' => null,
+                                'desktop_landscape' => null,
+                            ]
+                        ];
+                    })->values(),
+                    'hero' => $hero->map(function ($image) {
+                        return [
+                            'id' => $image->id,
+                            'image_type' => $image->image_type,
+                            'is_thumbnail' => false,
+                            'is_primary' => false,
+                            'display_order' => $image->sort_order,
+                            'alt_text' => $image->alt_text,
+                            'image_url' => $image->image_url,
+                            'variants' => [
+                                'original' => $image->image_url,
+                                'mobile_portrait' => null,
+                                'mobile_square' => null,
+                                'desktop_landscape' => null,
+                            ]
+                        ];
+                    })->values(),
+                    'main_thumbnail' => $thumbnails->first() ? [
+                        'id' => $thumbnails->first()->id,
+                        'image_type' => $thumbnails->first()->image_type,
+                        'is_thumbnail' => true,
+                        'is_primary' => true,
+                        'display_order' => $thumbnails->first()->sort_order,
+                        'alt_text' => $thumbnails->first()->alt_text,
+                        'image_url' => $thumbnails->first()->image_url,
+                        'variants' => [
+                            'original' => $thumbnails->first()->image_url,
+                            'mobile_portrait' => null,
+                            'mobile_square' => null,
+                            'desktop_landscape' => null,
+                        ]
+                    ] : null
+                ]
             ];
         });
 
@@ -73,14 +147,15 @@ class ProductController extends Controller
      */
     public function create()
     {
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::withCount('products')->orderBy('name')->get();
 
         return Inertia::render('dashboard/products/create', [
             'categories' => $categories->map(function ($category) {
                 return [
                     'id' => $category->id,
                     'name' => $category->name,
-                    'is_accessory' => $category->is_accessory
+                    'is_accessory' => $category->is_accessory,
+                    'products_count' => $category->products_count
                 ];
             })
         ]);
@@ -108,9 +183,19 @@ class ProductController extends Controller
             'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
+        // Generate unique slug
+        $slug = Str::slug($validated['name']);
+        $originalSlug = $slug;
+        $counter = 1;
+        while (Product::where('slug', $slug)->exists()) {
+            $slug = $originalSlug . '-' . $counter;
+            $counter++;
+        }
+
         $product = Product::create([
             'name' => $validated['name'],
-            'description' => $validated['description']
+            'description' => $validated['description'],
+            'slug' => $slug
         ]);
 
         // Attach categories
@@ -138,25 +223,19 @@ class ProductController extends Controller
             }
         }
 
-        // Handle image uploads with optimization
+        // Handle image uploads (simplified version without optimization)
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
                 try {
-                    $filename = "product_{$product->id}_image_" . ($index + 1);
-                    $imageData = $this->imageService->processProductImage($image, $filename);
+                    $filename = "product_{$product->id}_image_" . ($index + 1) . '.' . $image->getClientOriginalExtension();
+                    $imagePath = $image->storeAs('images', $filename, 'public');
 
                     ProductImage::create([
                         'product_id' => $product->id,
-                        'image_path' => $imageData['original_path'],
-                        'mobile_portrait_path' => $imageData['mobile_portrait_path'],
-                        'mobile_square_path' => $imageData['mobile_square_path'],
-                        'desktop_landscape_path' => $imageData['desktop_landscape_path'],
+                        'image_path' => $imagePath,
                         'alt_text' => "{$product->name} - Image " . ($index + 1),
-                        'is_primary' => $index === 0,
-                        'sort_order' => $index,
-                        'original_file_size' => $imageData['original_file_size'],
-                        'optimized_file_size' => $imageData['optimized_file_size'],
-                        'image_metadata' => $imageData['image_metadata']
+                        'image_type' => $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
+                        'sort_order' => $index
                     ]);
                 } catch (\Exception $e) {
                     // Log error but continue with other images
@@ -187,7 +266,7 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $product->load(['images', 'unitTypes', 'categories']);
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::withCount('products')->orderBy('name')->get();
 
         return Inertia::render('dashboard/products/edit', [
             'product' => [
@@ -226,7 +305,8 @@ class ProductController extends Controller
                 return [
                     'id' => $category->id,
                     'name' => $category->name,
-                    'is_accessory' => $category->is_accessory
+                    'is_accessory' => $category->is_accessory,
+                    'products_count' => $category->products_count
                 ];
             })
         ]);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Head, usePage, Link } from '@inertiajs/react';
+import { Head, usePage, Link, router } from '@inertiajs/react';
 import DynamicImageSingle from '@/components/image/dynamic-image-single';
 import DynamicImageGallery from '@/components/image/dynamic-image-gallery';
 
@@ -7,17 +7,10 @@ import DynamicImageGallery from '@/components/image/dynamic-image-gallery';
 interface ProductImageData {
   id: number;
   image_type: 'thumbnail' | 'gallery' | 'hero';
-  is_thumbnail: boolean;
-  is_primary: boolean;
-  display_order: number;
+  sort_order: number;
   alt_text: string;
   image_url: string;
-  variants: {
-    original: string;
-    mobile_portrait: string | null;
-    mobile_square: string | null;
-    desktop_landscape: string | null;
-  };
+  variants?: any;
 }
 
 interface ProductImages {
@@ -75,7 +68,7 @@ interface PageProps {
   accessories: Accessory[];
 }
 
-export default function ProductDetail() {
+export default function ProductShow() {
   const { product, accessories } = usePage<PageProps>().props;
 
   // State management
@@ -180,17 +173,57 @@ export default function ProductDetail() {
   };
 
   const addToCart = useCallback(() => {
-    // Implementation for adding to cart
-    console.log('Adding to cart:', {
-      product: product.id,
-      title: dynamicProductTitle,
-      unitType: selectedUnitType,
-      miscOptions: selectedMiscOptions,
-      accessories: selectedAccessories,
-      quantity,
-      total: finalTotal
+    if (!selectedUnitType) {
+      alert('Please select a size/dimension');
+      return;
+    }
+
+    // Prepare main product data
+    const mainProduct = {
+      product_id: product.id,
+      product_name: product.name,
+      product_image: product.images?.main_thumbnail?.image_url || '',
+      unit_type_id: selectedUnitType.id,
+      unit_type_label: selectedUnitType.label,
+      unit_price: parseFloat(selectedUnitType.price),
+      misc_options: selectedMiscOptions,
+      quantity: quantity,
+      item_total: basePrice
+    };
+
+    // Prepare accessories data
+    const accessoriesData = Object.values(selectedAccessories).map(item => ({
+      product_id: item.accessory.id,
+      product_name: item.accessory.name,
+      product_image: item.accessory.main_thumbnail?.image_url || '',
+      unit_type_id: item.accessory.default_unit?.id,
+      unit_type_label: item.accessory.default_unit?.label || 'Default',
+      unit_price: parseFloat(item.accessory.default_unit?.price || '0'),
+      quantity: item.quantity,
+      item_total: parseFloat(item.accessory.default_unit?.price || '0') * item.quantity
+    }));
+
+    // Create cart batch
+    const cartBatch = {
+      batch_id: Date.now(), // Unique batch identifier
+      batch_name: product.name, // Main product name as batch name
+      main_product: mainProduct,
+      accessories: accessoriesData,
+      batch_total: finalTotal
+    };
+
+    // Send to backend
+    router.post('/add-to-cart', cartBatch, {
+      onSuccess: () => {
+        // Redirect to cart page
+        router.visit('/cart');
+      },
+      onError: (errors) => {
+        console.error('Error adding to cart:', errors);
+        alert('Failed to add to cart. Please try again.');
+      }
     });
-  }, [product.id, dynamicProductTitle, selectedUnitType, selectedMiscOptions, selectedAccessories, quantity, finalTotal]);
+  }, [product, selectedUnitType, selectedMiscOptions, selectedAccessories, quantity, basePrice, finalTotal, router]);
 
   return (
     <>
@@ -311,27 +344,17 @@ export default function ProductDetail() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
               {/* Left Column - Image Gallery */}
               <div className="space-y-4">
-                {product.images.gallery.length > 1 ? (
-                  <DynamicImageGallery
-                    productId={product.id.toString()}
-                    name={product.name}
-                    className="w-full"
-                    rounded="3xl"
-                    useDatabase={true}
-                    productImages={product.images}
-                  />
-                ) : (
-                  <DynamicImageSingle
-                    productId={product.id.toString()}
-                    alt={product.name}
-                    className="w-full aspect-[4/5] md:aspect-[16/9] rounded-3xl"
-                    rounded="3xl"
-                    useDatabase={true}
-                    preferThumbnail={true}
-                    imageType="thumbnail"
-                    productImages={product.images}
-                  />
-                )}
+                {/* Always use single image for now - gallery disabled until image data is properly loaded */}
+                <DynamicImageSingle
+                  productId={product.id.toString()}
+                  alt={product.name}
+                  className="w-full aspect-[4/5] md:aspect-[16/9] rounded-3xl"
+                  rounded="3xl"
+                  useDatabase={true}
+                  preferThumbnail={true}
+                  imageType="thumbnail"
+                  productImages={product.images}
+                />
               </div>
 
               {/* Right Column - Product Details */}
@@ -374,7 +397,7 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Unit Type Selector */}
-                {product.unit_types.length > 0 && (
+                {product.unit_types && product.unit_types.length > 0 ? (
                   <div className="space-y-3">
                     <h3 className="text-lg font-semibold text-gray-900">Ukuran/Dimensi</h3>
                     <div className="grid grid-cols-2 gap-3">
@@ -394,39 +417,43 @@ export default function ProductDetail() {
                       ))}
                     </div>
                   </div>
+                ) : (
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-gray-900">Ukuran/Dimensi</h3>
+                    <div className="p-4 bg-gray-50 rounded-lg text-center">
+                      <p className="text-gray-500">Ukuran belum tersedia untuk produk ini.</p>
+                      <p className="text-sm text-gray-400 mt-1">Hubungi kami untuk informasi lebih lanjut.</p>
+                    </div>
+                  </div>
                 )}
 
-                {/* Misc Options */}
-                {product.misc_options.length > 0 && (
+                {/* Misc Options - Combined Warna/Tema */}
+                {product.misc_options && product.misc_options.length > 0 ? (
                   <div className="space-y-3">
                     <h3 className="text-lg font-semibold text-gray-900">Warna/Tema</h3>
-                    {/* Group misc options by label */}
-                    {Object.entries(
-                      product.misc_options.reduce((acc, option) => {
-                        if (!acc[option.label]) acc[option.label] = [];
-                        acc[option.label].push(option);
-                        return acc;
-                      }, {} as Record<string, MiscOption[]>)
-                    ).map(([label, options]) => (
-                      <div key={label} className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">{label}</label>
-                        <div className="flex flex-wrap gap-2">
-                          {options.map((option) => (
-                            <button
-                              key={option.id}
-                              onClick={() => handleMiscOptionChange(label, option.value)}
-                              className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
-                                selectedMiscOptions[label] === option.value
-                                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                  : 'border-gray-200 hover:border-gray-300'
-                              }`}
-                            >
-                              {option.value}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                    <div className="flex flex-wrap gap-2">
+                      {product.misc_options.map((option) => (
+                        <button
+                          key={option.id}
+                          onClick={() => handleMiscOptionChange('color_theme', option.value)}
+                          className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
+                            selectedMiscOptions['color_theme'] === option.value
+                              ? 'border-blue-500 bg-blue-50 text-blue-700'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {option.value}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-gray-900">Warna/Tema</h3>
+                    <div className="p-4 bg-gray-50 rounded-lg text-center">
+                      <p className="text-gray-500">Pilihan warna/tema belum tersedia untuk produk ini.</p>
+                      <p className="text-sm text-gray-400 mt-1">Hubungi kami untuk informasi lebih lanjut.</p>
+                    </div>
                   </div>
                 )}
 
@@ -435,6 +462,65 @@ export default function ProductDetail() {
                   <div className="space-y-3">
                     <h3 className="text-lg font-semibold text-gray-900">Description</h3>
                     <p className="text-gray-600 leading-relaxed">{product.description}</p>
+                  </div>
+                )}
+
+                {/* Additional Items (Accessories) */}
+                {accessories && accessories.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Additional Items</h3>
+                    <div className="grid grid-cols-1 gap-4">
+                      {accessories.map((accessory) => (
+                        <div key={accessory.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+                          <div className="flex items-center space-x-4">
+                            {/* Accessory Image */}
+                            <div className="w-16 h-16 flex-shrink-0">
+                              <DynamicImageSingle
+                                productId={accessory.id.toString()}
+                                alt={accessory.name}
+                                className="w-full h-full rounded-lg"
+                                rounded="lg"
+                                useDatabase={true}
+                                preferThumbnail={true}
+                                imageType="thumbnail"
+                                productImages={accessory.images}
+                              />
+                            </div>
+
+                            {/* Accessory Details */}
+                            <div className="flex-grow">
+                              <h4 className="font-medium text-gray-900">{accessory.name}</h4>
+                              {accessory.description && (
+                                <p className="text-sm text-gray-600 mt-1">{accessory.description}</p>
+                              )}
+                              <div className="text-sm font-medium text-blue-600 mt-1">
+                                {formatPrice(parseFloat(accessory.default_unit?.price || '0'))}
+                              </div>
+                            </div>
+
+                            {/* Quantity Controls */}
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => handleAccessoryChange(accessory, Math.max(0, (selectedAccessories[accessory.id]?.quantity || 0) - 1))}
+                                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-sm"
+                                disabled={!selectedAccessories[accessory.id] || selectedAccessories[accessory.id].quantity <= 0}
+                              >
+                                -
+                              </button>
+                              <span className="w-8 text-center text-sm font-medium">
+                                {selectedAccessories[accessory.id]?.quantity || 0}
+                              </span>
+                              <button
+                                onClick={() => handleAccessoryChange(accessory, (selectedAccessories[accessory.id]?.quantity || 0) + 1)}
+                                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-sm"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 

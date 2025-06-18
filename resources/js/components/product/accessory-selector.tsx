@@ -50,12 +50,15 @@ export const AccessorySelector: React.FC<AccessorySelectorProps> = ({
             return accessory.primary_image.image_url;
         }
 
-        // Try to get from storage directory
-        const storagePath = `/storage/images/product_${accessory.id}_image_1.jpg`;
-
-        // For now, we'll use the storage path and let the browser handle 404s
-        // In a production app, you might want to check if the image exists first
-        return storagePath;
+        // Return placeholder instead of broken storage path
+        return `data:image/svg+xml;base64,${btoa(`
+            <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+                <rect width="100%" height="100%" fill="#f3f4f6"/>
+                <text x="100" y="100" text-anchor="middle" font-family="system-ui" font-size="12" fill="#6b7280">
+                    Gambar tidak tersedia
+                </text>
+            </svg>
+        `)}`;
     };
 
     /**

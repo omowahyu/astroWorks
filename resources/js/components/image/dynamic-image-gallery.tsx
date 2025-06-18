@@ -93,31 +93,28 @@ const DynamicImageGallery: React.FC<DynamicImageGalleryProps> = ({
 
       if (debug) {
         console.log('🖼️ DynamicImageGallery: Loading from props:', productImages);
+        console.log('🖼️ Gallery images count:', productImages.gallery?.length || 0);
+        console.log('🖼️ Thumbnails count:', productImages.thumbnails?.length || 0);
       }
 
-      if (productImages.gallery && productImages.gallery.length > 0) {
-        setGalleryImages(productImages.gallery);
+      // Only use real gallery images with valid data - no placeholders
+      const validGalleryImages = productImages.gallery?.filter(img =>
+        img && img.image_url && img.image_url.trim() !== ''
+      ) || [];
+
+      const validThumbnailImages = productImages.thumbnails?.filter(img =>
+        img && img.image_url && img.image_url.trim() !== ''
+      ) || [];
+
+      if (validGalleryImages.length > 0) {
+        console.log('🖼️ Using valid gallery images:', validGalleryImages.length);
+        setGalleryImages(validGalleryImages);
+      } else if (validThumbnailImages.length > 0) {
+        console.log('🖼️ Fallback to valid thumbnails:', validThumbnailImages.length);
+        setGalleryImages(validThumbnailImages);
       } else {
-        // Fallback: create placeholder images based on imageCount
-        const placeholderImages: GalleryImageData[] = [];
-        for (let i = 1; i <= imageCount; i++) {
-          placeholderImages.push({
-            id: i,
-            image_type: 'gallery',
-            is_thumbnail: false,
-            is_primary: i === 1,
-            display_order: i,
-            alt_text: `${name} - Image ${i}`,
-            image_url: '',
-            variants: {
-              original: '',
-              mobile_portrait: null,
-              mobile_square: null,
-              desktop_landscape: null
-            }
-          });
-        }
-        setGalleryImages(placeholderImages);
+        console.log('🖼️ No valid images available - showing fallback');
+        setGalleryImages([]);
       }
 
     } catch (error) {
@@ -328,6 +325,37 @@ const DynamicImageGallery: React.FC<DynamicImageGalleryProps> = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
               </svg>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If no valid images, show single fallback
+  if (galleryImages.length === 0) {
+    return (
+      <div className={`w-full ${className}`}>
+        <div className={`relative w-full aspect-[4/5] md:aspect-[16/9] bg-gray-100 ${getRoundedClasses()} overflow-hidden flex flex-col items-center justify-center`}>
+          {/* SVG Fallback - Same as DynamicImageSingle */}
+          <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center mb-4">
+            <svg
+              className="w-10 h-10 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.5"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-1">Image Tidak Tersedia</h3>
+            <p className="text-sm text-gray-500">Gambar produk belum diupload</p>
           </div>
         </div>
       </div>

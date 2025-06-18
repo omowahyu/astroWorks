@@ -66,18 +66,22 @@ Route::get('/', function () {
         });
     });
 
-    return Inertia::render('Homepage', [
+    return Inertia::render('public/homepage', [
         'featuredVideo' => $featuredVideo,
         'categories' => $categoriesWithProducts
     ]);
 })->name('home');
 
+Route::get('/company', function () {
+    return Inertia::render('public/company');
+})->name('company');
+
 Route::get('/product/{id}/purchase', [ProductController::class, 'purchase'])->name('product.purchase');
 Route::get('/product/{slug}', [ProductController::class, 'show'])->name('product.show');
 
-Route::post('/cart/add', [ProductController::class, 'addToCart'])->name('cart.add');
+Route::post('/add-to-cart', [ProductController::class, 'addToCart'])->name('cart.add');
 
-Route::post('/cart/update', [ProductController::class, 'updateCart'])->name('cart.update');
+Route::post('/update-cart', [ProductController::class, 'updateCart'])->name('cart.update');
 
 Route::get('/cart', [ProductController::class, 'cart'])->name('cart');
 
@@ -116,12 +120,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
 });
 
-// Product Images API Routes (JSON responses for frontend)
-Route::prefix('products')->group(function () {
-    Route::get('{product}/images', [App\Http\Controllers\Api\ProductImageController::class, 'getProductImages']);
-    Route::get('{product}/images/{type}', [App\Http\Controllers\Api\ProductImageController::class, 'getImagesByType']);
-    Route::get('{product}/thumbnail', [App\Http\Controllers\Api\ProductImageController::class, 'getMainThumbnail']);
-});
+// Product Images API Routes (JSON responses for frontend) - TODO: Implement ProductImageController
+// Route::prefix('products')->group(function () {
+//     Route::get('{product}/images', [App\Http\Controllers\Api\ProductImageController::class, 'getProductImages']);
+//     Route::get('{product}/images/{type}', [App\Http\Controllers\Api\ProductImageController::class, 'getImagesByType']);
+//     Route::get('{product}/thumbnail', [App\Http\Controllers\Api\ProductImageController::class, 'getMainThumbnail']);
+// });
 
 // Dashboard management routes
 Route::prefix('dashboard')->name('dashboard.')->middleware(['auth', 'verified'])->group(function () {
@@ -143,6 +147,22 @@ Route::prefix('dashboard')->name('dashboard.')->middleware(['auth', 'verified'])
         ->name('videos.toggle-active');
     Route::post('videos/update-order', [App\Http\Controllers\Admin\VideoController::class, 'updateOrder'])
         ->name('videos.update-order');
+
+    // Payment settings management
+    Route::get('payment', [App\Http\Controllers\Admin\PaymentSettingController::class, 'index'])
+        ->name('payment.index');
+    Route::patch('payment', [App\Http\Controllers\Admin\PaymentSettingController::class, 'update'])
+        ->name('payment.update');
+
+    // Image Upload Routes with Compression
+    Route::prefix('images')->name('images.')->group(function () {
+        Route::post('upload', [App\Http\Controllers\Admin\ImageUploadController::class, 'uploadDeviceImages'])->name('upload');
+        Route::post('analyze', [App\Http\Controllers\Admin\ImageUploadController::class, 'analyzeImage'])->name('analyze');
+        Route::post('compression-preview', [App\Http\Controllers\Admin\ImageUploadController::class, 'getCompressionPreview'])->name('compression-preview');
+        Route::get('compression-levels', [App\Http\Controllers\Admin\ImageUploadController::class, 'getCompressionLevels'])->name('compression-levels');
+        Route::delete('delete', [App\Http\Controllers\Admin\ImageUploadController::class, 'deleteImage'])->name('delete');
+        Route::get('stats', [App\Http\Controllers\Admin\ImageUploadController::class, 'getUploadStats'])->name('stats');
+    });
 });
 
 require __DIR__.'/settings.php';

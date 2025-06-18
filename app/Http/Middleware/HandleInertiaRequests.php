@@ -6,6 +6,7 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
+use App\Models\PaymentSetting;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -51,6 +52,13 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'env' => [
+                'WHATSAPP_NUMBER' => PaymentSetting::get('whatsapp_number', env('WHATSAPP_NUMBER')),
+                'BANK_NAME' => PaymentSetting::get('bank_name', env('BANK_NAME')),
+                'BANK_ACCOUNT_NAME' => PaymentSetting::get('bank_account_name', env('BANK_ACCOUNT_NAME')),
+                'BANK_ACCOUNT_NUMBER' => PaymentSetting::get('bank_account_number', env('BANK_ACCOUNT_NUMBER')),
+                'WHATSAPP_MESSAGE_TEMPLATE' => PaymentSetting::get('whatsapp_message_template', ''),
+            ],
         ];
     }
 }

@@ -17,8 +17,8 @@ class ProductMiscOptionFactory extends Factory
     public function definition(): array
     {
         return [
-            'label' => $this->faker->randomElement(['Tema', 'Warna']),
-            'value' => $this->faker->randomElement(['Hitam', 'Putih', 'Coklat', 'Skandinavian']),
+            'label' => 'Warna', // Only use Warna, no more Tema
+            'value' => $this->faker->randomElement(['Hitam', 'Putih', 'Coklat', 'Natural Wood', 'Walnut']),
             'is_default' => false,
         ];
     }

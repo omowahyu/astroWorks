@@ -28,6 +28,32 @@
             html.dark {
                 background-color: oklch(0.145 0 0);
             }
+
+            /* Prevent FOUC for Radix UI components */
+            [data-radix-navigation-menu-viewport],
+            [data-radix-dropdown-menu-content],
+            [data-radix-select-content] {
+                opacity: 0;
+                transition: opacity 0.15s ease-in-out;
+            }
+
+            [data-radix-navigation-menu-viewport][data-state="open"],
+            [data-radix-dropdown-menu-content][data-state="open"],
+            [data-radix-select-content][data-state="open"] {
+                opacity: 1;
+            }
+
+            /* Loading state for components */
+            .loading-skeleton {
+                background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                background-size: 200% 100%;
+                animation: loading 1.5s infinite;
+            }
+
+            @keyframes loading {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
+            }
         </style>
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
@@ -38,6 +64,8 @@
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
+
+        <!-- CSS will be loaded by Vite automatically -->
 
         @routes
         @viteReactRefresh

@@ -4,7 +4,7 @@ import { NavUser } from '@/components/layout/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Package, Video, Settings, Tags } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Package, Video, Settings, Tags, CreditCard } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -28,6 +28,11 @@ const mainNavItems: NavItem[] = [
         href: '/dashboard/videos',
         icon: Video,
     },
+    {
+        title: 'Payment',
+        href: '/dashboard/payment',
+        icon: CreditCard,
+    },
 ];
 
 const footerNavItems: NavItem[] = [
@@ -50,7 +55,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href="/" className={"bg-amber-800 x"} prefetch>
+                            <Link href="/" className={"bg-[#5E6CEA] flex items-center justify-center hover:scale-105 hover:-rotate-2 transition-transform "} prefetch>
                                 <AppLogo asLink={false} />
                             </Link>
                         </SidebarMenuButton>
@@ -59,7 +64,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={mainNavItems} classLink="hover:my-1 hover:!py-5 hover:scale-105 hover:-rotate-1 transition-all" />
             </SidebarContent>
 
             <SidebarFooter>

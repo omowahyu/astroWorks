@@ -1,14 +1,11 @@
 import { type SharedData } from '@/types';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 
-import Header from '@/components/layout/header';
 import VideoEmbed from '@/components/common/video-embed';
-
-import React from 'react';
-import { Helmet } from 'react-helmet-async'; // A popular library for managing the document head
 
 // Lazy load heavy components for better performance
 import ProductCarouselLazy from '@/components/product/product-carousel-lazy';
+import HomeDefaultLayout from '@/layouts/home/home-default-layout';
 
 // Define the type for the props
 interface PageProps extends SharedData {
@@ -21,30 +18,22 @@ export default function Welcome() {
     const { auth, featuredVideo, categories } = usePage<PageProps>().props;
 
     return (
-        <>
-        <Head title="Welcome">
-            <link rel="preconnect" href="https://fonts.bunny.net" />
-            <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
-        </Head>
-
-            <div className="bg-[#5F44F0] md:bg-white">
-                <Header />
-
-                <main className="min-h-screen bg-white rounded-t-3xl lg:px-8 py-5 lg:py-16 mx-auto lg:mt-8 flex flex-col overflow-hidden lg:overflow-x-visible">
-
-                    <div className="px-4 lg:px-6">
-                        <div className="h-46 w-full overflow-hidden rounded-3xl lg:h-[520px]">
-                            <VideoEmbed
-                                video={featuredVideo}
-                                videoId={featuredVideo?.youtube_id || "dsTXcSeAZq8"}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Product Carousel with Lazy Loading */}
-                    <ProductCarouselLazy categoriesWithProducts={categories} />
-                </main>
+        <HomeDefaultLayout
+            title="AstroWorks - Furniture & Interior Design"
+            description="Solusi furniture dan interior design terpercaya untuk rumah dan kantor Anda. Kualitas terbaik dengan harga terjangkau."
+            showFooter={false}
+        >
+            <div className="px-4 lg:px-6">
+                <div className="h-46 w-full overflow-hidden rounded-3xl lg:h-[520px]">
+                    <VideoEmbed
+                        video={featuredVideo}
+                        videoId={featuredVideo?.youtube_id || "dsTXcSeAZq8"}
+                    />
+                </div>
             </div>
-        </>
+
+            {/* Product Carousel with Lazy Loading */}
+            <ProductCarouselLazy categoriesWithProducts={categories} />
+        </HomeDefaultLayout>
     );
 };

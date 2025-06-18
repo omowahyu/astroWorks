@@ -3,38 +3,7 @@
 import { Link } from '@inertiajs/react';
 import React, { useState } from 'react';
 
-// Impor aset dan fungsi
-// Catatan: Path ini mengasumsikan struktur folder yang sama.
-// Akhiran '?url' adalah fitur Vite dan akan berfungsi dalam proyek React berbasis Vite.
-// Dalam Create React App, Anda mungkin hanya perlu mengimpornya secara langsung.
-
-// Impor dari lapisan infrastruktur, sesuaikan path jika perlu
-// import { getWhatsAppUrl } from '../../infrastructure/api/api';
-
-/**
- * Komponen Header untuk beranda Astro Works
- * Menampilkan navigasi responsif dengan latar belakang gradien yang sesuai dengan desain referensi.
- */
 const Header = () => {
-    // // State untuk menu mobile, menggunakan hook useState dari React
-    // const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    //
-    // // State untuk URL WhatsApp
-    // const [whatsappUrl, setWhatsappUrl] = useState(getWhatsAppUrl());
-    //
-    // /**
-    //  * Mengalihkan visibilitas menu mobile
-    //  */
-    // const toggleMobileMenu = () => {
-    //     setMobileMenuOpen(!mobileMenuOpen);
-    // };
-    //
-    // /**
-    //  * Menutup menu mobile saat mengklik di luar atau pada item menu
-    //  */
-    // const closeMobileMenu = () => {
-    //     setMobileMenuOpen(false);
-    // };
 
     return (
         <header className="md:sticky w-full md:top-0 z-60 bg-gradient-to-b from-[#5EC2DB] to-[#5F44F0] lg:shadow-lg">
@@ -49,7 +18,7 @@ const Header = () => {
                     {/* Bilah Navigasi */}
                     <nav className="lg:absolute flex justify-around w-full lg:w-fit items-center lg:gap-10 text-white lg:right-0 mt-4 lg:mt-0">
                         {/* Company */}
-                        <a href="/" className="flex flex-col items-center hover:text-blue-200 transition-colors duration-200">
+                        <a href="/company" className="flex flex-col items-center hover:text-blue-200 transition-colors duration-200">
                             <img src='images/icons/company.svg' alt="Company" className="h-5 mb-1" />
                             <span className="text-xs lg:text-sm">Company</span>
                         </a>
@@ -67,7 +36,7 @@ const Header = () => {
                         </a>
 
                         {/* Keranjang */}
-                        <a href="/checkout" className="flex flex-col items-center hover:text-blue-200 transition-colors duration-200">
+                        <a href="/cart" className="flex flex-col items-center hover:text-blue-200 transition-colors duration-200">
                             <img src='images/icons/cart.svg' alt="Keranjang" className="h-5 mb-1" />
                             <span className="text-xs lg:text-sm">Keranjang</span>
                         </a>

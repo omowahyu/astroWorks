@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Product } from '@/types/product';
-import DynamicImageSingle from '../image/DynamicImageSingle';
+import DynamicImageSingle from '@/components/image/dynamic-image-single';
 
 /**
  * Props for the ProductImageGallery component

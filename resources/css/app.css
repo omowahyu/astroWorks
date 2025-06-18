@@ -5,6 +5,48 @@
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
+/* Radix UI Components - Prevent FOUC */
+[data-radix-navigation-menu-viewport] {
+  transition: all 200ms ease-in-out;
+}
+
+[data-radix-dropdown-menu-content] {
+  transition: all 200ms ease-in-out;
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+[data-radix-dropdown-menu-content][data-state="open"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+[data-radix-select-content] {
+  transition: all 200ms ease-in-out;
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+[data-radix-select-content][data-state="open"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+[data-radix-dialog-overlay] {
+  transition: opacity 200ms ease-in-out;
+}
+
+[data-radix-dialog-content] {
+  transition: all 200ms ease-in-out;
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+[data-radix-dialog-content][data-state="open"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
 /* Dynamic Image Components */
 @import './dynamic-image.css';
 

@@ -11,48 +11,103 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Add indexes for better query performance
-        
+        // Add indexes for better query performance - only if tables exist
+
         // Products table indexes
-        Schema::table('products', function (Blueprint $table) {
-            $table->index('created_at', 'products_created_at_index');
-            $table->index('updated_at', 'products_updated_at_index');
-            $table->index('slug', 'products_slug_index');
-        });
+        if (Schema::hasTable('products')) {
+            Schema::table('products', function (Blueprint $table) {
+                if (!$this->indexExists('products', 'products_created_at_index')) {
+                    $table->index('created_at', 'products_created_at_index');
+                }
+                if (!$this->indexExists('products', 'products_updated_at_index')) {
+                    $table->index('updated_at', 'products_updated_at_index');
+                }
+                if (!$this->indexExists('products', 'products_slug_index')) {
+                    $table->index('slug', 'products_slug_index');
+                }
+            });
+        }
 
         // Categories table indexes
-        Schema::table('categories', function (Blueprint $table) {
-            $table->index('name', 'categories_name_index');
-            $table->index('is_accessory', 'categories_is_accessory_index');
-        });
+        if (Schema::hasTable('categories')) {
+            Schema::table('categories', function (Blueprint $table) {
+                if (!$this->indexExists('categories', 'categories_name_index')) {
+                    $table->index('name', 'categories_name_index');
+                }
+                if (!$this->indexExists('categories', 'categories_is_accessory_index')) {
+                    $table->index('is_accessory', 'categories_is_accessory_index');
+                }
+            });
+        }
 
         // Product images table indexes
-        Schema::table('product_images', function (Blueprint $table) {
-            $table->index(['product_id', 'image_type'], 'product_images_product_type_index');
-            $table->index(['product_id', 'sort_order'], 'product_images_product_sort_index');
-            $table->index('image_type', 'product_images_type_index');
-            $table->index('sort_order', 'product_images_sort_index');
-        });
+        if (Schema::hasTable('product_images')) {
+            Schema::table('product_images', function (Blueprint $table) {
+                if (!$this->indexExists('product_images', 'product_images_product_type_index')) {
+                    $table->index(['product_id', 'image_type'], 'product_images_product_type_index');
+                }
+                if (!$this->indexExists('product_images', 'product_images_product_sort_index')) {
+                    $table->index(['product_id', 'sort_order'], 'product_images_product_sort_index');
+                }
+                if (!$this->indexExists('product_images', 'product_images_type_index')) {
+                    $table->index('image_type', 'product_images_type_index');
+                }
+                if (!$this->indexExists('product_images', 'product_images_sort_index')) {
+                    $table->index('sort_order', 'product_images_sort_index');
+                }
+            });
+        }
 
         // Unit types table indexes
-        Schema::table('unit_types', function (Blueprint $table) {
-            $table->index(['product_id', 'is_default'], 'unit_types_product_default_index');
-            $table->index('is_default', 'unit_types_default_index');
-        });
+        if (Schema::hasTable('unit_types')) {
+            Schema::table('unit_types', function (Blueprint $table) {
+                if (!$this->indexExists('unit_types', 'unit_types_product_default_index')) {
+                    $table->index(['product_id', 'is_default'], 'unit_types_product_default_index');
+                }
+                if (!$this->indexExists('unit_types', 'unit_types_default_index')) {
+                    $table->index('is_default', 'unit_types_default_index');
+                }
+            });
+        }
 
         // Category product pivot table indexes
-        Schema::table('category_product', function (Blueprint $table) {
-            $table->index('category_id', 'category_product_category_index');
-            $table->index('product_id', 'category_product_product_index');
-        });
+        if (Schema::hasTable('category_product')) {
+            Schema::table('category_product', function (Blueprint $table) {
+                if (!$this->indexExists('category_product', 'category_product_category_index')) {
+                    $table->index('category_id', 'category_product_category_index');
+                }
+                if (!$this->indexExists('category_product', 'category_product_product_index')) {
+                    $table->index('product_id', 'category_product_product_index');
+                }
+            });
+        }
 
         // Videos table indexes (if exists)
         if (Schema::hasTable('videos')) {
             Schema::table('videos', function (Blueprint $table) {
-                $table->index(['is_active', 'sort_order'], 'videos_active_sort_index');
-                $table->index('is_active', 'videos_active_index');
-                $table->index('sort_order', 'videos_sort_index');
+                if (!$this->indexExists('videos', 'videos_active_sort_index')) {
+                    $table->index(['is_active', 'sort_order'], 'videos_active_sort_index');
+                }
+                if (!$this->indexExists('videos', 'videos_active_index')) {
+                    $table->index('is_active', 'videos_active_index');
+                }
+                if (!$this->indexExists('videos', 'videos_sort_index')) {
+                    $table->index('sort_order', 'videos_sort_index');
+                }
             });
+        }
+    }
+
+    /**
+     * Check if index exists on table
+     */
+    private function indexExists(string $table, string $index): bool
+    {
+        try {
+            $indexes = \DB::select("SHOW INDEX FROM `{$table}` WHERE Key_name = '{$index}'");
+            return count($indexes) > 0;
+        } catch (\Exception $e) {
+            return false;
         }
     }
 

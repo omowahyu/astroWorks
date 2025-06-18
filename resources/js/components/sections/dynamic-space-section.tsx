@@ -38,7 +38,7 @@ export default function DynamicSpaceSection() {
                                     <img
                                         src={`/placeholder.svg?height=64&width=64`}
                                         alt={`Accessory ${item}`}
-                                        className="w-full h-full object-cover rounded"
+                                        className="object-cover rounded w-full h-full"
                                     />
                                 </div>
                             ))}

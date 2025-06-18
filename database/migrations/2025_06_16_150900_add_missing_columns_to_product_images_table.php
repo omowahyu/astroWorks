@@ -34,18 +34,24 @@ return new class extends Migration
             'display_order' => DB::raw('COALESCE(sort_order, 0)')
         ]);
 
-        // Set the first image (primary) of each product as thumbnail
-        $primaryImages = DB::table('product_images')
-            ->where('is_primary', true)
-            ->get();
+        // Set the first image of each product as thumbnail
+        $products = DB::table('products')->get();
 
-        foreach ($primaryImages as $image) {
-            DB::table('product_images')
-                ->where('id', $image->id)
-                ->update([
-                    'image_type' => 'thumbnail',
-                    'is_thumbnail' => true
-                ]);
+        foreach ($products as $product) {
+            $firstImage = DB::table('product_images')
+                ->where('product_id', $product->id)
+                ->orderBy('sort_order')
+                ->orderBy('created_at')
+                ->first();
+
+            if ($firstImage) {
+                DB::table('product_images')
+                    ->where('id', $firstImage->id)
+                    ->update([
+                        'image_type' => 'thumbnail',
+                        'is_thumbnail' => true
+                    ]);
+            }
         }
     }
 

@@ -166,13 +166,7 @@ class Product extends Model
             return $anyImage->image_url;
         }
 
-        // Check if there are any images in storage
-        $imagePath = "storage/images/product_{$this->id}_image_1.jpg";
-        if (file_exists(public_path($imagePath))) {
-            return asset($imagePath);
-        }
-
-        // Fallback to placeholder
+        // Fallback to placeholder - don't check storage to avoid 403 errors
         return "https://picsum.photos/seed/{$this->id}/800/600";
     }
 
@@ -185,21 +179,8 @@ class Product extends Model
     {
         $urls = $this->images->pluck('image_url')->toArray();
 
-        // If no database images, check for files in storage
+        // If no database images, use placeholder images
         if (empty($urls)) {
-            $storageUrls = [];
-            for ($i = 1; $i <= 5; $i++) {
-                $imagePath = "storage/images/product_{$this->id}_image_{$i}.jpg";
-                if (file_exists(public_path($imagePath))) {
-                    $storageUrls[] = asset($imagePath);
-                }
-            }
-
-            if (!empty($storageUrls)) {
-                return $storageUrls;
-            }
-
-            // Final fallback to placeholder images
             $id = $this->id;
             return [
                 "https://picsum.photos/seed/{$id}/800/600",
@@ -225,17 +206,8 @@ class Product extends Model
         $mobilePortrait = null;
         $desktopLandscape = null;
 
-        // Check for mobile portrait (4:5) variant
-        $mobilePortraitPath = "storage/images/product_{$this->id}_mobile_portrait.jpg";
-        if (file_exists(public_path($mobilePortraitPath))) {
-            $mobilePortrait = asset($mobilePortraitPath);
-        }
-
-        // Check for desktop landscape (16:9) variant
-        $desktopLandscapePath = "storage/images/product_{$this->id}_desktop_landscape.jpg";
-        if (file_exists(public_path($desktopLandscapePath))) {
-            $desktopLandscape = asset($desktopLandscapePath);
-        }
+        // Don't check storage variants to avoid 403 errors
+        // Use base URL for all variants
 
         return [
             'original' => $baseUrl,

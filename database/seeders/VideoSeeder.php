@@ -16,17 +16,17 @@ class VideoSeeder extends Seeder
             [
                 'title' => 'Modern Kitchen Design Showcase',
                 'description' => 'Explore our latest modern kitchen designs featuring sleek cabinets and contemporary styling.',
-                'youtube_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Rick Roll as placeholder
+                'youtube_url' => 'https://www.youtube.com/embed/ScMzIvxBSi4', // Big Buck Bunny - safe for embed
                 'is_active' => true,
-                'autoplay' => true,
-                'loop' => true,
+                'autoplay' => false, // Disable autoplay to prevent CORS issues
+                'loop' => false,
                 'muted' => true,
                 'sort_order' => 1
             ],
             [
                 'title' => 'Custom Cabinet Installation Process',
                 'description' => 'Watch our professional installation team transform your kitchen with custom cabinets.',
-                'youtube_url' => 'https://www.youtube.com/watch?v=9bZkp7q19f0', // Gangnam Style as placeholder
+                'youtube_url' => 'https://www.youtube.com/embed/aqz-KE-bpKQ', // Big Buck Bunny trailer
                 'is_active' => true,
                 'autoplay' => false,
                 'loop' => false,
@@ -36,7 +36,7 @@ class VideoSeeder extends Seeder
             [
                 'title' => 'Behind the Scenes: Cabinet Manufacturing',
                 'description' => 'Take a look inside our workshop where we craft high-quality custom cabinets.',
-                'youtube_url' => 'https://www.youtube.com/watch?v=kJQP7kiw5Fk', // Despacito as placeholder
+                'youtube_url' => 'https://www.youtube.com/embed/YE7VzlLtp-4', // Sintel trailer
                 'is_active' => true,
                 'autoplay' => false,
                 'loop' => false,
@@ -46,7 +46,7 @@ class VideoSeeder extends Seeder
             [
                 'title' => 'Customer Testimonials',
                 'description' => 'Hear what our satisfied customers have to say about their new kitchens.',
-                'youtube_url' => 'https://www.youtube.com/watch?v=fJ9rUzIMcZQ', // Bohemian Rhapsody as placeholder
+                'youtube_url' => 'https://www.youtube.com/embed/eRsGyueVLvQ', // Tears of Steel trailer
                 'is_active' => false,
                 'autoplay' => false,
                 'loop' => false,

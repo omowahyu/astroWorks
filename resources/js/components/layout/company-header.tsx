@@ -1,3 +1,5 @@
+import React from 'react';
+
 export default function CompanyHeader() {
     return (
         <header className="bg-blue-500 text-white py-6">
@@ -5,9 +7,9 @@ export default function CompanyHeader() {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                         <div className="text-2xl font-bold">
-                            ASTRO
-                            <br />
-                            <span className="text-lg font-normal">kabinet</span>
+                            <a href="/" className="flex items-center">
+                                <img src='/images/logo/Astroworks.svg' alt="Astro Works Logo" className="h-4 lg:h-5 mb-2 lg:ml-2" />
+                            </a>
                         </div>
                     </div>
                     <div className="text-right text-sm">

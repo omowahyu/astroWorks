@@ -1,24 +1,36 @@
+import { Award } from 'lucide-react';
+
 export default function ProductShowcase() {
     return (
-        <section className="py-12">
-            <div className="container mx-auto px-4">
-                <div className="grid md:grid-cols-3 gap-8 mb-8">
-                    <div className="relative h-64 rounded-lg overflow-hidden">
-                        <img
-                            src="/placeholder.svg?height=256&width=300"
-                            alt="Kitchen Cabinet Design"
-                                                        className="object-cover w-full h-full"
-                        />
+        <section className="pt-12 pb-4">
+            <div className="container mx-auto">
+                <h3 className="text-4xl font-bold text-gray-800 pb-6">Pilih Kabinet yang kamu butuh</h3>
+                <div className="grid grid-cols-2 gap-2 gap-y-8">
+                    <div className="bg-gray-200 text-black p-12 flex flex-col items-center justify-center h-[480px]"></div>
+                    <div className="bg-gray-200 text-black p-12 flex flex-col items-center justify-center h-[480px]"></div>
+                    <div className="bg-gray-200 text-black p-12 flex flex-col items-center justify-start">
+                        <h3 className="text-4xl font-bold mb-4">Free Design & Cepat</h3>
+                        <p className="text-center text-lg mb-6">
+                            Setelah ada foto dan ukuran ruangan, kami membantu design layout dan survei gratis, dan bisa langsung
+                            produksi.
+                        </p>
+                        <div className="flex justify-center mt-12">
+                            <img src="/images/statics/company/freeDesign&Cepat.png" alt="freeDesign&Cepat" className="object-cover w-full h-full" />
+                        </div>
                     </div>
-                    <div className="relative h-64 rounded-lg overflow-hidden">
-                        <img src="/placeholder.svg?height=256&width=300" alt="TV Cabinet" className="object-cover w-full h-full" />
-                    </div>
-                    <div className="relative h-64 rounded-lg overflow-hidden">
-                        <img src="/placeholder.svg?height=256&width=300" alt="Wardrobe Design" className="object-cover w-full h-full" />
+                    <div className="bg-gray-200 text-black p-12 flex flex-col items-center justify-start">
+                        <h3 className="text-4xl font-bold mb-4">Jaminan termurah</h3>
+                        <p className="text-center text-lg mb-6">
+                            Untuk kabinet konsep mewah ala italy dengan gola & led shelving kami termurah, ataupun konsep japan dan
+                            skandinavia
+                        </p>
+                        <div className="flex justify-center items-center mt-12 h-full">
+                            <img src="/images/statics/company/JaminanTermurah.svg" alt="freeDesign&Cepat" className="object-cover w-full h-56" />
+                        </div>
                     </div>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-800">Pilih Kabinet yang kamu butuh</h3>
             </div>
+
         </section>
     )
 }

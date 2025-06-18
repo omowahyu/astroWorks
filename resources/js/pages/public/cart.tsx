@@ -18,13 +18,19 @@ interface CartItem {
 
 interface PageProps {
     cart: CartItem[];
+    env: {
+        WHATSAPP_NUMBER: string;
+        BANK_NAME: string;
+        BANK_ACCOUNT_NAME: string;
+        BANK_ACCOUNT_NUMBER: string;
+    };
     [key: string]: any;
 }
 
 export default function Cart() {
-    const { cart } = usePage<PageProps>().props;
+    const { cart, env } = usePage<PageProps>().props;
     const [cartItems, setCartItems] = useState<CartItem[]>(cart || []);
-    
+
     useEffect(() => {
         setCartItems(cart || []);
     }, [cart]);
@@ -34,20 +40,20 @@ export default function Cart() {
             removeItem(index);
             return;
         }
-        
+
         const updatedCart = [...cartItems];
         updatedCart[index].quantity = newQuantity;
         updatedCart[index].price = updatedCart[index].unit_price * newQuantity;
-        
+
         // Update accessories total if any
         const accessoriesTotal = Object.values(updatedCart[index].accessories).reduce((total, acc) => {
             return total + (parseFloat(acc.unit_type.price) * acc.quantity);
         }, 0);
-        
+
         updatedCart[index].price += accessoriesTotal;
-        
+
         setCartItems(updatedCart);
-        
+
         // TODO: Update session on backend
         fetch('/cart/update', {
             method: 'POST',
@@ -62,7 +68,7 @@ export default function Cart() {
     const removeItem = (index: number) => {
         const updatedCart = cartItems.filter((_, i) => i !== index);
         setCartItems(updatedCart);
-        
+
         // TODO: Update session on backend
         fetch('/cart/update', {
             method: 'POST',
@@ -89,34 +95,34 @@ export default function Cart() {
     const generateWhatsAppMessage = () => {
         const total = calculateTotal();
         let message = "*PESANAN ASTROWORKS*\n\n";
-        
+
         cartItems.forEach((item, index) => {
             message += `*${index + 1}. ${item.product_name}*\n`;
             message += `• Ukuran: ${item.unit_type_label}\n`;
             message += `• Jumlah: ${item.quantity}\n`;
-            
+
             // Add misc options
             Object.entries(item.misc_options).forEach(([label, value]) => {
                 message += `• ${label}: ${value}\n`;
             });
-            
+
             // Add accessories
             Object.values(item.accessories).forEach(acc => {
                 message += `• ${acc.name}: ${acc.quantity} unit (${formatPrice(parseFloat(acc.unit_type.price))})\n`;
             });
-            
+
             message += `• Subtotal: ${formatPrice(item.price)}\n\n`;
         });
-        
+
         message += `*TOTAL KESELURUHAN: ${formatPrice(total)}*\n\n`;
         message += "Mohon konfirmasi ketersediaan dan waktu pengerjaan. Terima kasih!";
-        
+
         return encodeURIComponent(message);
     };
 
     const handleWhatsAppOrder = () => {
         const message = generateWhatsAppMessage();
-        const phoneNumber = "6281234567890"; // Replace with actual WhatsApp number
+        const phoneNumber = env.WHATSAPP_NUMBER;
         const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
         window.open(whatsappUrl, '_blank');
     };
@@ -124,11 +130,11 @@ export default function Cart() {
     return (
         <>
             <Head title="Keranjang Belanja" />
-            
+
             <div className="min-h-screen bg-gray-50 py-8">
                 <div className="container mx-auto px-4 max-w-4xl">
                     <h1 className="text-3xl font-bold text-gray-900 mb-8">Keranjang Belanja</h1>
-                    
+
                     {cartItems.length === 0 ? (
                         <Card className="p-8 text-center">
                             <CardContent>
@@ -139,7 +145,7 @@ export default function Cart() {
                                     <p className="text-xl">Keranjang belanja kosong</p>
                                     <p className="text-sm mt-2">Silakan pilih produk terlebih dahulu</p>
                                 </div>
-                                <Button 
+                                <Button
                                     onClick={() => window.history.back()}
                                     className="bg-blue-600 hover:bg-blue-700"
                                 >
@@ -271,7 +277,7 @@ export default function Cart() {
                                     </div>
                                 ))}
                             </div>
-                            
+
                             {/* Total & WhatsApp Order */}
                             <div className="bg-white p-6 rounded-lg border space-y-4">
                                 <div className="flex justify-between items-center">
@@ -284,9 +290,9 @@ export default function Cart() {
                                 <div className="space-y-3 text-sm text-gray-600">
                                     <div>
                                         <p className="font-medium">Transfer</p>
-                                        <p>Bank BCA</p>
-                                        <p>Astro Works Indonesia PT</p>
-                                        <p>7025899002</p>
+                                        <p>Bank {env.BANK_NAME}</p>
+                                        <p>{env.BANK_ACCOUNT_NAME}</p>
+                                        <p className="font-mono font-bold text-lg">{env.BANK_ACCOUNT_NUMBER}</p>
                                     </div>
                                 </div>
 
@@ -294,7 +300,10 @@ export default function Cart() {
                                     onClick={handleWhatsAppOrder}
                                     className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg rounded-lg"
                                 >
-                                    Konfirmasi Wa →
+                                    <span>Konfirmasi WA</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                                    </svg>
                                 </Button>
                             </div>
                         </div>

@@ -39,6 +39,8 @@ interface DynamicImageSingleProps {
   preferThumbnail?: boolean;
   /** Image type to load (thumbnail, gallery, hero) */
   imageType?: 'thumbnail' | 'gallery' | 'hero';
+  /** Device type preference (auto-detects if not specified) */
+  deviceType?: 'mobile' | 'desktop' | 'auto';
   /** Product images data passed from Inertia */
   productImages?: {
     thumbnails: ProductImageData[];
@@ -59,6 +61,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
   useDatabase = true,
   preferThumbnail = false,
   imageType = 'thumbnail',
+  deviceType = 'auto',
   productImages
 }) => {
   // Component state
@@ -77,8 +80,17 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
   const mobileImgRef = useRef<HTMLImageElement>(null);
   const desktopImgRef = useRef<HTMLImageElement>(null);
 
-  // SVG placeholder dengan pesan "Image Tidak Tersedia"
-  const placeholderSvg = `/images/placeholder-product.svg`;
+  // Inline SVG placeholder dengan pesan "Image Tidak Tersedia"
+  const placeholderSvg = `data:image/svg+xml;base64,${btoa(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" style="background: #f3f4f6;">
+      <rect width="400" height="300" fill="#f3f4f6"/>
+      <circle cx="200" cy="120" r="30" fill="#e5e7eb"/>
+      <path d="M170 120 L200 90 L230 120 L220 110 L200 130 L180 110 Z" fill="#9ca3af"/>
+      <path d="M180 130 L220 130 L210 140 L190 140 Z" fill="#9ca3af"/>
+      <text x="200" y="180" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="500" fill="#374151">Image Tidak Tersedia</text>
+      <text x="200" y="200" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#6b7280">Gambar produk belum diupload</text>
+    </svg>
+  `)}`;
 
   // Fallback image paths to try - ALWAYS use placeholder for missing data
   const getFallbackPaths = useCallback((productId: string, index: number): string[] => {
@@ -101,24 +113,99 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
   }, [rounded]);
 
   /**
-   * Load image data from Inertia props - ALWAYS use placeholder for now
+   * Load device-specific image data from Inertia props
    */
   const loadImageFromProps = useCallback((): void => {
-    // For now, ALWAYS use placeholder to avoid 403 errors
-    setLoading(false);
-    setMobileImageUrl(placeholderSvg);
-    setDesktopImageUrl(placeholderSvg);
-    setMobileImageLoaded(true);
-    setDesktopImageLoaded(true);
-    setImageError(false);
+    setLoading(true);
 
     if (debug) {
-      console.log('🖼️ DynamicImageSingle: Using placeholder for product:', productId);
+      console.log('🖼️ DynamicImageSingle: Loading image for product:', productId, productImages);
     }
-    return;
 
-    // Simplified - just use placeholder for now
-  }, [productId, imageType, preferThumbnail, index, debug, placeholderSvg, productImages]);
+    // If no productImages data, show fallback
+    if (!productImages) {
+      if (debug) console.log('🖼️ No productImages data, showing fallback');
+      setLoading(false);
+      setImageError(true);
+      return;
+    }
+
+    // Helper function to filter images by device type
+    const filterImagesByDevice = (images: ProductImageData[], targetDevice: string) => {
+      return images.filter(img => {
+        // If image has device_type property, use it; otherwise assume desktop for backward compatibility
+        const imgDeviceType = (img as any).device_type || 'desktop';
+        return imgDeviceType === targetDevice;
+      });
+    };
+
+    // Get device-specific images
+    const mobileImages = {
+      thumbnails: filterImagesByDevice(productImages.thumbnails, 'mobile'),
+      gallery: filterImagesByDevice(productImages.gallery, 'mobile'),
+      hero: filterImagesByDevice(productImages.hero, 'mobile')
+    };
+
+    const desktopImages = {
+      thumbnails: filterImagesByDevice(productImages.thumbnails, 'desktop'),
+      gallery: filterImagesByDevice(productImages.gallery, 'desktop'),
+      hero: filterImagesByDevice(productImages.hero, 'desktop')
+    };
+
+    // Select mobile image
+    let mobileImage: ProductImageData | null = null;
+    if (preferThumbnail && productImages.main_thumbnail && (productImages.main_thumbnail as any).device_type === 'mobile') {
+      mobileImage = productImages.main_thumbnail;
+    } else if (imageType === 'thumbnail' && mobileImages.thumbnails.length > 0) {
+      mobileImage = mobileImages.thumbnails[0];
+    } else if (imageType === 'gallery' && mobileImages.gallery.length > 0) {
+      mobileImage = mobileImages.gallery[Math.min(index - 1, mobileImages.gallery.length - 1)];
+    } else if (imageType === 'hero' && mobileImages.hero.length > 0) {
+      mobileImage = mobileImages.hero[0];
+    }
+
+    // Select desktop image
+    let desktopImage: ProductImageData | null = null;
+    if (preferThumbnail && productImages.main_thumbnail && (productImages.main_thumbnail as any).device_type === 'desktop') {
+      desktopImage = productImages.main_thumbnail;
+    } else if (imageType === 'thumbnail' && desktopImages.thumbnails.length > 0) {
+      desktopImage = desktopImages.thumbnails[0];
+    } else if (imageType === 'gallery' && desktopImages.gallery.length > 0) {
+      desktopImage = desktopImages.gallery[Math.min(index - 1, desktopImages.gallery.length - 1)];
+    } else if (imageType === 'hero' && desktopImages.hero.length > 0) {
+      desktopImage = desktopImages.hero[0];
+    }
+
+    // Set image URLs
+    if (mobileImage) {
+      setMobileImageUrl(mobileImage.image_url);
+      if (debug) console.log('🖼️ Set mobile image URL:', mobileImage.image_url);
+    } else {
+      setMobileImageUrl('');
+      if (debug) console.log('🖼️ No mobile image available');
+    }
+
+    if (desktopImage) {
+      setDesktopImageUrl(desktopImage.image_url);
+      if (debug) console.log('🖼️ Set desktop image URL:', desktopImage.image_url);
+    } else {
+      setDesktopImageUrl('');
+      if (debug) console.log('🖼️ No desktop image available');
+    }
+
+    // Set error state only if no images are available for either device
+    const hasAnyImage = mobileImage || desktopImage;
+    setImageError(!hasAnyImage);
+    setLoading(false);
+
+    if (debug) {
+      console.log('🖼️ Image loading complete:', {
+        mobileImage: mobileImage?.image_url,
+        desktopImage: desktopImage?.image_url,
+        hasAnyImage
+      });
+    }
+  }, [productId, imageType, preferThumbnail, index, debug, productImages]);
 
   /**
    * Preload image to reduce delay and ensure smooth transitions
@@ -241,7 +328,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
       setHasLoadedOnce(true);
       loadImageFromProps();
     }
-  }, [productId, productImages, isIntersecting, hasLoadedOnce, loadImageFromProps]);
+  }, [productId, productImages, isIntersecting, hasLoadedOnce]);
 
   // Load image immediately if productImages are available (no need to wait for intersection)
   useEffect(() => {
@@ -249,7 +336,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
       setHasLoadedOnce(true);
       loadImageFromProps();
     }
-  }, [productId, productImages, hasLoadedOnce, loadImageFromProps]);
+  }, [productId, productImages, hasLoadedOnce]);
 
   // Reset loading states when URLs change
   useEffect(() => {
@@ -306,18 +393,22 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
         style={{ willChange: 'opacity' }}
       />
 
-      {/* Loading placeholder - shown when loading or no images */}
-      {(loading || (!mobileImageUrl && !desktopImageUrl)) && (
-        <div className="absolute inset-0 w-full h-full bg-gray-100 flex items-center justify-center">
-          <div className="animate-pulse">
+      {/* Fallback placeholder - shown when no valid images or loading */}
+      {(loading || imageError || (!mobileImageLoaded && !desktopImageLoaded)) && (
+        <div className="absolute inset-0 w-full h-full bg-gray-100 flex flex-col items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mb-3">
             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth="2"
+                strokeWidth="1.5"
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-gray-700 mb-1">Image Tidak Tersedia</p>
+            <p className="text-xs text-gray-500">Gambar produk belum diupload</p>
           </div>
         </div>
       )}

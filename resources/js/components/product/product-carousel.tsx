@@ -298,10 +298,9 @@ const ProductCarousel: React.FC<Props> = ({ className = "", categoriesWithProduc
                             >
                                 {category.products.map((product, productIndex) => (
                                     <motion.a
-                                        userSelect="none"
                                         key={product.id}
                                         href={`/product/${product.slug || product.id}`}
-                                        className="flex-shrink-0 w-[calc(50%-8px)] sm:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] group"
+                                        className="flex-shrink-0 w-[calc(50%-8px)] sm:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] group select-none"
                                         aria-label={`View details for ${product.name}`}
                                         initial={{ opacity: 0, x: 50 }}
                                         animate={{ opacity: 1, x: 0 }}

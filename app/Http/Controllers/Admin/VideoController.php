@@ -66,7 +66,7 @@ class VideoController extends Controller
 
         Video::create($validated);
 
-        return redirect()->route('admin.videos.index')
+        return redirect()->route('dashboard.videos.index')
             ->with('success', 'Video created successfully.');
     }
 
@@ -119,7 +119,7 @@ class VideoController extends Controller
 
         $video->update($validated);
 
-        return redirect()->route('admin.videos.index')
+        return redirect()->route('dashboard.videos.index')
             ->with('success', 'Video updated successfully.');
     }
 
@@ -130,7 +130,7 @@ class VideoController extends Controller
     {
         $video->delete();
 
-        return redirect()->route('admin.videos.index')
+        return redirect()->route('dashboard.videos.index')
             ->with('success', 'Video deleted successfully.');
     }
 

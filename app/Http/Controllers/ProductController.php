@@ -42,10 +42,47 @@ class ProductController extends Controller
             abort(404, 'Product not found');
         }
 
-        // Get accessory products
+        // Get accessory products with complete image data
         $accessories = Product::whereHas('categories', function ($query) {
             $query->where('is_accessory', true);
-        })->with(['defaultUnit', 'defaultMisc', 'unitTypes', 'miscOptions', 'mainThumbnail'])->get();
+        })->with([
+            'defaultUnit',
+            'defaultMisc',
+            'unitTypes',
+            'miscOptions',
+            'mainThumbnail',
+            'thumbnailImages',
+            'primaryImage'
+        ])->get()->map(function ($accessory) {
+            return [
+                'id' => $accessory->id,
+                'name' => $accessory->name,
+                'description' => $accessory->description,
+                'slug' => $accessory->slug,
+                'primary_image_url' => $accessory->primary_image_url,
+                'images' => [
+                    'thumbnails' => $accessory->thumbnailImages->map(function ($image) {
+                        return [
+                            'id' => $image->id,
+                            'image_url' => $image->image_url,
+                            'alt_text' => $image->alt_text
+                        ];
+                    }),
+                    'main_thumbnail' => $accessory->mainThumbnail ? [
+                        'id' => $accessory->mainThumbnail->id,
+                        'image_url' => $accessory->mainThumbnail->image_url,
+                        'alt_text' => $accessory->mainThumbnail->alt_text
+                    ] : null
+                ],
+                'default_unit' => $accessory->defaultUnit ? [
+                    'id' => $accessory->defaultUnit->id,
+                    'label' => $accessory->defaultUnit->label,
+                    'price' => $accessory->defaultUnit->price
+                ] : null,
+                'unit_types' => $accessory->unitTypes,
+                'misc_options' => $accessory->miscOptions
+            ];
+        });
 
         // Format product data with complete image information
         $productData = [
@@ -58,6 +95,9 @@ class ProductController extends Controller
                     return [
                         'id' => $image->id,
                         'image_type' => $image->image_type,
+                        'device_type' => $image->device_type ?? 'desktop',
+                        'aspect_ratio' => $image->aspect_ratio,
+                        'image_dimensions' => $image->image_dimensions,
                         'sort_order' => $image->sort_order,
                         'alt_text' => $image->alt_text,
                         'image_url' => $image->image_url,
@@ -68,6 +108,9 @@ class ProductController extends Controller
                     return [
                         'id' => $image->id,
                         'image_type' => $image->image_type,
+                        'device_type' => $image->device_type ?? 'desktop',
+                        'aspect_ratio' => $image->aspect_ratio,
+                        'image_dimensions' => $image->image_dimensions,
                         'sort_order' => $image->sort_order,
                         'alt_text' => $image->alt_text,
                         'image_url' => $image->image_url,
@@ -78,6 +121,9 @@ class ProductController extends Controller
                     return [
                         'id' => $image->id,
                         'image_type' => $image->image_type,
+                        'device_type' => $image->device_type ?? 'desktop',
+                        'aspect_ratio' => $image->aspect_ratio,
+                        'image_dimensions' => $image->image_dimensions,
                         'sort_order' => $image->sort_order,
                         'alt_text' => $image->alt_text,
                         'image_url' => $image->image_url,
@@ -87,6 +133,9 @@ class ProductController extends Controller
                 'main_thumbnail' => $product->mainThumbnail ? [
                     'id' => $product->mainThumbnail->id,
                     'image_type' => $product->mainThumbnail->image_type,
+                    'device_type' => $product->mainThumbnail->device_type ?? 'desktop',
+                    'aspect_ratio' => $product->mainThumbnail->aspect_ratio,
+                    'image_dimensions' => $product->mainThumbnail->image_dimensions,
                     'sort_order' => $product->mainThumbnail->sort_order,
                     'alt_text' => $product->mainThumbnail->alt_text,
                     'image_url' => $product->mainThumbnail->image_url,
@@ -100,7 +149,7 @@ class ProductController extends Controller
             'categories' => $product->categories
         ];
 
-        return Inertia::render('product/Show', [
+        return Inertia::render('product/[slug]', [
             'product' => $productData,
             'accessories' => $accessories
         ]);
@@ -122,7 +171,7 @@ class ProductController extends Controller
             $query->where('is_accessory', true);
         })->with(['defaultUnit', 'defaultMisc', 'unitTypes', 'miscOptions', 'primaryImage'])->get();
 
-        return Inertia::render('ProductPurchase', [
+        return Inertia::render('public/product-purchase', [
             'product' => $product,
             'accessories' => $accessories
         ]);
@@ -130,43 +179,35 @@ class ProductController extends Controller
 
     public function addToCart(Request $request)
     {
-        $product = Product::with(['unitTypes', 'miscOptions'])->findOrFail($request->product_id);
-        $unitType = $product->unitTypes()->findOrFail($request->unit_type_id);
-        
-        // Process accessories
-        $processedAccessories = [];
-        if ($request->accessories) {
-            foreach ($request->accessories as $accessoryId => $accessoryData) {
-                $accessory = Product::with(['defaultUnit'])->find($accessoryId);
-                if ($accessory && $accessoryData['quantity'] > 0) {
-                    $processedAccessories[$accessoryId] = [
-                        'name' => $accessory->name,
-                        'quantity' => $accessoryData['quantity'],
-                        'unit_type' => [
-                            'id' => $accessory->defaultUnit->id,
-                            'label' => $accessory->defaultUnit->label,
-                            'price' => $accessory->defaultUnit->price
-                        ]
-                    ];
-                }
-            }
-        }
+        // Validate the cart batch data
+        $request->validate([
+            'batch_id' => 'required',
+            'batch_name' => 'required|string',
+            'main_product' => 'required|array',
+            'main_product.product_id' => 'required|exists:products,id',
+            'main_product.unit_type_id' => 'required|exists:unit_types,id',
+            'main_product.quantity' => 'required|integer|min:1',
+            'accessories' => 'array',
+            'batch_total' => 'required|numeric|min:0'
+        ]);
 
-        $cartItem = [
-            'product_id' => $product->id,
-            'product_name' => $product->name,
-            'unit_type_id' => $unitType->id,
-            'unit_type_label' => $unitType->label,
-            'unit_price' => (float) $unitType->price,
-            'misc_options' => $request->misc_options ?? [],
-            'accessories' => $processedAccessories,
-            'quantity' => $request->quantity,
-            'price' => $request->price
+        // Create cart batch structure
+        $cartBatch = [
+            'batch_id' => $request->batch_id,
+            'batch_name' => $request->batch_name,
+            'main_product' => $request->main_product,
+            'accessories' => $request->accessories ?? [],
+            'batch_total' => $request->batch_total,
+            'created_at' => now()->toISOString()
         ];
 
-        // Store in session
+        // Get existing cart from session
         $cart = session()->get('cart', []);
-        $cart[] = $cartItem;
+
+        // Add new batch to cart
+        $cart[] = $cartBatch;
+
+        // Store updated cart in session
         session()->put('cart', $cart);
 
         return redirect()->route('cart')->with('success', 'Produk berhasil ditambahkan ke keranjang!');
@@ -176,15 +217,16 @@ class ProductController extends Controller
     {
         $cart = session()->get('cart', []);
 
-        return Inertia::render('Cart', [
+        return Inertia::render('cart', [
             'cart' => $cart
         ]);
     }
 
     public function updateCart(Request $request)
     {
-        session()->put('cart', $request->cart);
-        
+        $cart = $request->input('cart', []);
+        session()->put('cart', $cart);
+
         return response()->json(['success' => true]);
     }
 }

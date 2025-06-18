@@ -192,24 +192,13 @@ class RealisticProductSeeder extends Seeder
      */
     private function createMiscOptions(Product $product): void
     {
-        // Color options
-        $colors = ['Natural Wood', 'White', 'Black', 'Walnut'];
-        foreach ($colors as $index => $color) {
+        // Only Warna options - consolidate colors and finishes
+        $warnaOptions = ['Natural Wood', 'Hitam', 'Putih', 'Walnut', 'Coklat'];
+        foreach ($warnaOptions as $index => $warna) {
             ProductMiscOption::create([
                 'product_id' => $product->id,
-                'label' => 'Color',
-                'value' => $color,
-                'is_default' => $index === 0
-            ]);
-        }
-
-        // Finish options
-        $finishes = ['Matte', 'Glossy', 'Textured'];
-        foreach ($finishes as $index => $finish) {
-            ProductMiscOption::create([
-                'product_id' => $product->id,
-                'label' => 'Finish',
-                'value' => $finish,
+                'label' => 'Warna',
+                'value' => $warna,
                 'is_default' => $index === 0
             ]);
         }
