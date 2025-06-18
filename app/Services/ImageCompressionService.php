@@ -3,47 +3,46 @@
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
-use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 use Intervention\Image\Interfaces\ImageInterface;
 
 class ImageCompressionService
 {
     private ImageManager $imageManager;
-    
+
     // Maximum file size in bytes (30MB)
     private const MAX_FILE_SIZE = 30 * 1024 * 1024;
-    
+
     // Quality settings for different compression levels
     private const QUALITY_SETTINGS = [
         'lossless' => 100,    // No quality loss, only metadata removal
         'minimal' => 95,      // Minimal compression
         'moderate' => 85,     // Moderate compression
-        'aggressive' => 75    // More aggressive compression
+        'aggressive' => 75,    // More aggressive compression
     ];
 
     public function __construct()
     {
-        $this->imageManager = new ImageManager(new Driver());
+        $this->imageManager = new ImageManager(new Driver);
     }
 
     /**
      * Compress image while maintaining quality
      *
-     * @param UploadedFile $file
-     * @param string $compressionLevel ('lossless', 'minimal', 'moderate', 'aggressive')
-     * @return array
+     * @param  string  $compressionLevel  ('lossless', 'minimal', 'moderate', 'aggressive')
+     *
      * @throws \Exception
      */
     public function compressImage(UploadedFile $file, string $compressionLevel = 'lossless'): array
     {
         // Validate file size
         if ($file->getSize() > self::MAX_FILE_SIZE) {
-            throw new \Exception('File size exceeds 30MB limit. Current size: ' . $this->formatFileSize($file->getSize()));
+            throw new \Exception('File size exceeds 30MB limit. Current size: '.$this->formatFileSize($file->getSize()));
         }
 
         // Validate compression level
-        if (!array_key_exists($compressionLevel, self::QUALITY_SETTINGS)) {
+        if (! array_key_exists($compressionLevel, self::QUALITY_SETTINGS)) {
             throw new \Exception('Invalid compression level. Use: lossless, minimal, moderate, or aggressive');
         }
 
@@ -52,7 +51,7 @@ class ImageCompressionService
 
         // Get original image info
         $imageInfo = getimagesize($originalPath);
-        if (!$imageInfo) {
+        if (! $imageInfo) {
             throw new \Exception('Invalid image file');
         }
 
@@ -81,17 +80,12 @@ class ImageCompressionService
             'mime_type' => $mimeType,
             'aspect_ratio' => round($originalWidth / $originalHeight, 2),
             'compression_level' => $compressionLevel,
-            'quality_used' => self::QUALITY_SETTINGS[$compressionLevel]
+            'quality_used' => self::QUALITY_SETTINGS[$compressionLevel],
         ];
     }
 
     /**
      * Apply compression based on level
-     *
-     * @param ImageInterface $image
-     * @param string $mimeType
-     * @param string $compressionLevel
-     * @return string
      */
     private function applyCompression(ImageInterface $image, string $mimeType, string $compressionLevel): string
     {
@@ -103,19 +97,20 @@ class ImageCompressionService
         switch ($mimeType) {
             case 'image/jpeg':
                 return $image->toJpeg($quality);
-                
+
             case 'image/png':
                 // For PNG, we use compression level (0-9) instead of quality
                 $pngCompression = $this->getPngCompressionLevel($compressionLevel);
+
                 return $image->toPng($pngCompression);
-                
+
             case 'image/webp':
                 return $image->toWebp($quality);
-                
+
             case 'image/gif':
                 // GIF doesn't support quality settings, just remove metadata
                 return $image->toGif();
-                
+
             default:
                 // Default to JPEG for unsupported formats
                 return $image->toJpeg($quality);
@@ -124,9 +119,6 @@ class ImageCompressionService
 
     /**
      * Get PNG compression level based on compression setting
-     *
-     * @param string $compressionLevel
-     * @return int
      */
     private function getPngCompressionLevel(string $compressionLevel): int
     {
@@ -141,24 +133,22 @@ class ImageCompressionService
     /**
      * Compress image with automatic level selection based on file size
      *
-     * @param UploadedFile $file
-     * @param int $targetSizeBytes
-     * @return array
      * @throws \Exception
      */
-    public function compressToTargetSize(UploadedFile $file, int $targetSizeBytes = null): array
+    public function compressToTargetSize(UploadedFile $file, ?int $targetSizeBytes = null): array
     {
         $targetSizeBytes = $targetSizeBytes ?? (5 * 1024 * 1024); // Default 5MB target
 
         // Try different compression levels until we reach target size
         $compressionLevels = ['lossless', 'minimal', 'moderate', 'aggressive'];
-        
+
         foreach ($compressionLevels as $level) {
             $result = $this->compressImage($file, $level);
-            
+
             if ($result['compressed_size'] <= $targetSizeBytes) {
                 $result['target_achieved'] = true;
                 $result['target_size'] = $targetSizeBytes;
+
                 return $result;
             }
         }
@@ -166,16 +156,12 @@ class ImageCompressionService
         // If even aggressive compression doesn't reach target, return aggressive result
         $result['target_achieved'] = false;
         $result['target_size'] = $targetSizeBytes;
-        
+
         return $result;
     }
 
     /**
      * Batch compress multiple images
-     *
-     * @param array $files
-     * @param string $compressionLevel
-     * @return array
      */
     public function compressMultiple(array $files, string $compressionLevel = 'lossless'): array
     {
@@ -189,17 +175,17 @@ class ImageCompressionService
                 $result = $this->compressImage($file, $compressionLevel);
                 $results[] = array_merge($result, [
                     'file_index' => $index,
-                    'original_name' => $file->getClientOriginalName()
+                    'original_name' => $file->getClientOriginalName(),
                 ]);
-                
+
                 $totalOriginalSize += $result['original_size'];
                 $totalCompressedSize += $result['compressed_size'];
-                
+
             } catch (\Exception $e) {
                 $errors[] = [
                     'file_index' => $index,
                     'file_name' => $file->getClientOriginalName(),
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ];
             }
         }
@@ -214,18 +200,15 @@ class ImageCompressionService
                 'total_original_size' => $totalOriginalSize,
                 'total_compressed_size' => $totalCompressedSize,
                 'total_savings' => $totalOriginalSize - $totalCompressedSize,
-                'average_compression_ratio' => count($results) > 0 
+                'average_compression_ratio' => count($results) > 0
                     ? round((($totalOriginalSize - $totalCompressedSize) / $totalOriginalSize) * 100, 2)
-                    : 0
-            ]
+                    : 0,
+            ],
         ];
     }
 
     /**
      * Get compression recommendations based on file size and type
-     *
-     * @param UploadedFile $file
-     * @return array
      */
     public function getCompressionRecommendation(UploadedFile $file): array
     {
@@ -262,15 +245,12 @@ class ImageCompressionService
             'type_note' => $typeNote,
             'file_size' => $fileSize,
             'file_size_formatted' => $this->formatFileSize($fileSize),
-            'mime_type' => $mimeType
+            'mime_type' => $mimeType,
         ];
     }
 
     /**
      * Format file size in human readable format
-     *
-     * @param int $bytes
-     * @return string
      */
     public function formatFileSize(int $bytes): string
     {
@@ -281,14 +261,12 @@ class ImageCompressionService
 
         $bytes /= pow(1024, $pow);
 
-        return round($bytes, 2) . ' ' . $units[$pow];
+        return round($bytes, 2).' '.$units[$pow];
     }
 
     /**
      * Validate image file
      *
-     * @param UploadedFile $file
-     * @return bool
      * @throws \Exception
      */
     public function validateImage(UploadedFile $file): bool
@@ -300,13 +278,13 @@ class ImageCompressionService
 
         // Check if it's a valid image
         $imageInfo = getimagesize($file->getPathname());
-        if (!$imageInfo) {
+        if (! $imageInfo) {
             throw new \Exception('Invalid image file');
         }
 
         // Check supported formats
         $supportedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        if (!in_array($imageInfo['mime'], $supportedMimes)) {
+        if (! in_array($imageInfo['mime'], $supportedMimes)) {
             throw new \Exception('Unsupported image format. Supported: JPEG, PNG, WebP, GIF');
         }
 

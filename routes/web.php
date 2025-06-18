@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\ProductController;
 
 Route::get('/', function () {
     // Cache homepage data for 10 minutes (more aggressive caching)
@@ -13,62 +13,63 @@ Route::get('/', function () {
     // Optimized query with selective fields and limited data + longer caching
     $categoriesWithProducts = \Illuminate\Support\Facades\Cache::remember('homepage.categories', 600, function () {
         return \App\Models\Category::select(['categories.id', 'categories.name', 'categories.is_accessory'])
-        ->with([
-            'products' => function ($query) {
-                $query->select(['products.id', 'products.name', 'products.description', 'products.slug'])
-                      ->take(6); // Limit products per category for homepage
-            },
-            'products.thumbnailImages' => function ($query) {
-                $query->select(['product_images.id', 'product_images.product_id', 'product_images.image_path', 'product_images.alt_text', 'product_images.sort_order'])
-                      ->orderBy('product_images.sort_order')
-                      ->take(1); // Only first thumbnail for homepage
-            },
-            'products.defaultUnit' => function ($query) {
-                $query->select(['unit_types.id', 'unit_types.product_id', 'unit_types.label', 'unit_types.price']);
-            }
-        ])
+            ->with([
+                'products' => function ($query) {
+                    $query->select(['products.id', 'products.name', 'products.description', 'products.slug'])
+                        ->take(6); // Limit products per category for homepage
+                },
+                'products.thumbnailImages' => function ($query) {
+                    $query->select(['product_images.id', 'product_images.product_id', 'product_images.image_path', 'product_images.alt_text', 'product_images.sort_order'])
+                        ->orderBy('product_images.sort_order')
+                        ->take(1); // Only first thumbnail for homepage
+                },
+                'products.defaultUnit' => function ($query) {
+                    $query->select(['unit_types.id', 'unit_types.product_id', 'unit_types.label', 'unit_types.price']);
+                },
+            ])
             ->whereHas('products') // Only categories that have products
             ->get()
             ->map(function ($category) {
-            return [
-                'id' => $category->id,
-                'name' => $category->name,
-                'is_accessory' => $category->is_accessory,
-                'products' => $category->products->map(function ($product) {
-                    $thumbnail = $product->thumbnailImages->first();
-                    return [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'description' => $product->description,
-                        'slug' => $product->slug,
-                        'primary_image_url' => $product->primary_image_url,
-                        'images' => [
-                            'thumbnails' => $thumbnail ? [[
-                                'id' => $thumbnail->id,
-                                'image_url' => $thumbnail->image_url,
-                                'alt_text' => $thumbnail->alt_text
-                            ]] : [],
-                            'gallery' => [], // Not needed for homepage
-                            'hero' => [], // Not needed for homepage
-                            'main_thumbnail' => $thumbnail ? [
-                                'id' => $thumbnail->id,
-                                'image_url' => $thumbnail->image_url,
-                                'alt_text' => $thumbnail->alt_text
-                            ] : null
-                        ],
-                        'default_unit' => $product->defaultUnit ? [
-                            'label' => $product->defaultUnit->label,
-                            'price' => $product->defaultUnit->price
-                        ] : null
-                    ];
-                })
-            ];
-        });
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'is_accessory' => $category->is_accessory,
+                    'products' => $category->products->map(function ($product) {
+                        $thumbnail = $product->thumbnailImages->first();
+
+                        return [
+                            'id' => $product->id,
+                            'name' => $product->name,
+                            'description' => $product->description,
+                            'slug' => $product->slug,
+                            'primary_image_url' => $product->primary_image_url,
+                            'images' => [
+                                'thumbnails' => $thumbnail ? [[
+                                    'id' => $thumbnail->id,
+                                    'image_url' => $thumbnail->image_url,
+                                    'alt_text' => $thumbnail->alt_text,
+                                ]] : [],
+                                'gallery' => [], // Not needed for homepage
+                                'hero' => [], // Not needed for homepage
+                                'main_thumbnail' => $thumbnail ? [
+                                    'id' => $thumbnail->id,
+                                    'image_url' => $thumbnail->image_url,
+                                    'alt_text' => $thumbnail->alt_text,
+                                ] : null,
+                            ],
+                            'default_unit' => $product->defaultUnit ? [
+                                'label' => $product->defaultUnit->label,
+                                'price' => $product->defaultUnit->price,
+                            ] : null,
+                        ];
+                    }),
+                ];
+            });
     });
 
     return Inertia::render('public/homepage', [
         'featuredVideo' => $featuredVideo,
-        'categories' => $categoriesWithProducts
+        'categories' => $categoriesWithProducts,
     ]);
 })->name('home');
 
@@ -101,21 +102,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
                         'id' => $product->id,
                         'name' => $product->name,
                         'created_at' => $product->created_at,
-                        'primary_image_url' => $product->primary_image_url
+                        'primary_image_url' => $product->primary_image_url,
                     ];
-                })
+                }),
         ];
 
         $videosOverview = [
             'total_videos' => \App\Models\Video::count(),
             'active_videos' => \App\Models\Video::where('is_active', true)->count(),
             'featured_video' => \App\Models\Video::active()->ordered()->first(),
-            'recent_videos' => \App\Models\Video::latest()->take(5)->get()
+            'recent_videos' => \App\Models\Video::latest()->take(5)->get(),
         ];
 
         return Inertia::render('dashboard/index', [
             'productsOverview' => $productsOverview,
-            'videosOverview' => $videosOverview
+            'videosOverview' => $videosOverview,
         ]);
     })->name('dashboard');
 });

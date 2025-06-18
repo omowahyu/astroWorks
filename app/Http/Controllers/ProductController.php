@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use App\Models\Category;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -20,10 +19,10 @@ class ProductController extends Controller
             'miscOptions',
             'defaultUnit',
             'defaultMisc',
-            'categories'
+            'categories',
         ])->where('slug', $slug)->first();
 
-        if (!$product) {
+        if (! $product) {
             // Try to find by ID if slug doesn't work
             $product = Product::with([
                 'thumbnailImages',
@@ -34,11 +33,11 @@ class ProductController extends Controller
                 'miscOptions',
                 'defaultUnit',
                 'defaultMisc',
-                'categories'
+                'categories',
             ])->find($slug);
         }
 
-        if (!$product) {
+        if (! $product) {
             abort(404, 'Product not found');
         }
 
@@ -52,7 +51,7 @@ class ProductController extends Controller
             'miscOptions',
             'mainThumbnail',
             'thumbnailImages',
-            'primaryImage'
+            'primaryImage',
         ])->get()->map(function ($accessory) {
             return [
                 'id' => $accessory->id,
@@ -65,22 +64,22 @@ class ProductController extends Controller
                         return [
                             'id' => $image->id,
                             'image_url' => $image->image_url,
-                            'alt_text' => $image->alt_text
+                            'alt_text' => $image->alt_text,
                         ];
                     }),
                     'main_thumbnail' => $accessory->mainThumbnail ? [
                         'id' => $accessory->mainThumbnail->id,
                         'image_url' => $accessory->mainThumbnail->image_url,
-                        'alt_text' => $accessory->mainThumbnail->alt_text
-                    ] : null
+                        'alt_text' => $accessory->mainThumbnail->alt_text,
+                    ] : null,
                 ],
                 'default_unit' => $accessory->defaultUnit ? [
                     'id' => $accessory->defaultUnit->id,
                     'label' => $accessory->defaultUnit->label,
-                    'price' => $accessory->defaultUnit->price
+                    'price' => $accessory->defaultUnit->price,
                 ] : null,
                 'unit_types' => $accessory->unitTypes,
-                'misc_options' => $accessory->miscOptions
+                'misc_options' => $accessory->miscOptions,
             ];
         });
 
@@ -101,7 +100,7 @@ class ProductController extends Controller
                         'sort_order' => $image->sort_order,
                         'alt_text' => $image->alt_text,
                         'image_url' => $image->image_url,
-                        'variants' => $image->image_variants
+                        'variants' => $image->image_variants,
                     ];
                 }),
                 'gallery' => $product->galleryImages->map(function ($image) {
@@ -114,7 +113,7 @@ class ProductController extends Controller
                         'sort_order' => $image->sort_order,
                         'alt_text' => $image->alt_text,
                         'image_url' => $image->image_url,
-                        'variants' => $image->image_variants
+                        'variants' => $image->image_variants,
                     ];
                 }),
                 'hero' => $product->heroImages->map(function ($image) {
@@ -127,7 +126,7 @@ class ProductController extends Controller
                         'sort_order' => $image->sort_order,
                         'alt_text' => $image->alt_text,
                         'image_url' => $image->image_url,
-                        'variants' => $image->image_variants
+                        'variants' => $image->image_variants,
                     ];
                 }),
                 'main_thumbnail' => $product->mainThumbnail ? [
@@ -139,19 +138,19 @@ class ProductController extends Controller
                     'sort_order' => $product->mainThumbnail->sort_order,
                     'alt_text' => $product->mainThumbnail->alt_text,
                     'image_url' => $product->mainThumbnail->image_url,
-                    'variants' => $product->mainThumbnail->image_variants
-                ] : null
+                    'variants' => $product->mainThumbnail->image_variants,
+                ] : null,
             ],
             'unit_types' => $product->unitTypes,
             'misc_options' => $product->miscOptions,
             'default_unit' => $product->defaultUnit,
             'default_misc' => $product->defaultMisc,
-            'categories' => $product->categories
+            'categories' => $product->categories,
         ];
 
         return Inertia::render('product/[slug]', [
             'product' => $productData,
-            'accessories' => $accessories
+            'accessories' => $accessories,
         ]);
     }
 
@@ -163,7 +162,7 @@ class ProductController extends Controller
             'defaultUnit',
             'defaultMisc',
             'images',
-            'primaryImage'
+            'primaryImage',
         ])->findOrFail($id);
 
         // Get accessory products
@@ -173,7 +172,7 @@ class ProductController extends Controller
 
         return Inertia::render('public/product-purchase', [
             'product' => $product,
-            'accessories' => $accessories
+            'accessories' => $accessories,
         ]);
     }
 
@@ -188,7 +187,7 @@ class ProductController extends Controller
             'main_product.unit_type_id' => 'required|exists:unit_types,id',
             'main_product.quantity' => 'required|integer|min:1',
             'accessories' => 'array',
-            'batch_total' => 'required|numeric|min:0'
+            'batch_total' => 'required|numeric|min:0',
         ]);
 
         // Create cart batch structure
@@ -198,7 +197,7 @@ class ProductController extends Controller
             'main_product' => $request->main_product,
             'accessories' => $request->accessories ?? [],
             'batch_total' => $request->batch_total,
-            'created_at' => now()->toISOString()
+            'created_at' => now()->toISOString(),
         ];
 
         // Get existing cart from session
@@ -218,7 +217,7 @@ class ProductController extends Controller
         $cart = session()->get('cart', []);
 
         return Inertia::render('cart', [
-            'cart' => $cart
+            'cart' => $cart,
         ]);
     }
 

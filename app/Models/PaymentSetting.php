@@ -13,7 +13,7 @@ class PaymentSetting extends Model
         'type',
         'group',
         'label',
-        'description'
+        'description',
     ];
 
     /**
@@ -23,6 +23,7 @@ class PaymentSetting extends Model
     {
         return Cache::remember("payment_setting_{$key}", 3600, function () use ($key, $default) {
             $setting = static::where('key', $key)->first();
+
             return $setting ? $setting->value : $default;
         });
     }

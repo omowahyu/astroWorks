@@ -2,13 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-
 use App\Models\Product;
-use App\Models\UnitType;
-use App\Models\ProductMiscOption;
 use App\Models\ProductImage;
-
+use App\Models\ProductMiscOption;
+use App\Models\UnitType;
+use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
 {
@@ -39,16 +37,16 @@ class ProductSeeder extends Seeder
         $placeholderImages = [
             "https://picsum.photos/800/600?random={$product->id}1",
             "https://picsum.photos/800/600?random={$product->id}2",
-            "https://picsum.photos/800/600?random={$product->id}3"
+            "https://picsum.photos/800/600?random={$product->id}3",
         ];
 
         foreach ($placeholderImages as $index => $imageUrl) {
             ProductImage::create([
                 'product_id' => $product->id,
                 'image_path' => $imageUrl,
-                'alt_text' => "{$product->name} - Image " . ($index + 1),
+                'alt_text' => "{$product->name} - Image ".($index + 1),
                 'image_type' => $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
-                'sort_order' => $index
+                'sort_order' => $index,
             ]);
         }
     }

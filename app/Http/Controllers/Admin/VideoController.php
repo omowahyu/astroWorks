@@ -22,7 +22,7 @@ class VideoController extends Controller
         $videos = Video::ordered()->paginate(10);
 
         return Inertia::render('dashboard/videos/index', [
-            'videos' => $videos
+            'videos' => $videos,
         ]);
     }
 
@@ -47,13 +47,13 @@ class VideoController extends Controller
             'autoplay' => 'boolean',
             'loop' => 'boolean',
             'muted' => 'boolean',
-            'sort_order' => 'integer|min:0'
+            'sort_order' => 'integer|min:0',
         ]);
 
         // Extract YouTube ID
         $youtubeId = Video::extractYouTubeId($validated['youtube_url']);
 
-        if (!$youtubeId) {
+        if (! $youtubeId) {
             return back()->withErrors(['youtube_url' => 'Invalid YouTube URL']);
         }
 
@@ -76,7 +76,7 @@ class VideoController extends Controller
     public function show(Video $video)
     {
         return Inertia::render('dashboard/videos/show', [
-            'video' => $video
+            'video' => $video,
         ]);
     }
 
@@ -86,7 +86,7 @@ class VideoController extends Controller
     public function edit(Video $video)
     {
         return Inertia::render('dashboard/videos/edit', [
-            'video' => $video
+            'video' => $video,
         ]);
     }
 
@@ -103,14 +103,14 @@ class VideoController extends Controller
             'autoplay' => 'boolean',
             'loop' => 'boolean',
             'muted' => 'boolean',
-            'sort_order' => 'integer|min:0'
+            'sort_order' => 'integer|min:0',
         ]);
 
         // Extract YouTube ID if URL changed
         if ($validated['youtube_url'] !== $video->youtube_url) {
             $youtubeId = Video::extractYouTubeId($validated['youtube_url']);
 
-            if (!$youtubeId) {
+            if (! $youtubeId) {
                 return back()->withErrors(['youtube_url' => 'Invalid YouTube URL']);
             }
 
@@ -139,7 +139,7 @@ class VideoController extends Controller
      */
     public function toggleActive(Video $video)
     {
-        $video->update(['is_active' => !$video->is_active]);
+        $video->update(['is_active' => ! $video->is_active]);
 
         return back()->with('success', 'Video status updated successfully.');
     }
@@ -152,7 +152,7 @@ class VideoController extends Controller
         $validated = $request->validate([
             'videos' => 'required|array',
             'videos.*.id' => 'required|exists:videos,id',
-            'videos.*.sort_order' => 'required|integer|min:0'
+            'videos.*.sort_order' => 'required|integer|min:0',
         ]);
 
         foreach ($validated['videos'] as $videoData) {

@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
  * Product Image Model
@@ -30,7 +30,9 @@ class ProductImage extends Model
 
     // Image type constants
     public const TYPE_THUMBNAIL = 'thumbnail';
+
     public const TYPE_GALLERY = 'gallery';
+
     public const TYPE_HERO = 'hero';
 
     public const TYPES = [
@@ -41,6 +43,7 @@ class ProductImage extends Model
 
     // Device type constants
     public const DEVICE_MOBILE = 'mobile';
+
     public const DEVICE_DESKTOP = 'desktop';
 
     public const DEVICE_TYPES = [
@@ -50,6 +53,7 @@ class ProductImage extends Model
 
     // Aspect ratio constants
     public const ASPECT_RATIO_MOBILE = 0.8; // 4:5
+
     public const ASPECT_RATIO_DESKTOP = 1.78; // 16:9
 
     protected $fillable = [
@@ -60,13 +64,13 @@ class ProductImage extends Model
         'image_type',
         'device_type',
         'aspect_ratio',
-        'image_dimensions'
+        'image_dimensions',
     ];
 
     protected $casts = [
         'sort_order' => 'integer',
         'aspect_ratio' => 'decimal:2',
-        'image_dimensions' => 'array'
+        'image_dimensions' => 'array',
     ];
 
     /**
@@ -81,8 +85,6 @@ class ProductImage extends Model
 
     /**
      * Get the full URL for the image
-     *
-     * @return string
      */
     public function getImageUrlAttribute(): string
     {
@@ -92,13 +94,13 @@ class ProductImage extends Model
         }
 
         // For local files, check if they exist before returning URL
-        $publicPath = "storage/images/" . basename($this->image_path);
+        $publicPath = 'storage/images/'.basename($this->image_path);
         if (file_exists(public_path($publicPath))) {
             return asset($publicPath);
         }
 
         // If local file doesn't exist, return a placeholder instead of broken link
-        return "data:image/svg+xml;base64," . base64_encode('
+        return 'data:image/svg+xml;base64,'.base64_encode('
             <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
                 <rect width="100%" height="100%" fill="#f3f4f6"/>
                 <text x="200" y="150" text-anchor="middle" font-family="system-ui" font-size="14" fill="#6b7280">
@@ -111,9 +113,8 @@ class ProductImage extends Model
     /**
      * Get responsive image URL - now just returns the main image URL
      *
-     * @param string $deviceType ('mobile' or 'desktop') - kept for compatibility
-     * @param string $mobileFormat ('portrait' or 'square') - kept for compatibility
-     * @return string
+     * @param  string  $deviceType  ('mobile' or 'desktop') - kept for compatibility
+     * @param  string  $mobileFormat  ('portrait' or 'square') - kept for compatibility
      */
     public function getResponsiveImageUrl(string $deviceType = 'desktop', string $mobileFormat = 'portrait'): string
     {
@@ -123,8 +124,6 @@ class ProductImage extends Model
 
     /**
      * Get all image variant URLs - simplified since we removed variant paths
-     *
-     * @return array
      */
     public function getImageVariantsAttribute(): array
     {
@@ -138,17 +137,15 @@ class ProductImage extends Model
 
     /**
      * Get file size savings from optimization
-     *
-     * @return array
      */
     public function getOptimizationStatsAttribute(): array
     {
-        if (!$this->original_file_size || !$this->optimized_file_size) {
+        if (! $this->original_file_size || ! $this->optimized_file_size) {
             return [
                 'savings_bytes' => 0,
                 'savings_percentage' => 0,
                 'original_size_mb' => 0,
-                'optimized_size_mb' => 0
+                'optimized_size_mb' => 0,
             ];
         }
 
@@ -159,14 +156,14 @@ class ProductImage extends Model
             'savings_bytes' => $savingsBytes,
             'savings_percentage' => round($savingsPercentage, 2),
             'original_size_mb' => round($this->original_file_size / (1024 * 1024), 2),
-            'optimized_size_mb' => round($this->optimized_file_size / (1024 * 1024), 2)
+            'optimized_size_mb' => round($this->optimized_file_size / (1024 * 1024), 2),
         ];
     }
 
     /**
      * Scope to get only thumbnail images (replaces primary functionality)
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopePrimary($query)
@@ -177,7 +174,7 @@ class ProductImage extends Model
     /**
      * Scope to order images by sort order
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeOrdered($query)
@@ -185,13 +182,10 @@ class ProductImage extends Model
         return $query->orderBy('sort_order')->orderBy('created_at');
     }
 
-
-
     /**
      * Scope to get images by type
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $type
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeByType($query, string $type)
@@ -202,7 +196,7 @@ class ProductImage extends Model
     /**
      * Scope to get thumbnail images
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeThumbnails($query)
@@ -213,7 +207,7 @@ class ProductImage extends Model
     /**
      * Scope to get gallery images
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeGallery($query)
@@ -224,7 +218,7 @@ class ProductImage extends Model
     /**
      * Scope to get hero images
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeHero($query)
@@ -235,8 +229,7 @@ class ProductImage extends Model
     /**
      * Scope to get images by device type
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $deviceType
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeForDevice($query, string $deviceType)
@@ -247,7 +240,7 @@ class ProductImage extends Model
     /**
      * Scope to get mobile images (4:5 aspect ratio)
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeMobile($query)
@@ -258,7 +251,7 @@ class ProductImage extends Model
     /**
      * Scope to get desktop images (16:9 aspect ratio)
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeDesktop($query)
@@ -268,12 +261,10 @@ class ProductImage extends Model
 
     /**
      * Check if image has correct aspect ratio for device type
-     *
-     * @return bool
      */
     public function hasCorrectAspectRatio(): bool
     {
-        if (!$this->aspect_ratio) {
+        if (! $this->aspect_ratio) {
             return false;
         }
 

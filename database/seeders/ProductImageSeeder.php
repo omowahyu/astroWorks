@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Product;
 use App\Models\ProductImage;
+use Illuminate\Database\Seeder;
 
 class ProductImageSeeder extends Seeder
 {
@@ -22,7 +22,7 @@ class ProductImageSeeder extends Seeder
                 'image_path' => "images/product_{$product->id}_thumbnail.jpg",
                 'alt_text' => "{$product->name} - Thumbnail",
                 'image_type' => ProductImage::TYPE_THUMBNAIL,
-                'sort_order' => 0
+                'sort_order' => 0,
             ]);
 
             // Create 1 hero image
@@ -31,7 +31,7 @@ class ProductImageSeeder extends Seeder
                 'image_path' => "images/product_{$product->id}_hero.jpg",
                 'alt_text' => "{$product->name} - Hero Image",
                 'image_type' => ProductImage::TYPE_HERO,
-                'sort_order' => 1
+                'sort_order' => 1,
             ]);
 
             // Create 3-5 gallery images
@@ -44,7 +44,7 @@ class ProductImageSeeder extends Seeder
                     'image_path' => "images/product_{$product->id}_gallery_{$imageNumber}.jpg",
                     'alt_text' => "{$product->name} - Gallery Image {$imageNumber}",
                     'image_type' => ProductImage::TYPE_GALLERY,
-                    'sort_order' => $i + 2 // Start after thumbnail and hero
+                    'sort_order' => $i + 2, // Start after thumbnail and hero
                 ]);
             }
         }

@@ -32,7 +32,7 @@ return new class extends Migration
                 'label' => 'Nomor WhatsApp',
                 'description' => 'Nomor WhatsApp untuk checkout (format: 628xxxxxxxxx)',
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ],
             [
                 'key' => 'whatsapp_message_template',
@@ -42,7 +42,7 @@ return new class extends Migration
                 'label' => 'Template Pesan WhatsApp',
                 'description' => 'Template pesan WhatsApp. Gunakan {order_details} dan {total} sebagai placeholder.',
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ],
             [
                 'key' => 'bank_name',
@@ -52,7 +52,7 @@ return new class extends Migration
                 'label' => 'Nama Bank',
                 'description' => 'Nama bank untuk transfer',
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ],
             [
                 'key' => 'bank_account_name',
@@ -62,7 +62,7 @@ return new class extends Migration
                 'label' => 'Nama Pemilik Rekening',
                 'description' => 'Nama pemilik rekening bank',
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ],
             [
                 'key' => 'bank_account_number',
@@ -72,8 +72,8 @@ return new class extends Migration
                 'label' => 'Nomor Rekening',
                 'description' => 'Nomor rekening bank',
                 'created_at' => now(),
-                'updated_at' => now()
-            ]
+                'updated_at' => now(),
+            ],
         ]);
     }
 

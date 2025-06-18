@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Product;
 use App\Models\Category;
-use App\Models\UnitType;
+use App\Models\Product;
 use App\Models\ProductMiscOption;
+use App\Models\UnitType;
+use Illuminate\Database\Seeder;
 
 class RealisticProductSeeder extends Seeder
 {
@@ -27,7 +27,7 @@ class RealisticProductSeeder extends Seeder
                 'Sleek Kitchen Counter',
                 'Elegant Kitchen Hutch',
                 'Smart Kitchen Organizer',
-                'Premium Spice Rack Cabinet'
+                'Premium Spice Rack Cabinet',
             ],
             'Wardrobe' => [
                 'Minimalist Sliding Wardrobe',
@@ -39,7 +39,7 @@ class RealisticProductSeeder extends Seeder
                 'Industrial Style Closet',
                 'Luxury Dressing Room',
                 'Compact Wardrobe Solution',
-                'Designer Closet Collection'
+                'Designer Closet Collection',
             ],
             'Living Room' => [
                 'Scandinavian Dining Table',
@@ -51,7 +51,7 @@ class RealisticProductSeeder extends Seeder
                 'Industrial Side Table',
                 'Luxury Entertainment Unit',
                 'Designer Display Cabinet',
-                'Premium Lounge Collection'
+                'Premium Lounge Collection',
             ],
             'Bedroom' => [
                 'Modern Platform Bed',
@@ -63,7 +63,7 @@ class RealisticProductSeeder extends Seeder
                 'Industrial Bed Design',
                 'Luxury Headboard Collection',
                 'Designer Bedroom Storage',
-                'Premium Sleep Solution'
+                'Premium Sleep Solution',
             ],
             'Accessories' => [
                 'Premium Cabinet Handles',
@@ -75,8 +75,8 @@ class RealisticProductSeeder extends Seeder
                 'Smart Storage Solutions',
                 'Designer Hardware Set',
                 'Professional Installation Kit',
-                'Luxury Finishing Touches'
-            ]
+                'Luxury Finishing Touches',
+            ],
         ];
 
         // Clear existing data
@@ -88,18 +88,18 @@ class RealisticProductSeeder extends Seeder
         foreach ($furnitureByCategory as $categoryName => $products) {
             $categories[$categoryName] = Category::create([
                 'name' => $categoryName,
-                'is_accessory' => $categoryName === 'Accessories'
+                'is_accessory' => $categoryName === 'Accessories',
             ]);
         }
 
         // Create products for each category
         foreach ($furnitureByCategory as $categoryName => $productNames) {
             $category = $categories[$categoryName];
-            
+
             foreach ($productNames as $productName) {
                 $product = Product::create([
                     'name' => $productName,
-                    'description' => $this->generateDescription($productName, $categoryName)
+                    'description' => $this->generateDescription($productName, $categoryName),
                 ]);
 
                 // Attach to category
@@ -125,39 +125,40 @@ class RealisticProductSeeder extends Seeder
                 'Designed for functionality and style in contemporary homes.',
                 'Features smart storage solutions and elegant finishes.',
                 'Perfect blend of durability and aesthetic appeal.',
-                'Engineered for efficient kitchen organization.'
+                'Engineered for efficient kitchen organization.',
             ],
             'Wardrobe' => [
                 'Spacious storage solution with modern design elements.',
                 'Optimized for bedroom organization and style.',
                 'Features premium materials and smooth operation.',
                 'Designed for maximum storage efficiency.',
-                'Contemporary design meets practical functionality.'
+                'Contemporary design meets practical functionality.',
             ],
             'Living Room' => [
                 'Elegant centerpiece for modern living spaces.',
                 'Combines comfort with sophisticated design.',
                 'Perfect for entertaining and daily relaxation.',
                 'Crafted with attention to detail and quality.',
-                'Designed to complement contemporary interiors.'
+                'Designed to complement contemporary interiors.',
             ],
             'Bedroom' => [
                 'Creates a peaceful and stylish bedroom environment.',
                 'Designed for comfort and modern aesthetics.',
                 'Features premium materials and elegant finishes.',
                 'Perfect for contemporary bedroom spaces.',
-                'Combines functionality with sophisticated design.'
+                'Combines functionality with sophisticated design.',
             ],
             'Accessories' => [
                 'Premium hardware for professional installations.',
                 'Designed for durability and smooth operation.',
                 'Enhances functionality and aesthetic appeal.',
                 'Professional-grade quality and finish.',
-                'Perfect complement to modern furniture designs.'
-            ]
+                'Perfect complement to modern furniture designs.',
+            ],
         ];
 
         $categoryDescriptions = $descriptions[$categoryName] ?? $descriptions['Living Room'];
+
         return fake()->randomElement($categoryDescriptions);
     }
 
@@ -171,7 +172,7 @@ class RealisticProductSeeder extends Seeder
             'Wardrobe' => ['2.0x2.4m', '2.5x2.4m', '3.0x2.4m'],
             'Living Room' => ['1.2x0.6m', '1.8x0.9m', '2.4x1.2m'],
             'Bedroom' => ['1.8x2.0m', '2.0x2.0m', '2.2x2.0m'],
-            'Accessories' => ['Set of 4', 'Set of 6', 'Set of 8']
+            'Accessories' => ['Set of 4', 'Set of 6', 'Set of 8'],
         ];
 
         $units = $unitsByCategory[$categoryName] ?? $unitsByCategory['Living Room'];
@@ -182,7 +183,7 @@ class RealisticProductSeeder extends Seeder
                 'product_id' => $product->id,
                 'label' => $unit,
                 'price' => $basePrices[$index] + rand(-500000, 1000000),
-                'is_default' => $index === 0
+                'is_default' => $index === 0,
             ]);
         }
     }
@@ -199,7 +200,7 @@ class RealisticProductSeeder extends Seeder
                 'product_id' => $product->id,
                 'label' => 'Warna',
                 'value' => $warna,
-                'is_default' => $index === 0
+                'is_default' => $index === 0,
             ]);
         }
     }
