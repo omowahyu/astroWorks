@@ -30,8 +30,6 @@ jobs:
       - name: Setup Node Dependencies
         run: npm ci
 
-
-
       - name: Build Assets
         run: npm run build
 
@@ -53,11 +51,31 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ${{ secrets.REMOTE_TARGET }}
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-            php artisan migrate --force
-            php artisan optimize
-            chmod -R 755 storage bootstrap/cache
-            chown -R www-data:www-data storage bootstrap/cache
+
+            # secrets.ENV_FILE_CONTENT
+            echo "${{ secrets.ENV }}" > .env
+            # --- Laravel Commands ---
+            # Generate new app key if it's not already in .env or secrets
+                    php artisan key:generate --force # --force is needed in non-interactive environments
+
+            # Clear and re-cache Laravel config, routes, and views
+                    php artisan optimize:clear # Clears all caches
+                    php artisan config:cache
+                    php artisan route:cache
+                    php artisan view:cache
+
+            # Run database migrations
+                    php artisan migrate --force
+
+            # Optional: Link storage for public access
+                    php artisan storage:link # If you use storage:link
+
+            # Optimize Laravel
+                    php artisan optimize # This will re-run general optimizations after caching
+
+            # --- Permissions (Ensure www-data can write to storage/cache) ---
+                    sudo chown -R www-data:www-data storage bootstrap/cache # Ensure www-data owns these
+                    sudo chmod -R 775 storage bootstrap/cache # Allow read/write for www-data and deployuser
+                    sudo chmod -R 755 public/uploads # Example if you have an uploads directory
+
 
