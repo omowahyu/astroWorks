@@ -67,88 +67,100 @@ jobs:
       - name: Build Assets
         run: npm run build
 
-      - name: Deploy files to Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.REMOTE_HOST }}
-          username: ${{ secrets.REMOTE_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "."
-          target: "/tmp/astrokabinet-deploy"
-          rm: true
+      - name: Create deployment archive
+        run: |
+          # Create a tar archive excluding unnecessary files
+          tar --exclude='.git' \
+              --exclude='.github' \
+              --exclude='node_modules' \
+              --exclude='.env' \
+              --exclude='.env.example' \
+              --exclude='README.md' \
+              --exclude='tests' \
+              --exclude='storage/logs/*' \
+              --exclude='storage/framework/cache/*' \
+              --exclude='storage/framework/sessions/*' \
+              --exclude='storage/framework/views/*' \
+              -czf deployment.tar.gz .
 
-      - name: Run remote commands
-        uses: appleboy/ssh-action@v0.1.5
+      - name: Deploy files to Server using rsync
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Create target directory if it doesn't exist
-            sudo mkdir -p ${{ secrets.REMOTE_TARGET }}
+            # Create backup of current deployment
+            if [ -d "/var/www/astrokabinet.id" ]; then
+              sudo cp -r /var/www/astrokabinet.id /var/www/astrokabinet.id.backup.$(date +%Y%m%d_%H%M%S)
+            fi
 
-            # Copy files from temp location to target directory
-            sudo rsync -av --delete /tmp/astrokabinet-deploy/ ${{ secrets.REMOTE_TARGET }}/
+            # Create application directory if it doesn't exist
+            sudo mkdir -p /var/www/astrokabinet.id
+            sudo chown -R ${{ secrets.REMOTE_USER }}:www-data /var/www/astrokabinet.id
 
-            # Set proper ownership
-            sudo chown -R ${{ secrets.REMOTE_USER }}:www-data ${{ secrets.REMOTE_TARGET }}
+      - name: Transfer deployment archive
+        run: |
+          # Transfer the archive using scp
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key
+          chmod 600 private_key
+          scp -i private_key -o StrictHostKeyChecking=no deployment.tar.gz ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:/tmp/
+          rm private_key
 
-            # Navigate to the application directory
-            cd ${{ secrets.REMOTE_TARGET }}
-
-            # Verify we're in the right directory
-            pwd
-            ls -la
+      - name: Extract and configure application
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Extract the deployment archive
+            cd /var/www/astrokabinet.id
+            sudo tar -xzf /tmp/deployment.tar.gz --strip-components=0
+            sudo rm /tmp/deployment.tar.gz
 
             # Create .env file from secrets
-            echo "${{ secrets.ENV }}" > .env
-
-            # Verify artisan file exists
-            if [ ! -f "artisan" ]; then
-              echo "Error: artisan file not found in $(pwd)"
-              echo "Directory contents:"
-              ls -la
-              exit 1
-            fi
+            echo "${{ secrets.ENV }}" | sudo tee .env > /dev/null
 
             # Create necessary directories if they don't exist
-            mkdir -p storage/logs
-            mkdir -p storage/framework/cache
-            mkdir -p storage/framework/sessions
-            mkdir -p storage/framework/views
-            mkdir -p bootstrap/cache
-            mkdir -p public/uploads
+            sudo mkdir -p storage/logs
+            sudo mkdir -p storage/framework/cache
+            sudo mkdir -p storage/framework/sessions
+            sudo mkdir -p storage/framework/views
+            sudo mkdir -p bootstrap/cache
+            sudo mkdir -p public/uploads
 
-            # Generate app key if not set
-            php artisan key:generate --force
+            # Set proper ownership and permissions
+            sudo chown -R www-data:www-data /var/www/astrokabinet.id
+            sudo chmod -R 755 /var/www/astrokabinet.id
+            sudo chmod -R 775 /var/www/astrokabinet.id/storage
+            sudo chmod -R 775 /var/www/astrokabinet.id/bootstrap/cache
 
-            # Clear all caches first
-            php artisan optimize:clear
+            # Laravel deployment commands
+            cd /var/www/astrokabinet.id
+
+            # Generate application key if needed
+            sudo -u www-data php artisan key:generate --force
+
+            # Clear all caches
+            sudo -u www-data php artisan optimize:clear
 
             # Run database migrations
-            php artisan migrate --force
+            sudo -u www-data php artisan migrate --force
 
-            # Cache configuration and routes
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+            # Cache configuration, routes, and views
+            sudo -u www-data php artisan config:cache
+            sudo -u www-data php artisan route:cache
+            sudo -u www-data php artisan view:cache
 
-            # Link storage for public access
-            php artisan storage:link
+            # Create storage link
+            sudo -u www-data php artisan storage:link
 
-            # Final optimization
-            php artisan optimize
+            # Optimize application
+            sudo -u www-data php artisan optimize
 
-            # Set proper permissions
-            sudo chown -R www-data:www-data storage bootstrap/cache
-            sudo chmod -R 775 storage bootstrap/cache
-
-            # Set permissions for uploads directory if it exists
-            if [ -d "public/uploads" ]; then
-              sudo chmod -R 755 public/uploads
-            fi
-
-            # Restart PHP-FPM to ensure changes take effect
+            # Restart PHP-FPM and Nginx
             sudo systemctl reload php8.2-fpm
+            sudo systemctl reload nginx
 
 
