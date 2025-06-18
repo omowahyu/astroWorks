@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 
 export default function WelcomeSection() {
-    const btnSolid  ="bg-blue-500 hover:bg-blue-600 border-blue-500 rounded-full"
+    const btnSolid  ="bg-blue-500 hover:bg-blue-600 border-blue-500 text-white rounded-full"
     const btnOutline = 'bg-transparent hover:bg-blue-500 text-blue-500 hover:text-white border-blue-400 hover:border-blue-500 rounded-full'
     return (
         <section className="py-12 bg-linear-to-br from-[#D3EAF7] to-[#F8F8F8]">
