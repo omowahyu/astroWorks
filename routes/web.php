@@ -113,7 +113,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'recent_videos' => \App\Models\Video::latest()->take(5)->get()
         ];
 
-        return Inertia::render('dashboard', [
+        return Inertia::render('dashboard/index', [
             'productsOverview' => $productsOverview,
             'videosOverview' => $videosOverview
         ]);

@@ -6,7 +6,41 @@ on:
       - main
 
 jobs:
+  quality:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Set up job
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          tools: composer:v2
+
+      - name: Install Dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Run Pint
+        run: ./vendor/bin/pint --test
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Node Dependencies
+        run: npm ci
+
+      - name: Format Frontend
+        run: npm run format
+
+      - name: Lint Frontend
+        run: npm run lint
+
   deploy:
+    needs: quality
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -33,15 +67,15 @@ jobs:
       - name: Build Assets
         run: npm run build
 
-      - name: Deploy to Server
-        uses: easingthemes/ssh-deploy@v2.1.6
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          ARGS: "-rltgoDzvO --delete"
-          SOURCE: "."
-          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-          REMOTE_USER: ${{ secrets.REMOTE_USER }}
-          TARGET: ${{ secrets.REMOTE_TARGET }}
+      - name: Deploy files to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "."
+          target: "/tmp/astrokabinet-deploy"
+          rm: true
 
       - name: Run remote commands
         uses: appleboy/ssh-action@v0.1.5
