@@ -1,0 +1,73 @@
+name: Deploy Laravel 12 with Inertia and React
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up PHP environment
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3' # Laravel 12 requires PHP 8.2+
+          extensions: dom, curl, libxml, mbstring, zip, pdo, pdo_mysql
+          coverage: none
+
+      # Set up Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use a stable Node.js version
+          cache: 'npm'
+
+      # Install Composer dependencies
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --optimize-autoloader
+
+      # Install npm dependencies
+      - name: Install npm dependencies
+        run: npm install
+
+      # Build frontend assets with Vite
+      - name: Build assets
+        run: npm run build
+
+      # Run tests (optional, remove if not needed)
+      - name: Run tests
+        run: php artisan test
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+
+      # Deploy to server via SSH
+      - name: Deploy to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_HOST: ${{ secrets.REMOTE_HOST }}
+          SERVER_USER: ${{ secrets.REMOTE_USER }}
+          SERVER_PORT: ${{ secrets.REMOTE_PORT }}
+          DEPLOY_PATH: ${{ secrets.REMOTE_TARGET }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+          rsync -avz --delete \
+            -e "ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT" \
+            ./ $SERVER_USER@$SERVER_HOST:$DEPLOY_PATH
+          ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'EOF'
+            cd $DEPLOY_PATH
+            php artisan migrate --force
+            php artisan optimize
+            php artisan cache:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+          EOF
+          rm private_key
