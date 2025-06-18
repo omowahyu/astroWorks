@@ -11,6 +11,9 @@ interface ImageVariants {
 interface GalleryImageData {
   id: number;
   image_type: 'thumbnail' | 'gallery' | 'hero';
+  device_type?: 'mobile' | 'desktop';
+  aspect_ratio?: number;
+  image_dimensions?: any;
   is_thumbnail: boolean;
   is_primary: boolean;
   display_order: number;
@@ -93,6 +96,24 @@ const DynamicImageGallery: React.FC<DynamicImageGalleryProps> = ({
         console.log('🖼️ Thumbnails count:', productImages.thumbnails?.length || 0);
       }
 
+      // Helper function to detect current device type
+      const getCurrentDeviceType = (): 'mobile' | 'desktop' => {
+        if (typeof window !== 'undefined') {
+          return window.innerWidth < 768 ? 'mobile' : 'desktop';
+        }
+        return 'desktop';
+      };
+
+      const currentDeviceType = getCurrentDeviceType();
+
+      // Filter images by current device type
+      const filterImagesByDevice = (images: GalleryImageData[]) => {
+        return images.filter(img => {
+          const imgDeviceType = img.device_type || 'desktop';
+          return imgDeviceType === currentDeviceType;
+        });
+      };
+
       // Only use real gallery images with valid data - no placeholders
       const validGalleryImages = productImages.gallery?.filter(img =>
         img && img.image_url && img.image_url.trim() !== ''
@@ -102,11 +123,21 @@ const DynamicImageGallery: React.FC<DynamicImageGalleryProps> = ({
         img && img.image_url && img.image_url.trim() !== ''
       ) || [];
 
-      if (validGalleryImages.length > 0) {
-        console.log('🖼️ Using valid gallery images:', validGalleryImages.length);
+      // Filter by device type
+      const deviceGalleryImages = filterImagesByDevice(validGalleryImages);
+      const deviceThumbnailImages = filterImagesByDevice(validThumbnailImages);
+
+      if (deviceGalleryImages.length > 0) {
+        console.log(`🖼️ Using ${currentDeviceType} gallery images:`, deviceGalleryImages.length);
+        setGalleryImages(deviceGalleryImages);
+      } else if (deviceThumbnailImages.length > 0) {
+        console.log(`🖼️ Fallback to ${currentDeviceType} thumbnails:`, deviceThumbnailImages.length);
+        setGalleryImages(deviceThumbnailImages);
+      } else if (validGalleryImages.length > 0) {
+        console.log('🖼️ No device-specific images, using all gallery images:', validGalleryImages.length);
         setGalleryImages(validGalleryImages);
       } else if (validThumbnailImages.length > 0) {
-        console.log('🖼️ Fallback to valid thumbnails:', validThumbnailImages.length);
+        console.log('🖼️ No device-specific images, using all thumbnails:', validThumbnailImages.length);
         setGalleryImages(validThumbnailImages);
       } else {
         console.log('🖼️ No valid images available - showing fallback');

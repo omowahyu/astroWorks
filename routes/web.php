@@ -138,9 +138,9 @@ Route::prefix('dashboard')->name('dashboard.')->middleware(['auth', 'verified'])
     Route::post('products/{product}/images', [App\Http\Controllers\Admin\ProductController::class, 'uploadImages'])
         ->name('products.upload-images');
     Route::delete('images/{image}', [App\Http\Controllers\Admin\ProductController::class, 'deleteImage'])
-        ->name('images.delete');
+        ->name('products.images.delete');
     Route::patch('images/{image}/primary', [App\Http\Controllers\Admin\ProductController::class, 'setPrimaryImage'])
-        ->name('images.set-primary');
+        ->name('products.images.set-primary');
 
     // Videos management
     Route::resource('videos', App\Http\Controllers\Admin\VideoController::class);

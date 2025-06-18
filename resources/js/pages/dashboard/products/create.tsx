@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Plus, Trash2, Upload, X, GripVertical } from 'lucide-react';
+import DeviceImageUpload from '@/components/image/device-image-upload';
 
 interface Category {
     id: number;
@@ -60,16 +61,17 @@ export default function ProductCreate({ categories }: Props) {
         { label: '', price: '', is_default: true }
     ]);
     const [miscOptions, setMiscOptions] = useState<MiscOption[]>([]);
-    const [imagesPreviews, setImagesPreviews] = useState<ImagePreview[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string>('');
+    const [mobileImages, setMobileImages] = useState<Array<{ id: number; url: string; name: string; size?: number; compressed_size?: number }>>([]);
+    const [desktopImages, setDesktopImages] = useState<Array<{ id: number; url: string; name: string; size?: number; compressed_size?: number }>>([]);
+    const [productId, setProductId] = useState<number | null>(null);
 
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         description: '',
         categories: [] as number[],
         unit_types: unitTypes,
-        misc_options: miscOptions,
-        images: [] as File[]
+        misc_options: miscOptions
     });
 
     // Sync unitTypes and miscOptions with form data
@@ -84,7 +86,72 @@ export default function ProductCreate({ categories }: Props) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        post('/dashboard/products');
+        // Create FormData for proper file upload handling
+        const formData = new FormData();
+        formData.append('name', data.name);
+        formData.append('description', data.description);
+
+        // Add categories
+        data.categories.forEach((categoryId, index) => {
+            formData.append(`categories[${index}]`, categoryId.toString());
+        });
+
+        // Add unit types
+        unitTypes.forEach((unitType, index) => {
+            formData.append(`unit_types[${index}][label]`, unitType.label);
+            formData.append(`unit_types[${index}][price]`, unitType.price);
+            formData.append(`unit_types[${index}][is_default]`, unitType.is_default ? '1' : '0');
+        });
+
+        // Add misc options
+        miscOptions.forEach((miscOption, index) => {
+            formData.append(`misc_options[${index}][label]`, miscOption.label);
+            formData.append(`misc_options[${index}][value]`, miscOption.value);
+            formData.append(`misc_options[${index}][is_default]`, miscOption.is_default ? '1' : '0');
+        });
+
+        // Use fetch for better control over the response
+        fetch('/dashboard/products', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+        .then(async response => {
+            const contentType = response.headers.get('content-type');
+
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                if (data.success) {
+                    console.log('Product created successfully!');
+                    setProductId(data.product.id);
+                    alert('Product created successfully! You can now upload images.');
+                } else {
+                    console.error('Product creation failed:', data);
+                    alert('Product creation failed: ' + (data.message || 'Please check the form for errors.'));
+                }
+            } else {
+                // Handle redirect or HTML response (validation errors)
+                const text = await response.text();
+                console.log('Non-JSON response received:', response.status, text.substring(0, 200));
+
+                if (response.status === 422) {
+                    alert('Validation errors occurred. Please check the form and try again.');
+                } else if (response.status === 302 || response.status === 200) {
+                    // Might be a redirect, check if product was created
+                    alert('Form submitted, but response format was unexpected. Please check if the product was created.');
+                } else {
+                    alert('An error occurred while creating the product. Status: ' + response.status);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error creating product:', error);
+            alert('An error occurred while creating the product: ' + error.message);
+        });
     };
 
     const addUnitType = () => {
@@ -137,53 +204,115 @@ export default function ProductCreate({ categories }: Props) {
         setData('categories', data.categories.filter(id => id !== categoryId));
     };
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const files = Array.from(e.target.files);
-            const newPreviews: ImagePreview[] = files.map(file => ({
-                file,
-                url: URL.createObjectURL(file),
-                id: Math.random().toString(36).substr(2, 9)
-            }));
-
-            setImagesPreviews(prev => [...prev, ...newPreviews]);
-            setData('images', [...data.images, ...files]);
+    // Handle mobile image upload
+    const handleMobileUpload = async (files: FileList, compressionLevel: string = 'lossless') => {
+        if (!productId) {
+            console.error('Product must be created first before uploading images');
+            return;
         }
-    };
 
-    const removeImage = (imageId: string) => {
-        const imageToRemove = imagesPreviews.find(img => img.id === imageId);
-        if (imageToRemove) {
-            URL.revokeObjectURL(imageToRemove.url);
-            setImagesPreviews(prev => prev.filter(img => img.id !== imageId));
-            setData('images', data.images.filter(file => file !== imageToRemove.file));
-        }
-    };
+        const formData = new FormData();
+        formData.append('product_id', productId.toString());
+        formData.append('device_type', 'mobile');
+        formData.append('image_type', 'gallery');
+        formData.append('compression_level', compressionLevel);
 
-    const moveImage = (fromIndex: number, toIndex: number) => {
-        const newPreviews = [...imagesPreviews];
-        const newImages = [...data.images];
+        Array.from(files).forEach((file, index) => {
+            formData.append(`images[${index}]`, file);
+        });
 
-        // Move preview
-        const [movedPreview] = newPreviews.splice(fromIndex, 1);
-        newPreviews.splice(toIndex, 0, movedPreview);
-
-        // Move file
-        const [movedFile] = newImages.splice(fromIndex, 1);
-        newImages.splice(toIndex, 0, movedFile);
-
-        setImagesPreviews(newPreviews);
-        setData('images', newImages);
-    };
-
-    // Cleanup object URLs on unmount
-    useEffect(() => {
-        return () => {
-            imagesPreviews.forEach(image => {
-                URL.revokeObjectURL(image.url);
+        try {
+            const response = await fetch('/dashboard/images/upload', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
             });
-        };
-    }, [imagesPreviews]);
+
+            const result = await response.json();
+            if (result.success) {
+                // Update mobile images state
+                const newImages = result.data.uploaded_images.map((img: any) => ({
+                    id: img.id,
+                    url: `/storage/${img.image_path}`,
+                    name: img.alt_text,
+                    size: img.image_dimensions?.original_size,
+                    compressed_size: img.image_dimensions?.compressed_size,
+                }));
+                setMobileImages(prev => [...prev, ...newImages]);
+            }
+        } catch (error) {
+            console.error('Mobile image upload failed:', error);
+        }
+    };
+
+    // Handle desktop image upload
+    const handleDesktopUpload = async (files: FileList, compressionLevel: string = 'lossless') => {
+        if (!productId) {
+            console.error('Product must be created first before uploading images');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('product_id', productId.toString());
+        formData.append('device_type', 'desktop');
+        formData.append('image_type', 'gallery');
+        formData.append('compression_level', compressionLevel);
+
+        Array.from(files).forEach((file, index) => {
+            formData.append(`images[${index}]`, file);
+        });
+
+        try {
+            const response = await fetch('/dashboard/images/upload', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                // Update desktop images state
+                const newImages = result.data.uploaded_images.map((img: any) => ({
+                    id: img.id,
+                    url: `/storage/${img.image_path}`,
+                    name: img.alt_text,
+                    size: img.image_dimensions?.original_size,
+                    compressed_size: img.image_dimensions?.compressed_size,
+                }));
+                setDesktopImages(prev => [...prev, ...newImages]);
+            }
+        } catch (error) {
+            console.error('Desktop image upload failed:', error);
+        }
+    };
+
+    // Handle image removal
+    const handleRemoveImage = async (imageId: number, deviceType: 'mobile' | 'desktop') => {
+        try {
+            const response = await fetch('/dashboard/images/delete', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({ image_id: imageId }),
+            });
+
+            if (response.ok) {
+                if (deviceType === 'mobile') {
+                    setMobileImages(prev => prev.filter(img => img.id !== imageId));
+                } else {
+                    setDesktopImages(prev => prev.filter(img => img.id !== imageId));
+                }
+            }
+        } catch (error) {
+            console.error('Image removal failed:', error);
+        }
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -428,95 +557,33 @@ export default function ProductCreate({ categories }: Props) {
                     <Card>
                         <CardHeader>
                             <CardTitle>Product Images</CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                                Upload separate images for mobile (4:5 ratio) and desktop (16:9 ratio) devices.
+                                Images will be automatically validated and compressed.
+                            </p>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div>
-                                <Label htmlFor="images">Upload Images</Label>
-                                <div className="mt-2">
-                                    <Input
-                                        id="images"
-                                        type="file"
-                                        multiple
-                                        accept="image/*"
-                                        onChange={handleImageChange}
-                                        className="hidden"
-                                    />
-                                    <Label
-                                        htmlFor="images"
-                                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
-                                    >
-                                        <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                                        <span className="text-sm text-gray-600">Click to upload images</span>
-                                        <span className="text-xs text-gray-400">PNG, JPG, GIF up to 2MB each</span>
-                                    </Label>
-                                </div>
-                                {errors.images && <p className="text-sm text-red-600 mt-1">{errors.images}</p>}
-                            </div>
-
-                            {/* Image Previews */}
-                            {imagesPreviews.length > 0 && (
-                                <div>
-                                    <Label>Image Preview & Order</Label>
-                                    <p className="text-sm text-muted-foreground mb-3">
-                                        Drag to reorder. The first image will be used as the thumbnail.
+                            {!productId ? (
+                                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <p className="text-sm text-yellow-800">
+                                        Please create the product first by filling out the form above and clicking "Create Product".
+                                        Then you can upload images for mobile and desktop devices.
                                     </p>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                        {imagesPreviews.map((image, index) => (
-                                            <div
-                                                key={image.id}
-                                                className="relative group border rounded-lg overflow-hidden"
-                                                draggable
-                                                onDragStart={(e) => {
-                                                    e.dataTransfer.setData('text/plain', index.toString());
-                                                }}
-                                                onDragOver={(e) => e.preventDefault()}
-                                                onDrop={(e) => {
-                                                    e.preventDefault();
-                                                    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                                                    moveImage(fromIndex, index);
-                                                }}
-                                            >
-                                                <div className="aspect-square relative">
-                                                    <img
-                                                        src={image.url}
-                                                        alt={`Preview ${index + 1}`}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                    {index === 0 && (
-                                                        <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                                                            Thumbnail
-                                                        </div>
-                                                    )}
-                                                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                                                        {index + 1}
-                                                    </div>
-                                                </div>
-
-                                                {/* Controls */}
-                                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
-                                                    <div className="opacity-0 group-hover:opacity-100 flex space-x-2">
-                                                        <button
-                                                            type="button"
-                                                            className="p-1 bg-white rounded-full hover:bg-gray-100"
-                                                            title="Drag to reorder"
-                                                        >
-                                                            <GripVertical className="h-4 w-4 text-gray-600" />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeImage(image.id)}
-                                                            className="p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
-                                                            title="Remove image"
-                                                        >
-                                                            <X className="h-4 w-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
                                 </div>
+                            ) : (
+                                <DeviceImageUpload
+                                    onMobileUpload={handleMobileUpload}
+                                    onDesktopUpload={handleDesktopUpload}
+                                    mobileImages={mobileImages}
+                                    desktopImages={desktopImages}
+                                    onRemoveImage={handleRemoveImage}
+                                    maxFiles={10}
+                                    disabled={processing}
+                                    showCompressionOptions={true}
+                                    defaultCompressionLevel="lossless"
+                                />
                             )}
+                            {errors.images && <p className="text-sm text-red-600 mt-1">{errors.images}</p>}
                         </CardContent>
                     </Card>
 

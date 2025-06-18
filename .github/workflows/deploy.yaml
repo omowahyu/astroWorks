@@ -71,6 +71,8 @@ jobs:
 
             echo "Running migrations..."
             php artisan migrate --force
+            echo "Creating admin user..."
+            php artisan db:seed --class=AdminUserSeeder --force
             echo "Optimizing application..."
             php artisan optimize
             echo "Clearing caches..."

@@ -10,6 +10,9 @@ interface ImageVariants {
 interface ProductImageData {
   id: number;
   image_type: 'thumbnail' | 'gallery' | 'hero';
+  device_type?: 'mobile' | 'desktop';
+  aspect_ratio?: number;
+  image_dimensions?: any;
   is_thumbnail: boolean;
   is_primary: boolean;
   display_order: number;
@@ -132,7 +135,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
     const filterImagesByDevice = (images: ProductImageData[], targetDevice: string) => {
       return images.filter(img => {
         // If image has device_type property, use it; otherwise assume desktop for backward compatibility
-        const imgDeviceType = (img as ProductImageData & { device_type?: string }).device_type || 'desktop';
+        const imgDeviceType = img.device_type || 'desktop';
         return imgDeviceType === targetDevice;
       });
     };
@@ -152,7 +155,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
 
     // Select mobile image
     let mobileImage: ProductImageData | null = null;
-    if (preferThumbnail && productImages.main_thumbnail && (productImages.main_thumbnail as ProductImageData & { device_type?: string }).device_type === 'mobile') {
+    if (preferThumbnail && productImages.main_thumbnail && productImages.main_thumbnail.device_type === 'mobile') {
       mobileImage = productImages.main_thumbnail;
     } else if (imageType === 'thumbnail' && mobileImages.thumbnails.length > 0) {
       mobileImage = mobileImages.thumbnails[0];
@@ -164,7 +167,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
 
     // Select desktop image
     let desktopImage: ProductImageData | null = null;
-    if (preferThumbnail && productImages.main_thumbnail && (productImages.main_thumbnail as ProductImageData & { device_type?: string }).device_type === 'desktop') {
+    if (preferThumbnail && productImages.main_thumbnail && (productImages.main_thumbnail.device_type === 'desktop' || !productImages.main_thumbnail.device_type)) {
       desktopImage = productImages.main_thumbnail;
     } else if (imageType === 'thumbnail' && desktopImages.thumbnails.length > 0) {
       desktopImage = desktopImages.thumbnails[0];

@@ -72,6 +72,9 @@ class ProductController extends Controller
                         return [
                             'id' => $image->id,
                             'image_type' => $image->image_type,
+                            'device_type' => $image->device_type ?? 'desktop',
+                            'aspect_ratio' => $image->aspect_ratio,
+                            'image_dimensions' => $image->image_dimensions,
                             'is_thumbnail' => $image->image_type === 'thumbnail',
                             'is_primary' => $image->image_type === 'thumbnail',
                             'display_order' => $image->sort_order,
@@ -89,6 +92,9 @@ class ProductController extends Controller
                         return [
                             'id' => $image->id,
                             'image_type' => $image->image_type,
+                            'device_type' => $image->device_type ?? 'desktop',
+                            'aspect_ratio' => $image->aspect_ratio,
+                            'image_dimensions' => $image->image_dimensions,
                             'is_thumbnail' => false,
                             'is_primary' => false,
                             'display_order' => $image->sort_order,
@@ -106,6 +112,9 @@ class ProductController extends Controller
                         return [
                             'id' => $image->id,
                             'image_type' => $image->image_type,
+                            'device_type' => $image->device_type ?? 'desktop',
+                            'aspect_ratio' => $image->aspect_ratio,
+                            'image_dimensions' => $image->image_dimensions,
                             'is_thumbnail' => false,
                             'is_primary' => false,
                             'display_order' => $image->sort_order,
@@ -122,6 +131,9 @@ class ProductController extends Controller
                     'main_thumbnail' => $thumbnails->first() ? [
                         'id' => $thumbnails->first()->id,
                         'image_type' => $thumbnails->first()->image_type,
+                        'device_type' => $thumbnails->first()->device_type ?? 'desktop',
+                        'aspect_ratio' => $thumbnails->first()->aspect_ratio,
+                        'image_dimensions' => $thumbnails->first()->image_dimensions,
                         'is_thumbnail' => true,
                         'is_primary' => true,
                         'display_order' => $thumbnails->first()->sort_order,
@@ -167,6 +179,9 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+        // Debug: Log the incoming request data
+        \Log::info('Product creation request data:', $request->all());
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -177,8 +192,8 @@ class ProductController extends Controller
             'unit_types.*.price' => 'required|numeric|min:0',
             'unit_types.*.is_default' => 'boolean',
             'misc_options' => 'array',
-            'misc_options.*.label' => 'required|string|max:255',
-            'misc_options.*.value' => 'required|string|max:255',
+            'misc_options.*.label' => 'required_with:misc_options.*|string|max:255',
+            'misc_options.*.value' => 'required_with:misc_options.*|string|max:255',
             'misc_options.*.is_default' => 'boolean',
             'images' => 'array',
             'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -245,6 +260,20 @@ class ProductController extends Controller
             }
         }
 
+        // For AJAX requests (when creating product for image upload), return JSON
+        if ($request->expectsJson() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Product created successfully.',
+                'product' => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'slug' => $product->slug,
+                ]
+            ]);
+        }
+
+        // For regular form submissions, redirect as usual
         return redirect()->route('dashboard.products.index')
             ->with('success', 'Product created successfully.');
     }
