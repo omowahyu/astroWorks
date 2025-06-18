@@ -84,32 +84,62 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Navigate to the application directory
             cd ${{ secrets.REMOTE_TARGET }}
 
-            # secrets.ENV_FILE_CONTENT
-            echo "${{ secrets.ENV }}" > .env
-            # --- Laravel Commands ---
-            # Generate new app key if it's not already in .env or secrets
-                    php artisan key:generate --force # --force is needed in non-interactive environments
+            # Verify we're in the right directory
+            pwd
+            ls -la
 
-            # Clear and re-cache Laravel config, routes, and views
-                    php artisan optimize:clear # Clears all caches
-                    php artisan config:cache
-                    php artisan route:cache
-                    php artisan view:cache
+            # Create .env file from secrets
+            echo "${{ secrets.ENV }}" > .env
+
+            # Verify artisan file exists
+            if [ ! -f "artisan" ]; then
+              echo "Error: artisan file not found in $(pwd)"
+              echo "Directory contents:"
+              ls -la
+              exit 1
+            fi
+
+            # Create necessary directories if they don't exist
+            mkdir -p storage/logs
+            mkdir -p storage/framework/cache
+            mkdir -p storage/framework/sessions
+            mkdir -p storage/framework/views
+            mkdir -p bootstrap/cache
+            mkdir -p public/uploads
+
+            # Generate app key if not set
+            php artisan key:generate --force
+
+            # Clear all caches first
+            php artisan optimize:clear
 
             # Run database migrations
-                    php artisan migrate --force
+            php artisan migrate --force
 
-            # Optional: Link storage for public access
-                    php artisan storage:link # If you use storage:link
+            # Cache configuration and routes
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
 
-            # Optimize Laravel
-                    php artisan optimize # This will re-run general optimizations after caching
+            # Link storage for public access
+            php artisan storage:link
 
-            # --- Permissions (Ensure www-data can write to storage/cache) ---
-                    sudo chown -R www-data:www-data storage bootstrap/cache # Ensure www-data owns these
-                    sudo chmod -R 775 storage bootstrap/cache # Allow read/write for www-data and deployuser
-                    sudo chmod -R 755 public/uploads # Example if you have an uploads directory
+            # Final optimization
+            php artisan optimize
+
+            # Set proper permissions
+            sudo chown -R www-data:www-data storage bootstrap/cache
+            sudo chmod -R 775 storage bootstrap/cache
+
+            # Set permissions for uploads directory if it exists
+            if [ -d "public/uploads" ]; then
+              sudo chmod -R 755 public/uploads
+            fi
+
+            # Restart PHP-FPM to ensure changes take effect
+            sudo systemctl reload php8.2-fpm
 
 
