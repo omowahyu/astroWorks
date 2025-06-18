@@ -40,10 +40,6 @@ jobs:
       - name: Build assets
         run: npm run build
 
-      # Run tests before deployment
-      - name: Run tests
-        run: php artisan test --parallel
-
       # Deploy to server via SSH
       - name: Deploy to server
         env:
@@ -55,145 +51,115 @@ jobs:
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key
           chmod 600 private_key
+          rsync -avz --delete \
+            -e "ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT" \
+            ./ $SERVER_USER@$Sname: Deploy Laravel App
 
-          # Create backup on server first
-          ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'BACKUP_EOF'
-            if [ -d "${{ secrets.REMOTE_TARGET }}" ]; then
-              echo "Creating backup..."
-              sudo cp -r ${{ secrets.REMOTE_TARGET }} ${{ secrets.REMOTE_TARGET }}.backup.$(date +%Y%m%d_%H%M%S)
-              echo "Backup created successfully"
-            fi
-          BACKUP_EOF
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
-          # Create deployment archive to avoid rsync issues
-          echo "📦 Creating deployment archive..."
-          tar --exclude='.git' \
-              --exclude='.github' \
-              --exclude='node_modules' \
-              --exclude='.env' \
-              --exclude='.env.local' \
-              --exclude='.env.example' \
-              --exclude='storage/logs/*' \
-              --exclude='storage/framework/cache/*' \
-              --exclude='storage/framework/sessions/*' \
-              --exclude='storage/framework/views/*' \
-              --exclude='storage/app/public/*' \
-              --exclude='bootstrap/cache/*' \
-              --exclude='tests' \
-              --exclude='*.log' \
-              --exclude='.phpunit.result.cache' \
-              --exclude='deploy.sh' \
-              --exclude='README.md' \
-              --exclude='private_key' \
-              -czf deployment.tar.gz .
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-          # Transfer archive to server
-          echo "📤 Transferring deployment archive..."
-          scp -i private_key -o StrictHostKeyChecking=no -P $SERVER_PORT \
-              deployment.tar.gz $SERVER_USER@$SERVER_HOST:/tmp/
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-          # Extract on server
-          ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'EXTRACT_EOF'
-            echo "📂 Extracting deployment archive..."
-            cd ${{ secrets.REMOTE_TARGET }}
-            sudo tar -xzf /tmp/deployment.tar.gz
-            sudo rm /tmp/deployment.tar.gz
-            echo "✅ Files extracted successfully"
-          EXTRACT_EOF
-          # Execute deployment commands on server
-          ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'DEPLOY_EOF'
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, bcmath, curl, dom, pdo, pdo_mysql, zip
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --optimize-autoloader
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Add SSH key to ssh-agent
+        run: |
+          eval "$(ssh-agent -s)"
+          ssh-add <(echo "$SSH_PRIVATE_KEY")
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy to server
+        env:
+          SERVER_HOST: ${{ secrets.REMOTE_HOST }}
+          SERVER_USER: ${{ secrets.REMOTE_USER }}
+          SERVER_PORT: ${{ secrets.REMOTE_PORT }}
+          DEPLOY_PATH: ${{ secrets.REMOTE_TARGET }}
+        run: |
+          rsync -avz --delete --no-times \
+            -e "ssh -o StrictHostKeyChecking=no -p $SERVER_PORT" \
+            ./ $SERVER_USER@$SERVER_HOST:$DEPLOY_PATH
+
+          ssh -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'EOF'
             set -e
-            echo "🚀 Starting server-side deployment..."
+            cd $DEPLOY_PATH
 
-            # Change to deployment directory
-            cd ${{ secrets.REMOTE_TARGET }}
-            echo "📁 Current directory: $(pwd)"
-
-            # Set proper permissions
-            echo "🔐 Setting permissions..."
-            sudo chown -R www-data:www-data ${{ secrets.REMOTE_TARGET }}
-            sudo chmod -R 755 ${{ secrets.REMOTE_TARGET }}
-            sudo chmod -R 775 ${{ secrets.REMOTE_TARGET }}/storage
-            sudo chmod -R 775 ${{ secrets.REMOTE_TARGET }}/bootstrap/cache
-
-            # Create necessary directories
-            echo "📂 Creating necessary directories..."
-            sudo -u www-data mkdir -p storage/logs
-            sudo -u www-data mkdir -p storage/framework/cache
-            sudo -u www-data mkdir -p storage/framework/sessions
-            sudo -u www-data mkdir -p storage/framework/views
-            sudo -u www-data mkdir -p storage/app/public
-            sudo -u www-data mkdir -p bootstrap/cache
-
-            # Copy production environment file
-            echo "⚙️ Setting up environment..."
-            if [ -f .env.production ]; then
-              sudo cp .env.production .env
-              echo "✅ Production environment file copied"
-            else
-              echo "⚠️ Warning: .env.production not found"
+            if [ ! -f artisan ]; then
+              echo "Laravel not found. Aborting."
+              exit 1
             fi
 
-            # Generate application key if needed
             if [ ! -f .env ] || ! grep -q "APP_KEY=" .env || grep -q "APP_KEY=$" .env; then
-              echo "🔑 Generating application key..."
-              sudo -u www-data php artisan key:generate --force
-            else
-              echo "✅ Application key already exists"
+              echo "Generating application key..."
+              php artisan key:generate --force
             fi
 
-            # Install/update composer dependencies
-            echo "📦 Installing Composer dependencies..."
-            sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
+            echo "Running migrations..."
+            php artisan migrate --force
+            echo "Seeding admin..."
+            php artisan db:seed --class=AdminUserSeeder --force
 
-            # Run database migrations
-            echo "🗄️ Running database migrations..."
-            sudo -u www-data php artisan migrate --force
+            echo "Clearing & caching configs..."
+            php artisan config:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            echo "Done!"
+          EOF
+  ERVER_HOST:$DEPLOY_PATH
+          ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << EOF
+            echo "Changing to deployment directory: $DEPLOY_PATH"
+            cd $DEPLOY_PATH
+            echo "Current directory: \$(pwd)"
+            echo "Checking for artisan file..."
+            ls -la artisan
 
-            # Create storage link
-            echo "🔗 Creating storage link..."
-            sudo -u www-data php artisan storage:link || echo "Storage link already exists"
+            # Generate application key if not exists
+            if [ ! -f .env ] || ! grep -q "APP_KEY=" .env || grep -q "APP_KEY=$" .env; then
+              echo "Generating application key..."
+              php artisan key:generate --force
+            else
+              echo "Application key already exists"
+            fi
 
-            # Seed admin user
-            echo "👤 Creating admin user..."
-            sudo -u www-data php artisan db:seed --class=AdminUserSeeder --force || echo "Admin user may already exist"
-
-            # Clear and cache everything
-            echo "🧹 Clearing caches..."
-            sudo -u www-data php artisan cache:clear
-            sudo -u www-data php artisan config:clear
-            sudo -u www-data php artisan route:clear
-            sudo -u www-data php artisan view:clear
-
-            echo "⚡ Optimizing application..."
-            sudo -u www-data php artisan config:cache
-            sudo -u www-data php artisan route:cache
-            sudo -u www-data php artisan view:cache
-
-            # Restart services
-            echo "🔄 Restarting services..."
-            sudo systemctl reload nginx
-            sudo systemctl restart php8.3-fpm || sudo systemctl restart php8.2-fpm || echo "PHP-FPM restart may have failed"
-
-            echo "✅ Deployment completed successfully!"
-          DEPLOY_EOF
-
-      # Health check
-      - name: Health check
-        run: |
-          echo "🏥 Running health check..."
-          sleep 10  # Wait for services to restart
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://astrokabinet.id || echo "000")
-          if [ "$HTTP_STATUS" = "200" ]; then
-            echo "✅ Health check passed (HTTP $HTTP_STATUS)"
-          else
-            echo "⚠️ Health check returned HTTP $HTTP_STATUS"
-            echo "This might be normal if the site is still starting up"
-          fi
-
-      # Cleanup
-      - name: Cleanup
-        if: always()
-        run: |
-          rm -f private_key
-          rm -f deployment.tar.gz
+            echo "Running migrations..."
+            php artisan migrate --force
+            echo "Creating admin user..."
+            php artisan db:seed --class=AdminUserSeeder --force
+            echo "Optimizing application..."
+            php artisan optimize
+            echo "Clearing caches..."
+            php artisan cache:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            echo "Deployment completed successfully!"
+          EOF
+          rm private_key

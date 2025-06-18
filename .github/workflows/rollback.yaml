@@ -1,0 +1,142 @@
+name: Manual Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_date:
+        description: 'Backup date to rollback to (YYYYMMDD_HHMMSS) - leave empty for latest'
+        required: false
+        type: string
+      confirm:
+        description: 'Type "ROLLBACK" to confirm'
+        required: true
+        type: string
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirm == 'ROLLBACK' }}
+    
+    steps:
+      - name: Validate confirmation
+        if: ${{ github.event.inputs.confirm != 'ROLLBACK' }}
+        run: |
+          echo "❌ Rollback not confirmed. Please type 'ROLLBACK' to confirm."
+          exit 1
+
+      - name: Execute rollback
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_HOST: ${{ secrets.REMOTE_HOST }}
+          SERVER_USER: ${{ secrets.REMOTE_USER }}
+          SERVER_PORT: ${{ secrets.REMOTE_PORT }}
+          BACKUP_DATE: ${{ github.event.inputs.backup_date }}
+        run: |
+          # Setup SSH
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+          
+          # Execute rollback on server
+          ssh -i private_key -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'EOF'
+            set -e
+            
+            BACKUP_PATH="/var/www/backups"
+            DEPLOY_PATH="${{ secrets.REMOTE_TARGET }}"
+            BACKUP_DATE="${{ github.event.inputs.backup_date }}"
+            
+            echo "🔄 Starting rollback process..."
+            
+            # Determine which backup to use
+            if [ -n "$BACKUP_DATE" ]; then
+              BACKUP_FILE="$BACKUP_PATH/backup_$BACKUP_DATE.tar.gz"
+              if [ ! -f "$BACKUP_FILE" ]; then
+                echo "❌ Backup file not found: $BACKUP_FILE"
+                echo "Available backups:"
+                ls -la $BACKUP_PATH/backup_*.tar.gz 2>/dev/null || echo "No backups found"
+                exit 1
+              fi
+            else
+              # Use latest backup
+              BACKUP_FILE=$(ls -t $BACKUP_PATH/backup_*.tar.gz 2>/dev/null | head -1)
+              if [ -z "$BACKUP_FILE" ]; then
+                echo "❌ No backup files found in $BACKUP_PATH"
+                exit 1
+              fi
+            fi
+            
+            echo "📦 Using backup: $BACKUP_FILE"
+            
+            # Create backup of current state before rollback
+            CURRENT_BACKUP="$BACKUP_PATH/pre_rollback_$(date +%Y%m%d_%H%M%S).tar.gz"
+            if [ -d "$DEPLOY_PATH" ]; then
+              echo "📦 Creating backup of current state..."
+              sudo tar -czf "$CURRENT_BACKUP" -C "$DEPLOY_PATH" . 2>/dev/null || true
+              echo "✅ Current state backed up to: $CURRENT_BACKUP"
+            fi
+            
+            # Extract backup
+            echo "📂 Extracting backup..."
+            cd $DEPLOY_PATH
+            sudo tar -xzf "$BACKUP_FILE"
+            
+            # Set permissions
+            echo "🔐 Setting permissions..."
+            sudo chown -R www-data:www-data $DEPLOY_PATH
+            sudo chmod -R 755 $DEPLOY_PATH
+            sudo chmod -R 775 $DEPLOY_PATH/storage
+            sudo chmod -R 775 $DEPLOY_PATH/bootstrap/cache
+            
+            # Clear caches
+            echo "🧹 Clearing caches..."
+            sudo -u www-data php artisan cache:clear 2>/dev/null || true
+            sudo -u www-data php artisan config:cache 2>/dev/null || true
+            sudo -u www-data php artisan route:cache 2>/dev/null || true
+            sudo -u www-data php artisan view:cache 2>/dev/null || true
+            
+            # Restart services
+            echo "🔄 Restarting services..."
+            sudo systemctl reload nginx
+            sudo systemctl restart php8.3-fpm 2>/dev/null || sudo systemctl restart php8.2-fpm 2>/dev/null || true
+            
+            echo "✅ Rollback completed successfully!"
+            echo "📝 Rolled back to: $(basename $BACKUP_FILE)"
+          EOF
+          
+          # Cleanup
+          rm -f private_key
+
+      - name: Health check after rollback
+        run: |
+          echo "🏥 Running health check after rollback..."
+          sleep 10
+          
+          for i in {1..3}; do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://astrokabinet.id || echo "000")
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Health check passed (HTTP $HTTP_STATUS)"
+              echo "🎉 Rollback successful and site is responding!"
+              exit 0
+            fi
+            echo "⏳ Attempt $i: HTTP $HTTP_STATUS, retrying..."
+            sleep 10
+          done
+          
+          echo "⚠️ Health check failed after rollback. Please check manually."
+          echo "🌐 Site: https://astrokabinet.id"
+          exit 1
+
+  rollback-denied:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirm != 'ROLLBACK' }}
+    
+    steps:
+      - name: Rollback denied
+        run: |
+          echo "❌ Rollback cancelled - confirmation not provided"
+          echo "To proceed with rollback, please:"
+          echo "1. Go to Actions tab"
+          echo "2. Select 'Manual Rollback' workflow"
+          echo "3. Click 'Run workflow'"
+          echo "4. Type 'ROLLBACK' in the confirmation field"
+          echo "5. Optionally specify backup date (YYYYMMDD_HHMMSS)"
+          exit 1
