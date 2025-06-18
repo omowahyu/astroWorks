@@ -1,4 +1,4 @@
-name: Deploy Astrokabinet to Production Server
+name: Deploy Astrokabinet to Production
 
 on:
   push:
@@ -9,7 +9,7 @@ jobs:
   quality:
     runs-on: ubuntu-22.04
     steps:
-      - name: Set up job
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup PHP
@@ -18,7 +18,7 @@ jobs:
           php-version: 8.2
           tools: composer:v2
 
-      - name: Install Dependencies
+      - name: Install PHP Dependencies
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
       - name: Run Pint
@@ -33,17 +33,16 @@ jobs:
       - name: Install Node Dependencies
         run: npm ci
 
-      - name: Format Frontend
-        run: npm run format
-
-      - name: Lint Frontend
-        run: npm run lint
+      - name: Format and Lint Frontend
+        run: |
+          npm run format
+          npm run lint
 
   deploy:
     needs: quality
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup PHP
@@ -52,8 +51,8 @@ jobs:
           php-version: 8.2
           tools: composer:v2
 
-      - name: Setup Composer
-        run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist
+      - name: Install PHP Dependencies
+        run: composer install --no-dev --optimize-autoloader --no-progress
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -61,20 +60,17 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Setup Node Dependencies
-        run: npm ci
-
-      - name: Build Assets
-        run: npm run build
+      - name: Install Node Dependencies and Build Assets
+        run: |
+          npm ci
+          npm run build
 
       - name: Create deployment archive
         run: |
-          # Create a tar archive excluding unnecessary files
           tar --exclude='.git' \
               --exclude='.github' \
               --exclude='node_modules' \
-              --exclude='.env' \
-              --exclude='.env.example' \
+              --exclude='.env*' \
               --exclude='README.md' \
               --exclude='tests' \
               --exclude='storage/logs/*' \
@@ -83,84 +79,48 @@ jobs:
               --exclude='storage/framework/views/*' \
               -czf deployment.tar.gz .
 
-      - name: Deploy files to Server using rsync
+      - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Create backup of current deployment
+            # Create backup
             if [ -d "/var/www/astrokabinet.id" ]; then
               sudo cp -r /var/www/astrokabinet.id /var/www/astrokabinet.id.backup.$(date +%Y%m%d_%H%M%S)
             fi
 
-            # Create application directory if it doesn't exist
+            # Create and set permissions for application directory
             sudo mkdir -p /var/www/astrokabinet.id
             sudo chown -R ${{ secrets.REMOTE_USER }}:www-data /var/www/astrokabinet.id
 
-      - name: Transfer deployment archive
-        run: |
-          # Transfer the archive using scp
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key
-          chmod 600 private_key
-          scp -i private_key -o StrictHostKeyChecking=no deployment.tar.gz ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:/tmp/
-          rm private_key
-
-      - name: Extract and configure application
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.REMOTE_HOST }}
-          username: ${{ secrets.REMOTE_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            # Extract the deployment archive
+            # Transfer and extract archive
+            scp /home/runner/work/astrokabinet/astrokabinet/deployment.tar.gz /tmp/deployment.tar.gz
             cd /var/www/astrokabinet.id
-            sudo tar -xzf /tmp/deployment.tar.gz --strip-components=0
+            sudo tar -xzf /tmp/deployment.tar.gz
             sudo rm /tmp/deployment.tar.gz
 
-            # Create .env file from secrets
+            # Create .env file
             echo "${{ secrets.ENV }}" | sudo tee .env > /dev/null
 
-            # Create necessary directories if they don't exist
-            sudo mkdir -p storage/logs
-            sudo mkdir -p storage/framework/cache
-            sudo mkdir -p storage/framework/sessions
-            sudo mkdir -p storage/framework/views
-            sudo mkdir -p bootstrap/cache
-            sudo mkdir -p public/uploads
-
-            # Set proper ownership and permissions
+            # Set up storage directories and permissions
+            sudo mkdir -p storage/{logs,framework/cache,framework/sessions,framework/views} bootstrap/cache public/uploads
             sudo chown -R www-data:www-data /var/www/astrokabinet.id
-            sudo chmod -R 755 /var/www/astrokabinet.id
-            sudo chmod -R 775 /var/www/astrokabinet.id/storage
-            sudo chmod -R 775 /var/www/astrokabinet.id/bootstrap/cache
+            sudo find /var/www/astrokabinet.id -type f -exec chmod 644 {} \;
+            sudo find /var/www/astrokabinet.id -type d -exec chmod 755 {} \;
+            sudo chmod -R 775 storage bootstrap/cache
 
-            # Laravel deployment commands
+            # Run Laravel deployment commands
             cd /var/www/astrokabinet.id
-
-            # Generate application key if needed
             sudo -u www-data php artisan key:generate --force
-
-            # Clear all caches
             sudo -u www-data php artisan optimize:clear
-
-            # Run database migrations
             sudo -u www-data php artisan migrate --force
-
-            # Cache configuration, routes, and views
             sudo -u www-data php artisan config:cache
             sudo -u www-data php artisan route:cache
             sudo -u www-data php artisan view:cache
-
-            # Create storage link
             sudo -u www-data php artisan storage:link
-
-            # Optimize application
             sudo -u www-data php artisan optimize
 
-            # Restart PHP-FPM and Nginx
-            sudo systemctl reload php8.2-fpm
-            sudo systemctl reload nginx
-
-
+            # Restart services
+            sudo systemctl reload php8.2-fpm nginx
