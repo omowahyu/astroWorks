@@ -16,11 +16,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # --- 1. SETUP PHP & COMPOSER ---
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif
+          coverage: none
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: |
+          echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer Dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+      # --- 2. SETUP NODE & NPM ---
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-          cache: 'npm' # Caches node_modules between runs for speed
+          cache: 'npm'
 
       - name: Install NPM Dependencies
         run: npm install
@@ -28,6 +53,7 @@ jobs:
       - name: Build Frontend Assets
         run: npm run build
 
+      # --- 3. DEPLOY TO SERVER ---
       - name: Copy repository to server via SCP
         uses: appleboy/scp-action@master
         with:
@@ -36,7 +62,7 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "."
-          target: "/home/deploy/astrokabinet"
+          target: "/home/${{ secrets.VPS_USERNAME }}/astrokabinet"
 
       - name: Run deployment script on server
         uses: appleboy/ssh-action@master
@@ -45,4 +71,4 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: "cd /home/deploy/astrokabinet && ./.scripts/deploy.sh"
+          script: "cd /home/${{ secrets.VPS_USERNAME }}/astrokabinet && ./.scripts/deploy.sh"

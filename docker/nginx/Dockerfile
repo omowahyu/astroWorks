@@ -1,8 +1,9 @@
-# Use a distroless image for a smaller and more secure footprint
-FROM gcr.io/distroless/nginx:latest
+FROM nginx:1.25-alpine
 
-# Copy your custom nginx configuration
-COPY default.conf /etc/nginx/conf.d/default.conf
+WORKDIR /var/www
 
-# Copy static assets
-COPY --from=php:8.3-fpm-alpine /var/www/public /var/www/public
+# Hapus konfigurasi default nginx
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Salin konfigurasi custom kita
+COPY ./docker/nginx/default.conf /etc/nginx/conf.d/default.conf

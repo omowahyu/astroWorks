@@ -34,23 +34,14 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 FROM base AS vendor
 WORKDIR /var/www
 COPY composer.json composer.lock ./
+# Note: Using --no-dev for production
 RUN composer install --no-scripts --no-autoloader --no-dev
 COPY . .
 RUN composer dump-autoload --optimize
 
 # ---
 
-# Stage 3: Frontend Asset Builder
-FROM node:20-alpine AS frontend
-WORKDIR /var/www
-COPY . .
-COPY --from=vendor /var/www/vendor ./vendor
-RUN npm install
-RUN npm run build
-
-# ---
-
-# Stage 4: Final Production Image
+# Stage 3: Final Production Image
 FROM php:8.3-fpm-alpine AS production
 WORKDIR /var/www
 
@@ -75,16 +66,13 @@ RUN apk add --no-cache \
 COPY --from=base /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 COPY --from=base /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 
-# Copy application code and compiled assets
-COPY --from=frontend /var/www/public ./public
+# Copy application code from the 'vendor' stage
 COPY --from=vendor /var/www/vendor ./vendor
-COPY --chown=sail:sail . .
 
 # Copy the rest of the application code and PRE-BUILT assets.
 COPY --chown=sail:sail . .
 
-# Set permissions
-# RUN chown -R sail:sail /var/www
+# Tidak perlu lagi 'RUN chown...' karena sudah ditangani oleh COPY --chown
 USER sail
 
 # Install Octane with RoadRunner
