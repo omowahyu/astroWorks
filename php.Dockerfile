@@ -34,17 +34,23 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 FROM base AS vendor
 WORKDIR /var/www
 COPY composer.json composer.lock ./
-# Note: Using --no-dev for production
 RUN composer install --no-scripts --no-autoloader --no-dev
 COPY . .
 RUN composer dump-autoload --optimize
 
-# --- STAGE REMOVED ---
-# The 'frontend' build stage is no longer needed here.
-# It's now handled by the GitHub Action.
 # ---
 
-# Stage 3: Final Production Image
+# Stage 3: Frontend Asset Builder
+FROM node:20-alpine AS frontend
+WORKDIR /var/www
+COPY . .
+COPY --from=vendor /var/www/vendor ./vendor
+RUN npm install
+RUN npm run build
+
+# ---
+
+# Stage 4: Final Production Image
 FROM php:8.3-fpm-alpine AS production
 WORKDIR /var/www
 
@@ -69,16 +75,16 @@ RUN apk add --no-cache \
 COPY --from=base /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 COPY --from=base /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 
-# Copy application code from the 'vendor' stage
+# Copy application code and compiled assets
+COPY --from=frontend /var/www/public ./public
 COPY --from=vendor /var/www/vendor ./vendor
+COPY --chown=sail:sail . .
 
 # Copy the rest of the application code and PRE-BUILT assets.
-# The 'public/build' directory is now part of the build context
-# sent to the Docker daemon because our GitHub Action created it.
 COPY --chown=sail:sail . .
 
 # Set permissions
-RUN chown -R sail:sail /var/www
+# RUN chown -R sail:sail /var/www
 USER sail
 
 # Install Octane with RoadRunner
