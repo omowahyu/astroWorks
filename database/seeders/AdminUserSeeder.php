@@ -16,10 +16,10 @@ class AdminUserSeeder extends Seeder
     {
         // Create admin user if it doesn't exist
         User::firstOrCreate(
-            ['email' => 'team@astrokabinet.id'],
+            ['email' => env('ADMIN_EMAIL')],
             [
-                'name' => 'Sales Team',
-                'password' => Hash::make('Astrokabinet25!'),
+                'name' => env('ADMIN_NAME'),
+                'password' => Hash::make(env('ADMIN_PASSWORD')),
                 'email_verified_at' => now(),
             ]
         );
