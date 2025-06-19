@@ -12,7 +12,8 @@
 
 # Environment files
 .env
-.env.*
+.env.local
+.env.production
 
 # Dependencies (will be installed in container)
 node_modules
