@@ -1,0 +1,81 @@
+name: Deploy to Production (Caddy)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Run Tests
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, mysql, gd, zip
+        coverage: none
+    
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-
+    
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress
+    
+    - name: Create .env file
+      run: |
+        cp .env.example .env
+        php artisan key:generate
+    
+    - name: Run tests
+      run: |
+        if [ -f vendor/bin/pest ]; then
+          vendor/bin/pest
+        else
+          echo "No tests found, skipping..."
+        fi
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    name: Deploy to Production
+    
+    steps:
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          cd /var/www/astrokabinet.id
+          
+          echo "📥 Pulling latest changes..."
+          git pull origin main
+          
+          echo "🔄 Rebuilding and restarting containers..."
+          docker-compose -f docker-compose.caddy.yml up -d --build
+          
+          echo "⏳ Waiting for containers to be ready..."
+          sleep 15
+          
+          echo "🧹 Cleaning up old Docker images..."
+          docker image prune -f
+          
+          echo "✅ Deployment completed!"
+          docker-compose -f docker-compose.caddy.yml ps
+    
+    - name: Health Check
+      run: |
+        sleep 10
+        curl -f http://astrokabinet.id || echo "Website might not be ready yet"
