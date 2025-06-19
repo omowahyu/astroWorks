@@ -32,8 +32,8 @@ RUN composer install --no-dev --no-interaction --no-plugins --no-scripts --prefe
 # Salin sisa source code aplikasi
 COPY . .
 
-# Hapus file yang tidak perlu di produksi
-RUN rm -f .env .env.example docker-compose.yml Dockerfile
+# Buat file .env dari .env.example untuk build
+RUN cp .env.example .env
 
 # Generate application key
 RUN php artisan key:generate
@@ -41,6 +41,9 @@ RUN php artisan key:generate
 RUN php artisan config:cache
 RUN php artisan route:cache
 RUN php artisan view:cache
+
+# Hapus file yang tidak perlu di produksi setelah build
+RUN rm -f .env .env.example docker-compose.yml Dockerfile
 
 # Build aset Inertia.js/Vue/React
 RUN npm install
