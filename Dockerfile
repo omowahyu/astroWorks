@@ -31,7 +31,19 @@ COPY . .
 
 # Install dependencies and build assets
 RUN composer install --no-dev --optimize-autoloader
-RUN npm install && npm run build
+RUN npm install
+
+# Create a minimal .env file for build process
+RUN echo "APP_NAME=AstroWorks" > .env && \
+    echo "APP_ENV=production" >> .env && \
+    echo "APP_KEY=base64:$(openssl rand -base64 32)" >> .env && \
+    echo "APP_DEBUG=false" >> .env && \
+    echo "APP_URL=https://astrokabinet.id" >> .env && \
+    echo "VITE_APP_NAME=AstroWorks" >> .env
+
+# Generate application key and run build
+RUN php artisan key:generate --force
+RUN npm run build
 
 # Stage 2: Create the final distroless image
 FROM gcr.io/distroless/cc-debian12
