@@ -85,3 +85,4 @@ The deploy.sh script performs the following steps:
     Reloads the Octane workers to apply all changes without downtime.
 
 This approach ensures a zero-downtime deployment for your Laravel application.
+
