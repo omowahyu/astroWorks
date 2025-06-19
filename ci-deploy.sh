@@ -108,6 +108,7 @@ print_status "Setting up environment..."
 if [ ! -f ".env" ]; then
     if [ -f ".env.production" ]; then
         cp .env.production .env
+        print_status "Copied .env.production to .env"
     else
         print_warning ".env.production not found, creating minimal .env"
         cat > .env << EOF
@@ -117,8 +118,22 @@ APP_KEY=base64:$(openssl rand -base64 32)
 APP_DEBUG=false
 APP_URL=https://astrokabinet.id
 VITE_APP_NAME=AstroKabinet
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=astroworks
+DB_USERNAME=astroapp
+DB_PASSWORD=AstroApp123
+DB_ROOT_PASSWORD=RootAstro123
+REDIS_HOST=redis
 EOF
     fi
+fi
+
+# Generate APP_KEY if not set
+if ! grep -q "APP_KEY=base64:" .env; then
+    print_status "Generating APP_KEY..."
+    sed -i 's/APP_KEY=/APP_KEY=base64:'"$(openssl rand -base64 32)"'/' .env
 fi
 
 # Step 7: Deploy with Docker (with retry logic)
