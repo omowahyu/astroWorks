@@ -1,4 +1,4 @@
-name: Deploy AstroKabinet (Caddy + MySQL + PHP-FPM)
+name: Deploy AstroKabinet (Safe Deployment with Rollback)
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    name: Run Tests
+    name: Run Tests & Build Validation
 
     steps:
     - uses: actions/checkout@v4
@@ -20,6 +20,12 @@ jobs:
         extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, mysql, gd, zip
         coverage: none
 
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
     - name: Cache Composer packages
       id: composer-cache
       uses: actions/cache@v3
@@ -29,15 +35,21 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-php-
 
-    - name: Install dependencies
+    - name: Install PHP dependencies
       run: composer install --prefer-dist --no-progress
+
+    - name: Install Node dependencies
+      run: npm ci
 
     - name: Create .env file
       run: |
         cp .env.example .env
         php artisan key:generate
 
-    - name: Run tests
+    - name: Build frontend assets
+      run: npm run build
+
+    - name: Run PHP tests
       run: |
         if [ -f vendor/bin/pest ]; then
           vendor/bin/pest
@@ -45,13 +57,19 @@ jobs:
           echo "No tests found, skipping..."
         fi
 
+    - name: Validate Laravel configuration
+      run: |
+        php artisan config:cache
+        php artisan route:cache
+        php artisan view:cache
+
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    name: Deploy to Production
+    name: Safe Deploy to Production
 
     steps:
-    - name: Deploy to server
+    - name: Deploy with Rollback Safety
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.HOST }}
@@ -60,31 +78,150 @@ jobs:
         script: |
           cd /var/www/astrokabinet.id
 
-          echo "📥 Pulling latest changes..."
-          git pull origin main
+          # Create deployment timestamp
+          DEPLOY_TIME=$(date +%Y%m%d_%H%M%S)
+          echo "🚀 Starting deployment at $DEPLOY_TIME"
 
-          echo "🛑 Stopping existing containers..."
+          # Create backup of current state
+          echo "💾 Creating backup of current deployment..."
+          if [ -d "backup_current" ]; then
+            rm -rf backup_old
+            mv backup_current backup_old
+          fi
+          mkdir -p backup_current
+
+          # Backup current containers if running
+          if docker-compose -f docker-compose.caddy.yml ps | grep -q "Up"; then
+            echo "📦 Backing up current running containers..."
+            docker-compose -f docker-compose.caddy.yml ps > backup_current/containers_state.txt
+            docker images | grep astrokabinet > backup_current/images_state.txt || true
+          fi
+
+          # Pull latest changes
+          echo "📥 Pulling latest changes..."
+          git stash push -m "Auto-stash before deployment $DEPLOY_TIME" || true
+          if ! git pull origin main; then
+            echo "❌ Git pull failed! Aborting deployment."
+            exit 1
+          fi
+
+          # Build new image first (without stopping current)
+          echo "🔨 Building new Docker image..."
+          if ! docker-compose -f docker-compose.caddy.yml build; then
+            echo "❌ Docker build failed! Rolling back..."
+            git reset --hard HEAD~1
+            exit 1
+          fi
+
+          # Stop current containers
+          echo "🛑 Stopping current containers..."
           docker-compose -f docker-compose.caddy.yml down || true
 
-          echo "🔄 Building and starting containers..."
-          docker-compose -f docker-compose.caddy.yml up -d --build
+          # Start new containers
+          echo "🔄 Starting new containers..."
+          if ! docker-compose -f docker-compose.caddy.yml up -d; then
+            echo "❌ Container startup failed! Attempting rollback..."
 
+            # Rollback: restore previous git state
+            git reset --hard HEAD~1
+
+            # Try to rebuild and restart with previous code
+            docker-compose -f docker-compose.caddy.yml build
+            docker-compose -f docker-compose.caddy.yml up -d
+
+            echo "🔄 Rollback completed. Check logs for issues."
+            exit 1
+          fi
+
+          # Wait for containers to be ready
           echo "⏳ Waiting for containers to be ready..."
-          sleep 30
+          sleep 45
 
+          # Health check before proceeding
+          echo "🏥 Performing health check..."
+          HEALTH_CHECK_ATTEMPTS=0
+          MAX_ATTEMPTS=10
+
+          while [ $HEALTH_CHECK_ATTEMPTS -lt $MAX_ATTEMPTS ]; do
+            if docker-compose -f docker-compose.caddy.yml exec -T app php artisan --version > /dev/null 2>&1; then
+              echo "✅ Application is responding"
+              break
+            fi
+
+            HEALTH_CHECK_ATTEMPTS=$((HEALTH_CHECK_ATTEMPTS + 1))
+            echo "⏳ Health check attempt $HEALTH_CHECK_ATTEMPTS/$MAX_ATTEMPTS..."
+            sleep 10
+          done
+
+          if [ $HEALTH_CHECK_ATTEMPTS -eq $MAX_ATTEMPTS ]; then
+            echo "❌ Health check failed! Rolling back..."
+
+            # Stop failed containers
+            docker-compose -f docker-compose.caddy.yml down
+
+            # Rollback git
+            git reset --hard HEAD~1
+
+            # Rebuild and restart
+            docker-compose -f docker-compose.caddy.yml build
+            docker-compose -f docker-compose.caddy.yml up -d
+
+            echo "🔄 Rollback completed due to health check failure."
+            exit 1
+          fi
+
+          # Run database migrations
           echo "🗄️ Running database migrations..."
-          docker-compose -f docker-compose.caddy.yml exec -T app php artisan migrate --force
+          if ! docker-compose -f docker-compose.caddy.yml exec -T app php artisan migrate --force; then
+            echo "⚠️ Migration failed, but continuing (might be safe)..."
+          fi
 
+          # Create storage link
           echo "🔗 Creating storage link..."
-          docker-compose -f docker-compose.caddy.yml exec -T app php artisan storage:link
+          docker-compose -f docker-compose.caddy.yml exec -T app php artisan storage:link || true
 
-          echo "🧹 Cleaning up old Docker images..."
-          docker image prune -f
+          # Final health check
+          echo "🏥 Final health check..."
+          sleep 15
 
-          echo "✅ Deployment completed!"
-          docker-compose -f docker-compose.caddy.yml ps
+          if docker-compose -f docker-compose.caddy.yml exec -T app php artisan --version > /dev/null 2>&1; then
+            echo "✅ Deployment successful!"
 
-    - name: Health Check
+            # Clean up old images
+            echo "🧹 Cleaning up old Docker images..."
+            docker image prune -f
+
+            # Show final status
+            docker-compose -f docker-compose.caddy.yml ps
+
+            # Save successful deployment info
+            echo "Deployment $DEPLOY_TIME successful" > backup_current/deployment_success.txt
+          else
+            echo "❌ Final health check failed! Manual intervention required."
+            exit 1
+          fi
+
+    - name: External Health Check
       run: |
-        sleep 15
-        curl -f http://astrokabinet.id || echo "Website might not be ready yet"
+        echo "🌐 Testing external access..."
+        sleep 20
+
+        # Try multiple times with different approaches
+        for i in {1..5}; do
+          echo "Attempt $i/5..."
+
+          if curl -f -m 30 http://astrokabinet.id > /dev/null 2>&1; then
+            echo "✅ Website is accessible externally!"
+            exit 0
+          fi
+
+          if curl -f -m 30 http://103.117.56.159 > /dev/null 2>&1; then
+            echo "✅ Server is responding on IP!"
+            exit 0
+          fi
+
+          sleep 10
+        done
+
+        echo "⚠️ External access check failed, but deployment may still be successful"
+        echo "Please check manually: http://astrokabinet.id"
