@@ -1,53 +1,86 @@
-FROM dunglas/frankenphp:php8.3
+# ---- Stage 1: Build ----
+# Gunakan image PHP 8.2 dengan FPM dan Node.js untuk build
+FROM php:8.2-fpm as builder
 
-# Install system dependencies
+# Install dependensi sistem yang dibutuhkan untuk ekstensi PHP dan Laravel
 RUN apt-get update && apt-get install -y \
     git \
+    unzip \
+    zip \
     curl \
     libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
     libonig-dev \
     libxml2-dev \
-    zip \
-    unzip \
-    libpq-dev \
+    libzip-dev \
     nodejs \
     npm \
-    && docker-php-ext-install pdo pdo_pgsql mbstring exif pcntl bcmath gd
-
-# Get latest Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
 # Set working directory
 WORKDIR /app
 
-# Copy composer files
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Salin file dependensi dulu untuk caching
+COPY database/ database/
 COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-# Copy package files
-COPY package*.json ./
-
-# Install Node dependencies
-RUN npm ci --only=production
-
-# Copy application code
+# Salin sisa source code aplikasi
 COPY . .
 
-# Build assets
+# Hapus file yang tidak perlu di produksi
+RUN rm -f .env .env.example docker-compose.yml Dockerfile
+
+# Generate application key
+RUN php artisan key:generate
+# Cache config dan routes untuk performa
+RUN php artisan config:cache
+RUN php artisan route:cache
+RUN php artisan view:cache
+
+# Build aset Inertia.js/Vue/React
+RUN npm install
 RUN npm run build
 
-# Set permissions
-RUN chown -R www-data:www-data /app \
-    && chmod -R 755 /app/storage \
-    && chmod -R 755 /app/bootstrap/cache
+# Atur kepemilikan file
+RUN chown -R www-data:www-data /app
 
-# Configure FrankenPHP
-ENV FRANKENPHP_CONFIG="worker ./public/index.php"
+# ---- Stage 2: Final Image ----
+# Gunakan image PHP FPM yang lebih ramping
+FROM php:8.2-fpm-alpine
 
-# Expose port
-EXPOSE 8000
+# Set working directory
+WORKDIR /app
 
-# Start FrankenPHP
-CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
+# Salin user/group dari image sebelumnya
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
+
+# Salin ekstensi PHP yang sudah ter-install
+COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
+COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+
+# Salin vendor, aset, dan file aplikasi yang sudah di-build
+COPY --from=builder /app/vendor/ /app/vendor/
+COPY --from=builder /app/public/ /app/public/
+COPY --from=builder /app/bootstrap/ /app/bootstrap/
+COPY --from=builder /app/config/ /app/config/
+COPY --from=builder /app/database/ /app/database/
+COPY --from=builder /app/resources/ /app/resources/
+COPY --from=builder /app/routes/ /app/routes/
+COPY --from=builder /app/storage/ /app/storage/
+COPY --from=builder /app/app/ /app/app/
+COPY --from=builder /app/artisan /app/artisan
+
+# Atur kepemilikan lagi di image final
+RUN chown -R www-data:www-data /app
+
+# Expose port untuk PHP-FPM
+EXPOSE 9000
+
+# Command default untuk menjalankan PHP-FPM
+CMD ["php-fpm"]
