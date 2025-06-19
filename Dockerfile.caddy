@@ -1,0 +1,73 @@
+# Multi-stage build for Caddy + PHP-FPM
+FROM php:8.2-fpm as php-base
+
+# Install system dependencies and PHP extensions
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    zip \
+    curl \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    nodejs \
+    npm \
+    supervisor \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Install Caddy
+RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+RUN apt-get update && apt-get install -y caddy
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files for caching
+COPY database/ database/
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --no-plugins --no-scripts --prefer-dist
+
+# Copy application source
+COPY . .
+
+# Create .env from example for build
+RUN cp .env.example .env
+
+# Generate application key
+RUN php artisan key:generate
+
+# Build frontend assets
+RUN npm install && npm run build
+
+# Cache Laravel config and routes
+RUN php artisan config:cache
+RUN php artisan route:cache  
+RUN php artisan view:cache
+
+# Clean up build files
+RUN rm -f .env .env.example docker-compose.yml Dockerfile
+
+# Set proper permissions
+RUN chown -R www-data:www-data /app \
+    && chmod -R 755 /app \
+    && chmod -R 775 /app/storage /app/bootstrap/cache
+
+# Create Caddyfile
+COPY Caddyfile.production /etc/caddy/Caddyfile.production
+
+# Create supervisor configuration
+COPY supervisord-caddy.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Expose ports
+EXPOSE 80 443
+
+# Start supervisor (manages both Caddy and PHP-FPM)
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

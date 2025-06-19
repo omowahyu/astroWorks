@@ -1,0 +1,58 @@
+# Caddyfile for AstroKabinet Production
+{
+    # Global options
+    admin off
+    auto_https off
+}
+
+# Main site configuration
+:80 {
+    # Document root
+    root * /app/public
+    
+    # Enable gzip compression
+    encode gzip
+    
+    # Security headers
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer-when-downgrade"
+        X-XSS-Protection "1; mode=block"
+        -Server
+    }
+    
+    # PHP-FPM configuration
+    php_fastcgi unix//var/run/php/php8.2-fpm.sock {
+        index index.php
+        try_files {path} {path}/ /index.php?{query}
+    }
+    
+    # Static file caching
+    @static {
+        file
+        path *.css *.js *.ico *.png *.jpg *.jpeg *.gif *.svg *.woff *.woff2 *.ttf *.eot *.pdf
+    }
+    header @static {
+        Cache-Control "public, max-age=31536000, immutable"
+    }
+    
+    # Security - deny access to sensitive files
+    @forbidden {
+        path /.env* /.git* /composer.* /package.* /.* /storage/logs/*
+    }
+    respond @forbidden 403
+    
+    # File server for static files
+    file_server
+    
+    # Logging
+    log {
+        output stdout
+        format console
+        level INFO
+    }
+    
+    # Handle Laravel routes
+    try_files {path} {path}/ /index.php?{query}
+}
