@@ -47,6 +47,9 @@ COPY . .
 # Clear any cached service providers that might reference missing packages
 RUN rm -f bootstrap/cache/packages.php bootstrap/cache/services.php bootstrap/cache/config.php bootstrap/cache/routes-v7.php
 
+# Remove Octane from composer.lock and regenerate dependencies
+RUN composer remove laravel/octane --no-interaction --ignore-platform-reqs || true
+RUN composer install --no-scripts --no-autoloader --no-dev --no-interaction --prefer-dist --optimize-autoloader
 RUN composer dump-autoload --optimize
 
 # ---
