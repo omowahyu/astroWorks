@@ -34,8 +34,13 @@ print_status "Starting deployment process..."
 
 # Step 1: Setup directory
 print_status "Setting up application directory..."
-sudo mkdir -p $APP_DIR
-sudo chown -R $USER:$USER $APP_DIR
+mkdir -p $APP_DIR || true
+# Skip chown if we don't have sudo access
+if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+    sudo chown -R $USER:$USER $APP_DIR
+else
+    print_warning "No sudo access, skipping directory ownership change"
+fi
 
 # Step 2: Clone or update repository
 if [ -d "$APP_DIR/.git" ]; then

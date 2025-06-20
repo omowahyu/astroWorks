@@ -63,17 +63,3 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "."
           target: "/home/${{ secrets.VPS_USERNAME }}/astrokabinet"
-
-      - name: Run CI deployment script on server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          port: ${{ secrets.VPS_PORT }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /home/${{ secrets.VPS_USERNAME }}/astrokabinet
-            ls -la ci-deploy.sh
-            chmod +x ci-deploy.sh
-            bash ci-deploy.sh
-
