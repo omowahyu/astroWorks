@@ -50,108 +50,71 @@ jobs:
           overwrite: true
           rm: false
 
-      - name: Smart container reload
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          port: ${{ secrets.VPS_PORT }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ${{ env.DEPLOY_PATH }}
+#      - name: Smart container reload
+#        uses: appleboy/ssh-action@v1.0.3
+#        with:
+#          host: ${{ secrets.VPS_HOST }}
+#          username: ${{ secrets.VPS_USERNAME }}
+#          port: ${{ secrets.VPS_PORT }}
+#          key: ${{ secrets.SSH_PRIVATE_KEY }}
+#          timeout: 300s
+#          command_timeout: 600s
+#          script: |
+#            cd ${{ env.DEPLOY_PATH }}
+#
+#            echo "=== Simple Safe Deployment ==="
+#
+#            # Set proper permissions
+#            sudo chown -R deploy:deploy .
+#            sudo chmod -R 775 storage bootstrap/cache
+#
+#            # Ensure .env exists
+#            if [ ! -f .env ]; then
+#              cp .env.example .env
+#              echo "Created .env from example"
+#            fi
+#
+#            # Simple approach: rebuild and restart containers
+#            echo "Building containers..."
+#            docker-compose -f docker-compose.production.yml build --parallel
+#
+#            echo "Starting containers..."
+#            docker-compose -f docker-compose.production.yml up -d
+#
+#            # Wait for services
+#            echo "Waiting for services to start..."
+#            sleep 30
+#
+#            # Simple health check
+#            echo "Checking health..."
+#            if curl -f http://localhost/up > /dev/null 2>&1; then
+#              echo "✅ Health check passed!"
+#            else
+#              echo "⚠️ Health check failed, but continuing..."
+#            fi
+#
+#            # Laravel optimizations (best effort)
+#            echo "Running optimizations..."
+#            docker-compose -f docker-compose.production.yml exec -T app php artisan config:cache 2>/dev/null || true
+#            docker-compose -f docker-compose.production.yml exec -T app php artisan route:cache 2>/dev/null || true
+#            docker-compose -f docker-compose.production.yml exec -T app php artisan view:cache 2>/dev/null || true
+#
+#            echo "✅ Deployment completed!"
 
-            echo "=== Checking what needs to be rebuilt ==="
-
-            # Set proper permissions
-            sudo chown -R deploy:deploy .
-            sudo chmod -R 775 storage bootstrap/cache
-
-            # Check if Docker files changed
-            REBUILD_APP=false
-            REBUILD_NGINX=false
-
-            # Simple approach: check if key files changed by comparing with running containers
-            if ! docker-compose -f docker-compose.production.yml exec -T app php artisan --version > /dev/null 2>&1; then
-              echo "App container not responding, will rebuild"
-              REBUILD_APP=true
-            fi
-
-            if ! docker-compose -f docker-compose.production.yml exec -T nginx nginx -t > /dev/null 2>&1; then
-              echo "Nginx container not responding, will rebuild"
-              REBUILD_NGINX=true
-            fi
-
-            # Always rebuild app for code changes, but smartly
-            echo "=== Updating application code ==="
-
-            # Update .env if needed
-            if [ ! -f .env ]; then
-              cp .env.example .env
-              echo "Created .env from example"
-            fi
-
-            # Rebuild only app container (most common case)
-            echo "Rebuilding app container..."
-            docker-compose -f docker-compose.production.yml build app
-
-            # Restart only app container first
-            docker-compose -f docker-compose.production.yml up -d --no-deps app
-
-            # Wait a bit for app to start
-            sleep 15
-
-            # Check if nginx config changed and rebuild if needed
-            if [ "$REBUILD_NGINX" = true ] || ! docker-compose -f docker-compose.production.yml exec -T nginx nginx -t > /dev/null 2>&1; then
-              echo "Rebuilding nginx container..."
-              docker-compose -f docker-compose.production.yml build nginx
-              docker-compose -f docker-compose.production.yml up -d --no-deps nginx
-            fi
-
-            # Ensure all services are up
-            docker-compose -f docker-compose.production.yml up -d
-
-            # Wait for services to be ready
-            echo "Waiting for services to be ready..."
-            sleep 20
-
-            # Health check
-            for i in {1..5}; do
-              if curl -f http://localhost/up > /dev/null 2>&1; then
-                echo "✅ Health check passed!"
-                break
-              elif [ $i -eq 5 ]; then
-                echo "❌ Health check failed"
-                # Don't exit with error, just log
-                echo "Services may need more time to start"
-              fi
-              echo "Health check attempt $i/5..."
-              sleep 10
-            done
-
-            # Laravel optimizations (non-critical)
-            echo "Running Laravel optimizations..."
-            docker-compose -f docker-compose.production.yml exec -T app php artisan config:cache || echo "Config cache failed, continuing..."
-            docker-compose -f docker-compose.production.yml exec -T app php artisan route:cache || echo "Route cache failed, continuing..."
-            docker-compose -f docker-compose.production.yml exec -T app php artisan view:cache || echo "View cache failed, continuing..."
-
-            # Show final status
-            echo "=== Final Status ==="
-            docker-compose -f docker-compose.production.yml ps
-
-            echo "✅ Deployment completed!"
-
-      - name: Cleanup old Docker images
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          port: ${{ secrets.VPS_PORT }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            echo "Cleaning up old Docker images to save space..."
-            docker image prune -f
-            docker system prune -f --volumes
-            echo "Cleanup completed"
+#      - name: Cleanup old Docker images
+#        uses: appleboy/ssh-action@v1.0.3
+#        with:
+#          host: ${{ secrets.VPS_HOST }}
+#          username: ${{ secrets.VPS_USERNAME }}
+#          port: ${{ secrets.VPS_PORT }}
+#          key: ${{ secrets.SSH_PRIVATE_KEY }}
+#          timeout: 120s
+#          command_timeout: 180s
+#          script: |
+#            echo "Cleaning up old Docker images to save space..."
+#            docker image prune -f
+#            docker system prune -f --volumes
+#            echo "Cleanup completed"
 
       - name: Notify result
         if: always()
