@@ -1,0 +1,128 @@
+services:
+    # Laravel Application Service - Blue (Current)
+    app-blue:
+        build:
+            context: .
+            dockerfile: php.Dockerfile
+            args:
+                - PUID=1000
+                - PGID=1000
+        image: astrokabinet-app:blue
+        container_name: astro-laravel-app-blue
+        restart: unless-stopped
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+        depends_on:
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_started
+        networks:
+            - astro-network
+        environment:
+            - "DB_HOST=mysql"
+            - "DB_PORT=3306"
+            - "DB_DATABASE=${DB_DATABASE}"
+            - "DB_USERNAME=${DB_USERNAME}"
+            - "DB_PASSWORD=${DB_PASSWORD}"
+            - "REDIS_HOST=redis"
+            - "APP_URL=${APP_URL}"
+            - "APP_KEY=${APP_KEY}"
+            - "APP_ENV=production"
+            - "APP_DEBUG=false"
+
+    # Laravel Application Service - Green (New)
+    app-green:
+        build:
+            context: .
+            dockerfile: php.Dockerfile
+            args:
+                - PUID=1000
+                - PGID=1000
+        image: astrokabinet-app:green
+        container_name: astro-laravel-app-green
+        restart: unless-stopped
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+        depends_on:
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_started
+        networks:
+            - astro-network
+        environment:
+            - "DB_HOST=mysql"
+            - "DB_PORT=3306"
+            - "DB_DATABASE=${DB_DATABASE}"
+            - "DB_USERNAME=${DB_USERNAME}"
+            - "DB_PASSWORD=${DB_PASSWORD}"
+            - "REDIS_HOST=redis"
+            - "APP_URL=${APP_URL}"
+            - "APP_KEY=${APP_KEY}"
+            - "APP_ENV=production"
+            - "APP_DEBUG=false"
+        profiles:
+            - green
+
+    # Nginx Web Server Service dengan Load Balancer
+    nginx:
+        build:
+            context: .
+            dockerfile: docker/nginx/Dockerfile
+        container_name: astro-nginx
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./:/var/www
+            - ./docker/nginx/nginx-blue-green.conf:/etc/nginx/conf.d/default.conf
+        depends_on:
+            - app-blue
+        networks:
+            - astro-network
+
+    # MySQL Database Service (Shared)
+    mysql:
+        image: mysql:8.0
+        container_name: astro-mysql
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+        volumes:
+            - astro-db-data:/var/lib/mysql
+        networks:
+            - astro-network
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+            timeout: 30s
+            retries: 20
+            interval: 10s
+            start_period: 30s
+
+    # Redis Service (Shared)
+    redis:
+        image: redis:alpine
+        container_name: astro-redis
+        restart: unless-stopped
+        networks:
+            - astro-network
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            timeout: 10s
+            retries: 5
+            interval: 5s
+
+networks:
+    astro-network:
+        driver: bridge
+
+volumes:
+    astro-db-data:
+        driver: local
