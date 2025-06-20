@@ -58,9 +58,13 @@ WORKDIR /var/www
 ARG PUID=1000
 ARG PGID=1000
 
-# Buat user non-root untuk keamanan
-RUN addgroup -g ${PGID} www-data && \
-    adduser -u ${PUID} -G www-data -s /bin/sh -D www-data
+# Buat user non-root untuk keamanan (jika belum ada)
+RUN if ! getent group www-data > /dev/null 2>&1; then \
+        addgroup -g ${PGID} www-data; \
+    fi && \
+    if ! getent passwd www-data > /dev/null 2>&1; then \
+        adduser -u ${PUID} -G www-data -s /bin/sh -D www-data; \
+    fi
 
 # Install hanya dependensi sistem yang dibutuhkan saat runtime
 RUN apk add --no-cache \
