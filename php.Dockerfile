@@ -38,7 +38,7 @@ FROM base AS vendor
 WORKDIR /var/www
 
 # Manfaatkan cache Docker. Hanya jalankan 'composer install' jika composer.lock berubah
-COPY composer.json composer.lock ./
+COPY composer.json ./
 RUN composer install --no-scripts --no-autoloader --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
 # Salin sisa aplikasi dan generate autoload
