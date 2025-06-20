@@ -42,3 +42,4 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: "cd ~/astrokabinet && git pull origin main && ./.scripts/deploy.sh"
+
