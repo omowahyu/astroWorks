@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
     # Laravel Octane Application Service
     laravel.app:
