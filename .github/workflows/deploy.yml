@@ -46,10 +46,11 @@ jobs:
           overwrite: true
           rm: false
 
-      - name: Notify completion
-        run: |
-          echo "✅ Files copied to server!"
-          echo "🔧 Run deployment manually on server:"
-          echo "   ssh deploy@103.117.56.159"
-          echo "   cd /home/deploy/astrokabinet"
-          echo "   ./deploy.sh"
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: "cd /home/deploy/astrokabinet && ./.scripts/deploy.sh"
