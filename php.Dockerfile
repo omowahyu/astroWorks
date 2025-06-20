@@ -84,4 +84,4 @@ USER sail
 EXPOSE 8000
 
 # Perintah untuk menjalankan aplikasi Laravel dengan Octane
-CMD ["php", "artisan", "octane:start", "--host=0.0.0.0", "--port=8000"]
+CMD ["php-fpm"]
