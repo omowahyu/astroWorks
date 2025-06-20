@@ -77,6 +77,10 @@ COPY --from=vendor /var/www/vendor ./vendor
 # Salin sisa kode aplikasi dan aset yang sudah di-build
 COPY --chown=sail:sail . .
 
+# Set permissions untuk storage dan bootstrap/cache directories
+RUN chmod -R 775 storage bootstrap/cache && \
+    chown -R sail:sail storage bootstrap/cache
+
 # Ganti user ke non-root
 USER sail
 
