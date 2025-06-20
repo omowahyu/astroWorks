@@ -1,4 +1,4 @@
-name: Deploy AstroKabinet with Rollback
+name: Deploy AstroKabinet with Git Rollback
 
 on:
   push:
@@ -8,14 +8,17 @@ on:
   workflow_dispatch:
     inputs:
       rollback:
-        description: 'Rollback to previous version'
+        description: 'Rollback to previous production tag'
         required: false
         default: 'false'
         type: boolean
+      rollback_tag:
+        description: 'Specific tag to rollback to (optional)'
+        required: false
+        type: string
 
 env:
-  DEPLOY_PATH: /home/deploy/astrokabinet
-  BACKUP_PATH: /home/deploy/backups
+  DEPLOY_PATH: /var/www/astrokabinet.id
   DOCKER_COMPOSE_FILE: docker-compose.production.yml
 
 jobs:
@@ -73,7 +76,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        if: github.event.inputs.rollback != 'true'
+        with:
+          fetch-depth: 0  # Need full history for Git operations
 
       - name: Setup deployment environment
         if: github.event.inputs.rollback != 'true'
@@ -89,69 +93,57 @@ jobs:
           npm ci
           npm run build
 
-      # Backup current deployment
-      - name: Create backup of current deployment
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          port: ${{ secrets.VPS_PORT }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            # Create backup directory
-            mkdir -p ${{ env.BACKUP_PATH }}
-
-            # Create backup with timestamp
-            BACKUP_NAME="astrokabinet-$(date +%Y%m%d-%H%M%S)"
-
-            if [ -d "${{ env.DEPLOY_PATH }}" ]; then
-              echo "Creating backup: $BACKUP_NAME"
-              cp -r ${{ env.DEPLOY_PATH }} ${{ env.BACKUP_PATH }}/$BACKUP_NAME
-
-              # Keep only last 5 backups
-              cd ${{ env.BACKUP_PATH }}
-              ls -t | tail -n +6 | xargs -r rm -rf
-
-              echo "BACKUP_NAME=$BACKUP_NAME" >> $GITHUB_ENV
-            fi
-
-      # Handle rollback
-      - name: Rollback to previous version
-        if: github.event.inputs.rollback == 'true'
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          port: ${{ secrets.VPS_PORT }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ${{ env.BACKUP_PATH }}
-            LATEST_BACKUP=$(ls -t | head -n 1)
-
-            if [ -n "$LATEST_BACKUP" ]; then
-              echo "Rolling back to: $LATEST_BACKUP"
-
-              # Stop current containers
-              cd ${{ env.DEPLOY_PATH }}
-              docker-compose -f ${{ env.DOCKER_COMPOSE_FILE }} down || true
-
-              # Restore from backup
-              rm -rf ${{ env.DEPLOY_PATH }}
-              cp -r ${{ env.BACKUP_PATH }}/$LATEST_BACKUP ${{ env.DEPLOY_PATH }}
-
-              # Start containers
-              cd ${{ env.DEPLOY_PATH }}
-              docker-compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d
-
-              echo "Rollback completed successfully"
-            else
-              echo "No backup found for rollback"
-              exit 1
-            fi
-
-      # Deploy new version
-      - name: Deploy to server
+      # Create production tag for successful deployments
+      - name: Create production tag
         if: github.event.inputs.rollback != 'true'
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          TAG_NAME="production-${TIMESTAMP}"
+          echo "PRODUCTION_TAG=${TAG_NAME}" >> $GITHUB_ENV
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "${TAG_NAME}" -m "Production deployment ${TIMESTAMP}"
+          git push origin "${TAG_NAME}"
+
+          # Clean up old production tags (keep only last 10)
+          OLD_TAGS=$(git tag -l "production-*" | sort -V | head -n -10)
+          if [ -n "$OLD_TAGS" ]; then
+            echo "Cleaning up old production tags:"
+            echo "$OLD_TAGS"
+            echo "$OLD_TAGS" | xargs git tag -d
+            echo "$OLD_TAGS" | xargs git push --delete origin
+          fi
+
+      # Handle Git-based rollback
+      - name: Git rollback to previous production tag
+        if: github.event.inputs.rollback == 'true'
+        run: |
+          # Determine which tag to rollback to
+          if [ -n "${{ github.event.inputs.rollback_tag }}" ]; then
+            ROLLBACK_TAG="${{ github.event.inputs.rollback_tag }}"
+            echo "Rolling back to specified tag: $ROLLBACK_TAG"
+          else
+            # Get the latest production tag (excluding current if exists)
+            ROLLBACK_TAG=$(git tag -l "production-*" | sort -V | tail -n 2 | head -n 1)
+            echo "Rolling back to latest production tag: $ROLLBACK_TAG"
+          fi
+
+          if [ -z "$ROLLBACK_TAG" ]; then
+            echo "No production tag found for rollback"
+            exit 1
+          fi
+
+          # Checkout the rollback tag
+          git checkout "$ROLLBACK_TAG"
+          echo "ROLLBACK_TAG=$ROLLBACK_TAG" >> $GITHUB_ENV
+
+          # Build assets for rollback version
+          composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+          npm ci
+          npm run build
+
+      # Deploy to server (works for both new deployments and rollbacks)
+      - name: Deploy to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -162,9 +154,8 @@ jobs:
           target: "${{ env.DEPLOY_PATH }}"
           overwrite: true
 
-      # Deploy and health check
+      # Deploy and health check (works for both new deployments and rollbacks)
       - name: Deploy and verify
-        if: github.event.inputs.rollback != 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -180,6 +171,7 @@ jobs:
             # Create .env if not exists
             if [ ! -f .env ]; then
               cp .env.example .env
+              php artisan key:generate
               echo "Created .env from example"
             fi
 
@@ -197,7 +189,7 @@ jobs:
               else
                 echo "Build failed on attempt $i"
                 if [ $i -eq 3 ]; then
-                  echo "All build attempts failed, initiating rollback"
+                  echo "All build attempts failed"
                   exit 1
                 fi
                 sleep 10
@@ -219,7 +211,7 @@ jobs:
               else
                 echo "Health check failed, attempt $i/10"
                 if [ $i -eq 10 ]; then
-                  echo "Health check failed after 10 attempts, initiating rollback"
+                  echo "Health check failed after 10 attempts"
                   exit 1
                 fi
                 sleep 10
@@ -233,9 +225,46 @@ jobs:
 
             echo "Deployment completed successfully"
 
-      # Rollback on failure
-      - name: Rollback on deployment failure
+      # Git-based rollback on failure
+      - name: Git rollback on deployment failure
         if: failure() && github.event.inputs.rollback != 'true'
+        run: |
+          echo "Deployment failed, initiating automatic Git rollback"
+
+          # Get the previous production tag for rollback
+          PREVIOUS_TAG=$(git tag -l "production-*" | sort -V | tail -n 2 | head -n 1)
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "Rolling back to previous production tag: $PREVIOUS_TAG"
+            git checkout "$PREVIOUS_TAG"
+
+            # Rebuild assets for rollback version
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+            npm ci
+            npm run build
+
+            echo "ROLLBACK_TAG=$PREVIOUS_TAG" >> $GITHUB_ENV
+          else
+            echo "No previous production tag found for automatic rollback"
+            exit 1
+          fi
+
+      # Deploy rollback version on failure
+      - name: Deploy rollback version
+        if: failure() && github.event.inputs.rollback != 'true' && env.ROLLBACK_TAG != ''
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "."
+          target: "${{ env.DEPLOY_PATH }}"
+          overwrite: true
+
+      # Restart services after rollback
+      - name: Restart services after rollback
+        if: failure() && github.event.inputs.rollback != 'true' && env.ROLLBACK_TAG != ''
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -243,37 +272,24 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "Deployment failed, initiating automatic rollback"
-
-            cd ${{ env.BACKUP_PATH }}
-            LATEST_BACKUP=$(ls -t | head -n 1)
-
-            if [ -n "$LATEST_BACKUP" ]; then
-              echo "Rolling back to: $LATEST_BACKUP"
-
-              # Stop failed deployment
-              cd ${{ env.DEPLOY_PATH }}
-              docker-compose -f ${{ env.DOCKER_COMPOSE_FILE }} down || true
-
-              # Restore from backup
-              rm -rf ${{ env.DEPLOY_PATH }}
-              cp -r ${{ env.BACKUP_PATH }}/$LATEST_BACKUP ${{ env.DEPLOY_PATH }}
-
-              # Start containers
-              cd ${{ env.DEPLOY_PATH }}
-              docker-compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d
-
-              echo "Automatic rollback completed"
-            else
-              echo "No backup available for rollback"
-            fi
+            cd ${{ env.DEPLOY_PATH }}
+            docker-compose -f ${{ env.DOCKER_COMPOSE_FILE }} down || true
+            docker-compose -f ${{ env.DOCKER_COMPOSE_FILE }} up -d
+            echo "Automatic rollback to ${{ env.ROLLBACK_TAG }} completed"
 
       # Notify deployment status
       - name: Notify deployment result
         if: always()
         run: |
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Deployment successful"
+            if [ "${{ github.event.inputs.rollback }}" == "true" ]; then
+              echo "✅ Rollback to ${{ env.ROLLBACK_TAG || 'previous version' }} successful"
+            else
+              echo "✅ Deployment to ${{ env.PRODUCTION_TAG }} successful"
+            fi
           else
-            echo "❌ Deployment failed and rolled back"
+            echo "❌ Deployment failed"
+            if [ -n "${{ env.ROLLBACK_TAG }}" ]; then
+              echo "🔄 Automatic rollback to ${{ env.ROLLBACK_TAG }} attempted"
+            fi
           fi
