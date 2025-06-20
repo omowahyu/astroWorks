@@ -38,17 +38,131 @@ jobs:
           npm ci || npm install
           npm run build
 
-      - name: Deploy to server
+      - name: Create deployment archive
+        run: |
+          # Create .deployignore to exclude problematic files
+          cat > .deployignore << 'EOF'
+          .git/
+          .github/
+          node_modules/
+          tests/
+          storage/logs/*.log
+          storage/framework/cache/*
+          storage/framework/sessions/*
+          storage/framework/views/*
+          bootstrap/cache/*
+          .env
+          .env.example
+          .gitignore
+          .deployignore
+          README.md
+          *.log
+          .DS_Store
+          Thumbs.db
+          EOF
+
+          # Create deployment archive excluding problematic directories
+          tar --exclude-from=.deployignore --exclude='deployment.tar.gz' -czf deployment.tar.gz .
+          echo "Archive created: $(ls -lh deployment.tar.gz)"
+
+      - name: Upload deployment archive
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "."
-          target: "${{ env.DEPLOY_PATH }}"
+          source: "deployment.tar.gz"
+          target: "/tmp/"
           overwrite: true
-          rm: false
+
+      - name: Deploy and restart containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 300s
+          command_timeout: 600s
+          script: |
+            echo "=== Safe Deployment with Permission Fix ==="
+
+            # Stop containers first
+            cd ${{ env.DEPLOY_PATH }}
+            docker-compose -f docker-compose.production.yml down || true
+
+            # Backup .env if exists
+            if [ -f "${{ env.DEPLOY_PATH }}/.env" ]; then
+              sudo cp "${{ env.DEPLOY_PATH }}/.env" "/tmp/.env.backup"
+              echo "Backed up .env file"
+            fi
+
+            # Extract deployment with proper permissions
+            echo "Extracting deployment..."
+            sudo tar -xzf /tmp/deployment.tar.gz -C ${{ env.DEPLOY_PATH }}
+
+            # Restore .env
+            if [ -f "/tmp/.env.backup" ]; then
+              sudo cp "/tmp/.env.backup" "${{ env.DEPLOY_PATH }}/.env"
+              echo "Restored .env file"
+            elif [ ! -f "${{ env.DEPLOY_PATH }}/.env" ]; then
+              sudo cp "${{ env.DEPLOY_PATH }}/.env.example" "${{ env.DEPLOY_PATH }}/.env"
+              echo "Created .env from example"
+            fi
+
+            # Fix all permissions
+            cd ${{ env.DEPLOY_PATH }}
+            sudo chown -R deploy:deploy .
+            sudo chmod -R 775 storage bootstrap/cache
+
+            # Rebuild and start containers
+            echo "Building containers..."
+            docker-compose -f docker-compose.production.yml build --no-cache
+
+            echo "Starting containers..."
+            docker-compose -f docker-compose.production.yml up -d
+
+            # Wait for services
+            echo "Waiting for services to start..."
+            sleep 30
+
+            # Health check
+            echo "Health check..."
+            for i in {1..5}; do
+              if curl -f http://localhost/up > /dev/null 2>&1; then
+                echo "✅ Health check passed!"
+                break
+              elif [ $i -eq 5 ]; then
+                echo "⚠️ Health check failed after 5 attempts"
+              fi
+              echo "Health check attempt $i/5..."
+              sleep 10
+            done
+
+            # Laravel optimizations
+            echo "Laravel optimizations..."
+            docker-compose -f docker-compose.production.yml exec -T app php artisan config:cache 2>/dev/null || true
+            docker-compose -f docker-compose.production.yml exec -T app php artisan route:cache 2>/dev/null || true
+            docker-compose -f docker-compose.production.yml exec -T app php artisan view:cache 2>/dev/null || true
+
+            # Cleanup
+            sudo rm -f /tmp/deployment.tar.gz /tmp/.env.backup
+
+            echo "✅ Deployment completed!"
+
+      - name: Cleanup old Docker images
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 60s
+          script: |
+            echo "Cleaning up old Docker images..."
+            docker image prune -f || true
+            echo "Cleanup completed"
 
       - name: Notify result
         if: always()
