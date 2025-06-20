@@ -60,7 +60,7 @@ RUN composer dump-autoload --optimize
 # ---
 
 # Stage 3: Final Production Image - Image akhir yang ramping untuk produksi
-FROM php:8.3-fpm-alpine AS production
+FROM base AS production
 WORKDIR /var/www
 
 ARG PUID=1000
@@ -74,19 +74,7 @@ RUN if ! getent group www-data > /dev/null 2>&1; then \
         adduser -u ${PUID} -G www-data -s /bin/sh -D www-data; \
     fi
 
-# Install hanya dependensi sistem yang dibutuhkan saat runtime
-RUN apk add --no-cache \
-    libzip \
-    libpng \
-    libjpeg-turbo \
-    freetype \
-    oniguruma \
-    libxml2 \
-    icu
-
-# Salin ekstensi PHP yang sudah ter-compile dari tahap 'base'
-COPY --from=base /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
-COPY --from=base /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+# Dependencies and PHP extensions are already available from base stage
 
 # Salin direktori vendor dari tahap 'vendor'
 COPY --from=vendor /var/www/vendor ./vendor
