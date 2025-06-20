@@ -14,7 +14,8 @@ RUN apk add --no-cache \
     freetype-dev \
     oniguruma-dev \
     libxml2-dev \
-    linux-headers
+    linux-headers \
+    icu-dev
 
 # Install ekstensi PHP yang umum digunakan oleh Laravel
 RUN docker-php-ext-install \
@@ -25,7 +26,11 @@ RUN docker-php-ext-install \
     exif \
     pcntl \
     bcmath \
-    sockets
+    sockets \
+    intl
+
+# Install Redis extension
+RUN pecl install redis && docker-php-ext-enable redis
 
 # Install Composer secara global
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -76,7 +81,8 @@ RUN apk add --no-cache \
     libjpeg-turbo \
     freetype \
     oniguruma \
-    libxml2
+    libxml2 \
+    icu
 
 # Salin ekstensi PHP yang sudah ter-compile dari tahap 'base'
 COPY --from=base /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
