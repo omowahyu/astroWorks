@@ -80,8 +80,8 @@ COPY --chown=sail:sail . .
 # Ganti user ke non-root
 USER sail
 
-# Expose port untuk Octane
-EXPOSE 8000
+# Expose port untuk PHP-FPM
+EXPOSE 9000
 
-# Perintah untuk menjalankan aplikasi Laravel dengan Octane
+# Perintah untuk menjalankan aplikasi Laravel dengan PHP-FPM
 CMD ["php-fpm"]
