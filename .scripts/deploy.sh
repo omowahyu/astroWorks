@@ -8,11 +8,8 @@ echo "Code has been pulled from git."
 # This file is already on the server and is not overwritten
 export $(grep -v '^#' .env | xargs)
 
-# Install dependencies and build assets
-echo "Installing dependencies and building assets..."
-composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
-npm ci || npm install
-npm run build
+# Assets are already built in GitHub Actions
+echo "Assets already built in CI/CD pipeline."
 
 # Build and start the Docker containers in detached mode
 echo "Building and restarting containers..."
