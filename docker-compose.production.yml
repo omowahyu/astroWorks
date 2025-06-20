@@ -58,16 +58,18 @@ services:
             MYSQL_DATABASE: ${DB_DATABASE}
             MYSQL_USER: ${DB_USERNAME}
             MYSQL_PASSWORD: ${DB_PASSWORD}
+            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
         volumes:
             - astro-db-data:/var/lib/mysql
         networks:
             - astro-network
         healthcheck:
             test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-            timeout: 20s
-            retries: 10
+            timeout: 30s
+            retries: 20
             interval: 10s
             start_period: 30s
+
 
     # Redis Service
     redis:
