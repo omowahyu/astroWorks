@@ -109,8 +109,8 @@ jobs:
           Thumbs.db
           EOF
 
-          # Create deployment archive
-          tar --exclude-from=.deployignore -czf deployment.tar.gz .
+          # Create deployment archive, excluding the archive file itself
+          tar --exclude-from=.deployignore --exclude='deployment.tar.gz' -czf deployment.tar.gz .
 
       - name: Create and Push Production Tag
         if: github.event.inputs.rollback != 'true'
