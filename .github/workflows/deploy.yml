@@ -41,4 +41,4 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: "cd /home/${{ secrets.VPS_USERNAME }}/astrokabinet && git pull origin main && ./.scripts/deploy.sh"
+          script: "cd ~/astrokabinet && git pull origin main && ./.scripts/deploy.sh"
