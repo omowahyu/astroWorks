@@ -43,6 +43,10 @@ RUN composer install --no-scripts --no-autoloader --no-dev --no-interaction --pr
 
 # Salin sisa aplikasi dan generate autoload
 COPY . .
+
+# Clear any cached service providers that might reference missing packages
+RUN rm -f bootstrap/cache/packages.php bootstrap/cache/services.php bootstrap/cache/config.php bootstrap/cache/routes-v7.php
+
 RUN composer dump-autoload --optimize
 
 # ---
@@ -55,8 +59,8 @@ ARG PUID=1000
 ARG PGID=1000
 
 # Buat user non-root untuk keamanan
-RUN addgroup -g ${PGID} sail && \
-    adduser -u ${PUID} -G sail -s /bin/sh -D sail
+RUN addgroup -g ${PGID} www-data && \
+    adduser -u ${PUID} -G www-data -s /bin/sh -D www-data
 
 # Install hanya dependensi sistem yang dibutuhkan saat runtime
 RUN apk add --no-cache \
@@ -75,14 +79,14 @@ COPY --from=base /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 COPY --from=vendor /var/www/vendor ./vendor
 
 # Salin sisa kode aplikasi dan aset yang sudah di-build
-COPY --chown=sail:sail . .
+COPY --chown=www-data:www-data . .
 
 # Set permissions untuk storage dan bootstrap/cache directories
 RUN chmod -R 775 storage bootstrap/cache && \
-    chown -R sail:sail storage bootstrap/cache
+    chown -R www-data:www-data storage bootstrap/cache
 
 # Ganti user ke non-root
-USER sail
+USER www-data
 
 # Expose port untuk PHP-FPM
 EXPOSE 9000
