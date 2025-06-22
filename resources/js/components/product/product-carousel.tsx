@@ -314,25 +314,17 @@ const ProductCarousel: React.FC<Props> = ({ className = "", categoriesWithProduc
                                                 </div>
                                             )}
 
-                                            {/* Product Images - Device Specific */}
-                                            {/* Mobile Image (4:5) - Only visible on mobile */}
-                                            <img
-                                                src={product.images?.thumbnails?.find(img => img.device_type === 'mobile')?.image_url ||
-                                                     product.images?.gallery?.find(img => img.device_type === 'mobile')?.image_url ||
-                                                     `https://picsum.photos/seed/${product.id}/400/500`}
+                                            {/* Product Images - Using DynamicImageSingle Component */}
+                                            <DynamicImageSingle
+                                                productId={product.id}
                                                 alt={product.name}
-                                                className="w-full h-full object-cover rounded-xl block md:hidden"
-                                                loading="lazy"
-                                            />
-
-                                            {/* Desktop Image (16:9) - Only visible on desktop */}
-                                            <img
-                                                src={product.images?.thumbnails?.find(img => img.device_type === 'desktop')?.image_url ||
-                                                     product.images?.gallery?.find(img => img.device_type === 'desktop')?.image_url ||
-                                                     `https://picsum.photos/seed/${product.id}/800/450`}
-                                                alt={product.name}
-                                                className="w-full h-full object-cover rounded-xl hidden md:block"
-                                                loading="lazy"
+                                                className="w-full h-full"
+                                                mobileRounded="xl"
+                                                desktopRounded="xl"
+                                                useDatabase={true}
+                                                preferThumbnail={true}
+                                                imageType="thumbnail"
+                                                productImages={product.images}
                                             />
                                         </div>
 

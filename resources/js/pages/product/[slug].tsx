@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Head, usePage, Link, router } from '@inertiajs/react';
 import DynamicImageSingle from '@/components/image/dynamic-image-single';
 import DynamicImageGallery from '@/components/image/dynamic-image-gallery';
+import Header from '@/components/layout/header';
 
 // TypeScript interfaces
 interface ProductImageData {
@@ -99,25 +100,25 @@ export default function ProductShow() {
 
   const dynamicProductTitle = useMemo(() => {
     let title = product.name;
-    
+
     // Add selected misc options
     Object.entries(selectedMiscOptions).forEach(([label, value]) => {
       if (label.toLowerCase().includes('tema') || label.toLowerCase().includes('warna')) {
         title += ` ${value}`;
       }
     });
-    
+
     // Add selected unit type
     if (selectedUnitType) {
       title += ` ${selectedUnitType.label}`;
     }
-    
+
     // Add accessories
     const accessoryNames = Object.values(selectedAccessories)
       .filter(item => item.quantity > 0)
       .map(item => item.accessory.name)
       .join(' + ');
-    
+
     return accessoryNames ? `${title} + ${accessoryNames}` : title;
   }, [product.name, selectedMiscOptions, selectedUnitType, selectedAccessories]);
 
@@ -228,8 +229,11 @@ export default function ProductShow() {
   return (
     <>
       <Head title={`${dynamicProductTitle} - Astro Works`} />
-      
+
       <div className="min-h-screen bg-[#5F44F0] lg:bg-gray-50">
+        <div className="hidden lg:inline">
+          <Header />
+        </div>
         {/* Mobile Header */}
         <header className={`fixed lg:hidden top-0 z-50 w-full transition-colors duration-300 ${
           showBlurredBg ? 'bg-black/30 backdrop-blur' : ''
@@ -242,7 +246,7 @@ export default function ProductShow() {
             </Link>
 
             <Link href="/" aria-label="Astro Works Homepage">
-              <img src="/assets/logo/Astroworks.svg" alt="Astro Works Logo" className="h-4" />
+              <img src="/images/logo/astrokabinet.svg" alt="Astro Works Logo" className="h-4" />
             </Link>
 
             <button className="hover:opacity-80 transition-opacity" aria-label="Share this page">
@@ -252,23 +256,23 @@ export default function ProductShow() {
             </button>
           </div>
         </header>
-
         {/* Main Content */}
         <main className="lg:h-auto lg:container bg-gray-50 lg:px-8 py-0 lg:py-32 mx-auto lg:mt-8 flex flex-col overflow-hidden lg:overflow-x-visible">
-          
+
           {isAccessory ? (
             /* Accessory Product Layout */
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
               {/* Left Column - Single Image */}
               <div className="space-y-4">
-                <DynamicImageSingle
+                <DynamicImageGallery
                   productId={product.id.toString()}
-                  alt={product.name}
-                  className="w-full aspect-[4/5] md:aspect-[16/9] rounded-3xl"
-                  rounded="3xl"
+                  name={product.name}
+                  className="w-full aspect-[4/5] md:aspect-[16/9]"
+                  mobileRounded="none"
+                  desktopRounded="xl"
                   useDatabase={true}
-                  preferThumbnail={true}
-                  imageType="thumbnail"
+                  deviceTypeFilter="all"
+                  debug={true}
                   productImages={product.images}
                 />
               </div>
@@ -344,17 +348,37 @@ export default function ProductShow() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
               {/* Left Column - Image Gallery */}
               <div className="space-y-4">
-                {/* Always use single image for now - gallery disabled until image data is properly loaded */}
-                <DynamicImageSingle
-                  productId={product.id.toString()}
-                  alt={product.name}
-                  className="w-full aspect-[4/5] md:aspect-[16/9] rounded-3xl"
-                  rounded="3xl"
-                  useDatabase={true}
-                  preferThumbnail={false}
-                  imageType="gallery"
-                  productImages={product.images}
-                />
+                {/* Use gallery if product has multiple images (from any type), otherwise use single image */}
+                {(() => {
+                  const totalImages = (product.images?.thumbnails?.length || 0) +
+                                    (product.images?.gallery?.length || 0) +
+                                    (product.images?.hero?.length || 0);
+                  return totalImages > 1;
+                })() ? (
+                  <DynamicImageGallery
+                    productId={product.id.toString()}
+                    name={product.name}
+                    className="w-full aspect-[4/5] md:aspect-[16/9]"
+                    mobileRounded="full"
+                    desktopRounded="2xl"
+                    useDatabase={true}
+                    deviceTypeFilter="all"
+                    debug={true}
+                    productImages={product.images}
+                  />
+                ) : (
+                  <DynamicImageSingle
+                    productId={product.id.toString()}
+                    alt={product.name}
+                    className="w-full aspect-[4/5] md:aspect-[16/9]"
+                    mobileRounded="full"
+                    desktopRounded="2xl"
+                    useDatabase={true}
+                    preferThumbnail={false}
+                    imageType="gallery"
+                    productImages={product.images}
+                  />
+                )}
               </div>
 
               {/* Right Column - Product Details */}
@@ -376,7 +400,7 @@ export default function ProductShow() {
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-10">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                     </svg>
-                    
+
                     <div className="flex items-center space-x-3">
                       <button
                         onClick={() => handleQuantityChange(quantity - 1)}
@@ -474,15 +498,18 @@ export default function ProductShow() {
                         <div key={accessory.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
                           <div className="flex items-center space-x-4">
                             {/* Accessory Image */}
-                            <div className="w-16 h-16 flex-shrink-0">
+                            <div className="w-16 h-16 flex-shrink-0  aspect-square overflow-hidden">
                               <DynamicImageSingle
                                 productId={accessory.id.toString()}
                                 alt={accessory.name}
-                                className="w-full h-full rounded-lg"
-                                rounded="lg"
+                                className="w-full h-full"
+                                mobileRounded="xl"
+                                desktopRounded="md"
                                 useDatabase={true}
                                 preferThumbnail={true}
                                 imageType="thumbnail"
+                                deviceType="auto"
+                                debug={false}
                                 productImages={accessory.images}
                               />
                             </div>
@@ -490,9 +517,9 @@ export default function ProductShow() {
                             {/* Accessory Details */}
                             <div className="flex-grow">
                               <h4 className="font-medium text-gray-900">{accessory.name}</h4>
-                              {accessory.description && (
-                                <p className="text-sm text-gray-600 mt-1">{accessory.description}</p>
-                              )}
+                              {/*{accessory.description && (*/}
+                              {/*  <p className="text-sm text-gray-600 mt-1">{accessory.description}</p>*/}
+                              {/*)}*/}
                               <div className="text-sm font-medium text-blue-600 mt-1">
                                 {formatPrice(parseFloat(accessory.default_unit?.price || '0'))}
                               </div>

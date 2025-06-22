@@ -20,9 +20,19 @@ Route::get('/', function () {
                       ->take(6); // Limit products per category for homepage
             },
             'products.thumbnailImages' => function ($query) {
-                $query->select(['product_images.id', 'product_images.product_id', 'product_images.image_path', 'product_images.alt_text', 'product_images.sort_order'])
+                $query->select(['product_images.id', 'product_images.product_id', 'product_images.image_path', 'product_images.alt_text', 'product_images.sort_order', 'product_images.device_type', 'product_images.aspect_ratio'])
                       ->orderBy('product_images.sort_order')
-                      ->take(1); // Only first thumbnail for homepage
+                      ->take(2); // Get both mobile and desktop thumbnails
+            },
+            'products.galleryImages' => function ($query) {
+                $query->select(['product_images.id', 'product_images.product_id', 'product_images.image_path', 'product_images.alt_text', 'product_images.sort_order', 'product_images.device_type', 'product_images.aspect_ratio'])
+                      ->orderBy('product_images.sort_order')
+                      ->take(4); // Get some gallery images for homepage
+            },
+            'products.heroImages' => function ($query) {
+                $query->select(['product_images.id', 'product_images.product_id', 'product_images.image_path', 'product_images.alt_text', 'product_images.sort_order', 'product_images.device_type', 'product_images.aspect_ratio'])
+                      ->orderBy('product_images.sort_order')
+                      ->take(2); // Get both mobile and desktop hero images
             },
             'products.defaultUnit' => function ($query) {
                 $query->select(['unit_types.id', 'unit_types.product_id', 'unit_types.label', 'unit_types.price']);
@@ -36,7 +46,11 @@ Route::get('/', function () {
                 'name' => $category->name,
                 'is_accessory' => $category->is_accessory,
                 'products' => $category->products->map(function ($product) {
-                    $thumbnail = $product->thumbnailImages->first();
+                    // Get device-specific thumbnails
+                    $mobileThumbnail = $product->thumbnailImages->where('device_type', 'mobile')->first();
+                    $desktopThumbnail = $product->thumbnailImages->where('device_type', 'desktop')->first();
+                    $anyThumbnail = $product->thumbnailImages->first(); // Fallback
+
                     return [
                         'id' => $product->id,
                         'name' => $product->name,
@@ -44,17 +58,46 @@ Route::get('/', function () {
                         'slug' => $product->slug,
                         'primary_image_url' => $product->primary_image_url,
                         'images' => [
-                            'thumbnails' => $thumbnail ? [[
-                                'id' => $thumbnail->id,
-                                'image_url' => $thumbnail->image_url,
-                                'alt_text' => $thumbnail->alt_text
-                            ]] : [],
-                            'gallery' => [], // Not needed for homepage
-                            'hero' => [], // Not needed for homepage
-                            'main_thumbnail' => $thumbnail ? [
-                                'id' => $thumbnail->id,
-                                'image_url' => $thumbnail->image_url,
-                                'alt_text' => $thumbnail->alt_text
+                            'thumbnails' => array_filter([
+                                $mobileThumbnail ? [
+                                    'id' => $mobileThumbnail->id,
+                                    'image_url' => $mobileThumbnail->image_url,
+                                    'alt_text' => $mobileThumbnail->alt_text,
+                                    'device_type' => $mobileThumbnail->device_type,
+                                    'aspect_ratio' => $mobileThumbnail->aspect_ratio
+                                ] : null,
+                                $desktopThumbnail ? [
+                                    'id' => $desktopThumbnail->id,
+                                    'image_url' => $desktopThumbnail->image_url,
+                                    'alt_text' => $desktopThumbnail->alt_text,
+                                    'device_type' => $desktopThumbnail->device_type,
+                                    'aspect_ratio' => $desktopThumbnail->aspect_ratio
+                                ] : null
+                            ]),
+                            'gallery' => $product->galleryImages->map(function ($image) {
+                                return [
+                                    'id' => $image->id,
+                                    'image_url' => $image->image_url,
+                                    'alt_text' => $image->alt_text,
+                                    'device_type' => $image->device_type ?? 'desktop',
+                                    'aspect_ratio' => $image->aspect_ratio
+                                ];
+                            })->toArray(),
+                            'hero' => $product->heroImages->map(function ($image) {
+                                return [
+                                    'id' => $image->id,
+                                    'image_url' => $image->image_url,
+                                    'alt_text' => $image->alt_text,
+                                    'device_type' => $image->device_type ?? 'desktop',
+                                    'aspect_ratio' => $image->aspect_ratio
+                                ];
+                            })->toArray(),
+                            'main_thumbnail' => $anyThumbnail ? [
+                                'id' => $anyThumbnail->id,
+                                'image_url' => $anyThumbnail->image_url,
+                                'alt_text' => $anyThumbnail->alt_text,
+                                'device_type' => $anyThumbnail->device_type ?? 'desktop',
+                                'aspect_ratio' => $anyThumbnail->aspect_ratio
                             ] : null
                         ],
                         'default_unit' => $product->defaultUnit ? [

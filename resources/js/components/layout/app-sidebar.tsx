@@ -55,7 +55,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href="/" className={"bg-[#5E6CEA] flex items-center justify-center hover:scale-105 hover:-rotate-2 transition-transform "} prefetch>
+                            <Link href="/" className={"bg-[#5E6CEA] hover:!bg-[#5E6CEA]/60 flex items-center justify-center hover:lg:scale-105 hover:mt-1 hover:-rotate-2 transition-transform "} prefetch>
                                 <AppLogo asLink={false} />
                             </Link>
                         </SidebarMenuButton>

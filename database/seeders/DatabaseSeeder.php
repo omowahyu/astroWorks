@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ProductSeeder::class,
             CategorySeeder::class,
-            ProductImageSeeder::class,
+            // ProductImageSeeder::class, // Removed - use only real uploaded images
             VideoSeeder::class,
         ]);
     }

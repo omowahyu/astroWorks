@@ -260,11 +260,8 @@ export default function ProductCreate({ categories }: Props) {
                                                     <span>
                                                         {category.name}
                                                         {category.is_accessory && (
-                                                            <span className="ml-1 text-xs">(Accessory)</span>
+                                                            <span className="ml-1 text-xs opacity-75">(Accessory)</span>
                                                         )}
-                                                        <span className="ml-2 text-xs text-muted-foreground">
-                                                            ({category.products_count} products)
-                                                        </span>
                                                     </span>
                                                     <button
                                                         type="button"

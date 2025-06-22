@@ -10,8 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Plus, Trash2, Upload, X, GripVertical } from 'lucide-react';
-import DeviceImageUpload from '@/components/image/device-image-upload';
-import DynamicImageSingle from '@/components/image/dynamic-image-single';
+import UnifiedImageManager from '@/components/image/unified-image-manager';
 
 interface Category {
     id: number;
@@ -86,6 +85,7 @@ interface ProductFormData {
     desktop_images: File[];
     existing_mobile_images: ProductImage[];
     existing_desktop_images: ProductImage[];
+    deleted_image_ids: number[];
     [key: string]: any;
 }
 
@@ -111,6 +111,9 @@ export default function ProductEdit({ product, categories }: Props) {
     });
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deletedImageIds, setDeletedImageIds] = useState<number[]>([]);
+
+
 
     const { data, setData, post, processing, errors } = useForm<ProductFormData>({
         name: product.name || '',
@@ -123,7 +126,8 @@ export default function ProductEdit({ product, categories }: Props) {
         mobile_images: [] as File[],
         desktop_images: [] as File[],
         existing_mobile_images: product.images?.filter(img => img.device_type === 'mobile') || [],
-        existing_desktop_images: product.images?.filter(img => img.device_type === 'desktop') || []
+        existing_desktop_images: product.images?.filter(img => img.device_type === 'desktop') || [],
+        deleted_image_ids: [] as number[]
     });
 
     // Initialize existing images
@@ -136,7 +140,7 @@ export default function ProductEdit({ product, categories }: Props) {
             deviceType: 'mobile' as const,
             aspectRatio: 0.8
         }));
-        
+
         const desktopImages: ImagePreview[] = (product.images?.filter(img => img.device_type === 'desktop') || []).map(img => ({
             url: img.image_url,
             id: `existing-desktop-${img.id}`,
@@ -189,10 +193,12 @@ export default function ProductEdit({ product, categories }: Props) {
                 existing_mobile_images_order: imagesPreviews.mobile
                     .filter(preview => preview.existing_id)
                     .map(preview => preview.existing_id),
-                // Send existing images order for desktop  
+                // Send existing images order for desktop
                 existing_desktop_images_order: imagesPreviews.desktop
                     .filter(preview => preview.existing_id)
-                    .map(preview => preview.existing_id)
+                    .map(preview => preview.existing_id),
+                // Send deleted image IDs
+                deleted_image_ids: deletedImageIds
             };
 
             // Use router.post with method spoofing for file uploads
@@ -205,12 +211,14 @@ export default function ProductEdit({ product, categories }: Props) {
                     // Clear the uploaded images from state after successful submission
                     setData('mobile_images', [] as File[]);
                     setData('desktop_images', [] as File[]);
-                    
-                    // Clear image previews for newly uploaded images only
+                    setData('deleted_image_ids', [] as number[]);
+
+                    // Clear image previews for newly uploaded images only and reset deleted IDs
                     setImagesPreviews(prev => ({
                         mobile: prev.mobile.filter(img => img.existing_id),
                         desktop: prev.desktop.filter(img => img.existing_id)
                     }));
+                    setDeletedImageIds([]);
                 },
                 onError: (errors) => {
                     console.error('Validation errors:', errors);
@@ -227,6 +235,7 @@ export default function ProductEdit({ product, categories }: Props) {
                 ...data,
                 unit_types: data.unit_types,
                 misc_options: data.misc_options,
+                deleted_image_ids: deletedImageIds,
                 _method: 'PUT'
             };
 
@@ -362,6 +371,17 @@ export default function ProductEdit({ product, categories }: Props) {
         }));
     };
 
+    const handleDeleteExisting = (imageId: number) => {
+        setDeletedImageIds(prev => [...prev, imageId]);
+        setData('deleted_image_ids', [...deletedImageIds, imageId]);
+    };
+
+    const handleRestoreExisting = (imageId: number) => {
+        const newDeletedIds = deletedImageIds.filter(id => id !== imageId);
+        setDeletedImageIds(newDeletedIds);
+        setData('deleted_image_ids', newDeletedIds);
+    };
+
     // Cleanup object URLs on unmount
     useEffect(() => {
         return () => {
@@ -471,11 +491,8 @@ export default function ProductEdit({ product, categories }: Props) {
                                                     <span>
                                                         {category.name}
                                                         {category.is_accessory && (
-                                                            <span className="ml-1 text-xs">(Accessory)</span>
+                                                            <span className="ml-1 text-xs opacity-75">(Accessory)</span>
                                                         )}
-                                                        <span className="ml-2 text-xs text-muted-foreground">
-                                                            ({category.products_count} products)
-                                                        </span>
                                                     </span>
                                                     <button
                                                         type="button"
@@ -496,50 +513,46 @@ export default function ProductEdit({ product, categories }: Props) {
 
                     {/* Product Images Management */}
                     <Card>
-                        <CardContent className="space-y-6 pt-6">
-                            {/* Unified Image Grid */}
-                            {/* Image grid section removed - preview only at bottom of form */}
-                            
-                            {/* Upload Controls */}
-                            <div className="border-t pt-6">
-                                <Label className="text-sm font-medium mb-4 block">Upload Gambar Baru</Label>
-                                <p className="text-sm text-muted-foreground mb-4">
-                                    Upload gambar mobile (4:5) dan desktop (16:9) untuk produk ini
-                                </p>
-                                <DeviceImageUpload
-                                    onMobileUpload={handleMobileUpload}
-                                    onDesktopUpload={handleDesktopUpload}
-                                    maxFiles={10}
-                                    disabled={processing}
-                                    showCompressionOptions={true}
-                                    defaultCompressionLevel="moderate"
-                                    mobileImages={imagesPreviews.mobile.map(img => ({
-                                        id: parseInt(img.id, 36) || Math.floor(Math.random() * 1000000),
+                        <CardHeader>
+                            <CardTitle>Product Images</CardTitle>
+                            <CardDescription>
+                                Manage existing images and upload new ones. You can delete existing images and upload new ones in a unified interface.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <UnifiedImageManager
+                                existingImages={product.images || []}
+                                onMobileUpload={handleMobileUpload}
+                                onDesktopUpload={handleDesktopUpload}
+                                onDeleteExisting={handleDeleteExisting}
+                                onRestoreExisting={handleRestoreExisting}
+                                newMobileImages={imagesPreviews.mobile
+                                    .filter(img => !img.existing_id && img.file)
+                                    .map(img => ({
+                                        file: img.file!,
                                         url: img.url,
-                                        name: img.file?.name || `Image ${img.id}`,
-                                        size: img.file?.size,
-                                        compressed_size: img.file?.size
-                                    }))}
-                                    desktopImages={imagesPreviews.desktop.map(img => ({
-                                        id: parseInt(img.id, 36) || Math.floor(Math.random() * 1000000),
+                                        id: img.id,
+                                        deviceType: img.deviceType,
+                                        aspectRatio: img.aspectRatio
+                                    }))
+                                }
+                                newDesktopImages={imagesPreviews.desktop
+                                    .filter(img => !img.existing_id && img.file)
+                                    .map(img => ({
+                                        file: img.file!,
                                         url: img.url,
-                                        name: img.file?.name || `Image ${img.id}`,
-                                        size: img.file?.size,
-                                        compressed_size: img.file?.size
-                                    }))}
-                                    onRemoveImage={(imageId: number, deviceType: 'mobile' | 'desktop') => {
-                                        const targetArray = deviceType === 'mobile' ? imagesPreviews.mobile : imagesPreviews.desktop;
-                                        const targetImage = targetArray.find(img => 
-                                            parseInt(img.id, 36) === imageId || Math.floor(Math.random() * 1000000) === imageId
-                                        );
-                                        if (targetImage) {
-                                            removeImage(targetImage.id, deviceType);
-                                        }
-                                    }}
-                                />
-                            </div>
-                            
-
+                                        id: img.id,
+                                        deviceType: img.deviceType,
+                                        aspectRatio: img.aspectRatio
+                                    }))
+                                }
+                                onRemoveNewImage={removeImage}
+                                maxFiles={10}
+                                disabled={processing}
+                                showCompressionOptions={true}
+                                defaultCompressionLevel="moderate"
+                                deletedImageIds={deletedImageIds}
+                            />
                         </CardContent>
                     </Card>
 

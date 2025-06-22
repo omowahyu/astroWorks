@@ -4,6 +4,13 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -37,8 +44,30 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function CategoriesIndex({ categories }: Props) {
     const handleDelete = (categoryId: number) => {
-        if (confirm('Are you sure you want to delete this category?')) {
-            router.delete(`/dashboard/categories/${categoryId}`);
+        const category = categories.data.find(c => c.id === categoryId);
+
+        // Check if category has products
+        if (category && category.products_count > 0) {
+            toast.error('Cannot delete category', {
+                description: `"${category.name}" has ${category.products_count} product(s). Please move or delete the products first.`
+            });
+            return;
+        }
+
+        if (confirm(`Are you sure you want to delete "${category?.name}"? This action cannot be undone.`)) {
+            router.delete(`/dashboard/categories/${categoryId}`, {
+                onSuccess: () => {
+                    toast.success('Category deleted successfully', {
+                        description: `"${category?.name}" has been removed from your categories`
+                    });
+                },
+                onError: (errors) => {
+                    toast.error('Failed to delete category', {
+                        description: 'Please try again or refresh the page'
+                    });
+                    console.error('Failed to delete category:', errors);
+                }
+            });
         }
     };
 
@@ -103,15 +132,29 @@ export default function CategoriesIndex({ categories }: Props) {
                                                     <Edit className="h-4 w-4" />
                                                 </Link>
                                             </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleDelete(category.id)}
-                                                className="text-red-600 hover:text-red-700"
-                                                disabled={category.products_count > 0}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleDelete(category.id)}
+                                                            className={`${category.products_count > 0
+                                                                ? 'text-gray-400 cursor-not-allowed'
+                                                                : 'text-red-600 hover:text-red-700'
+                                                            }`}
+                                                            disabled={category.products_count > 0}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    {category.products_count > 0 && (
+                                                        <TooltipContent>
+                                                            <p>Cannot delete category with {category.products_count} product(s)</p>
+                                                        </TooltipContent>
+                                                    )}
+                                                </Tooltip>
+                                            </TooltipProvider>
                                         </div>
                                     </div>
                                 </CardHeader>

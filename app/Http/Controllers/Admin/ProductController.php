@@ -346,9 +346,12 @@ class ProductController extends Controller
                     return [
                         'id' => $image->id,
                         'image_path' => $image->image_path,
+                        'image_url' => $image->image_url,
                         'alt_text' => $image->alt_text,
                         'image_type' => $image->image_type,
-                        'sort_order' => $image->sort_order
+                        'sort_order' => $image->sort_order,
+                        'device_type' => $image->device_type ?? 'desktop',
+                        'aspect_ratio' => $image->aspect_ratio ?? ($image->device_type === 'mobile' ? 0.8 : 1.78)
                     ];
                 })
             ],
@@ -385,7 +388,9 @@ class ProductController extends Controller
             'existing_mobile_images_order' => 'array',
             'existing_mobile_images_order.*' => 'exists:product_images,id',
             'existing_desktop_images_order' => 'array',
-            'existing_desktop_images_order.*' => 'exists:product_images,id'
+            'existing_desktop_images_order.*' => 'exists:product_images,id',
+            'deleted_image_ids' => 'array',
+            'deleted_image_ids.*' => 'exists:product_images,id'
         ]);
 
         $product->update([
@@ -426,6 +431,29 @@ class ProductController extends Controller
                         'price' => $unitTypeData['price'],
                         'is_default' => $unitTypeData['is_default'] ?? false
                     ]);
+                }
+            }
+        }
+
+        // Handle deleted images
+        if (isset($validated['deleted_image_ids']) && !empty($validated['deleted_image_ids'])) {
+            foreach ($validated['deleted_image_ids'] as $imageId) {
+                $image = ProductImage::where('id', $imageId)
+                    ->where('product_id', $product->id)
+                    ->first();
+
+                if ($image) {
+                    // Delete physical file if it exists
+                    if (!filter_var($image->image_path, FILTER_VALIDATE_URL)) {
+                        Storage::disk('public')->delete($image->image_path);
+                        $publicPath = public_path("storage/images/" . basename($image->image_path));
+                        if (file_exists($publicPath)) {
+                            unlink($publicPath);
+                        }
+                    }
+
+                    // Delete database record
+                    $image->delete();
                 }
             }
         }

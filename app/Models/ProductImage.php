@@ -288,11 +288,13 @@ class ProductImage extends Model
      */
     protected static function booted(): void
     {
-        // Ensure only one thumbnail image per product
+        // Ensure only one thumbnail image per device type per product
         static::saving(function ($image) {
             if ($image->image_type === self::TYPE_THUMBNAIL) {
+                // Only update thumbnails of the same device type
                 static::query()
                     ->where('product_id', $image->product_id)
+                    ->where('device_type', $image->device_type)
                     ->where('id', '!=', $image->id)
                     ->update(['image_type' => self::TYPE_GALLERY]);
             }

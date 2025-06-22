@@ -52,6 +52,8 @@ class ProductController extends Controller
             'miscOptions',
             'mainThumbnail',
             'thumbnailImages',
+            'galleryImages',
+            'heroImages',
             'primaryImage'
         ])->get()->map(function ($accessory) {
             return [
@@ -64,14 +66,48 @@ class ProductController extends Controller
                     'thumbnails' => $accessory->thumbnailImages->map(function ($image) {
                         return [
                             'id' => $image->id,
+                            'image_type' => $image->image_type,
+                            'device_type' => $image->device_type ?? 'desktop',
+                            'aspect_ratio' => $image->aspect_ratio,
+                            'sort_order' => $image->sort_order,
                             'image_url' => $image->image_url,
-                            'alt_text' => $image->alt_text
+                            'alt_text' => $image->alt_text,
+                            'variants' => $image->image_variants
+                        ];
+                    }),
+                    'gallery' => $accessory->galleryImages->map(function ($image) {
+                        return [
+                            'id' => $image->id,
+                            'image_type' => $image->image_type,
+                            'device_type' => $image->device_type ?? 'desktop',
+                            'aspect_ratio' => $image->aspect_ratio,
+                            'sort_order' => $image->sort_order,
+                            'image_url' => $image->image_url,
+                            'alt_text' => $image->alt_text,
+                            'variants' => $image->image_variants
+                        ];
+                    }),
+                    'hero' => $accessory->heroImages->map(function ($image) {
+                        return [
+                            'id' => $image->id,
+                            'image_type' => $image->image_type,
+                            'device_type' => $image->device_type ?? 'desktop',
+                            'aspect_ratio' => $image->aspect_ratio,
+                            'sort_order' => $image->sort_order,
+                            'image_url' => $image->image_url,
+                            'alt_text' => $image->alt_text,
+                            'variants' => $image->image_variants
                         ];
                     }),
                     'main_thumbnail' => $accessory->mainThumbnail ? [
                         'id' => $accessory->mainThumbnail->id,
+                        'image_type' => $accessory->mainThumbnail->image_type,
+                        'device_type' => $accessory->mainThumbnail->device_type ?? 'desktop',
+                        'aspect_ratio' => $accessory->mainThumbnail->aspect_ratio,
+                        'sort_order' => $accessory->mainThumbnail->sort_order,
                         'image_url' => $accessory->mainThumbnail->image_url,
-                        'alt_text' => $accessory->mainThumbnail->alt_text
+                        'alt_text' => $accessory->mainThumbnail->alt_text,
+                        'variants' => $accessory->mainThumbnail->image_variants
                     ] : null
                 ],
                 'default_unit' => $accessory->defaultUnit ? [
@@ -84,14 +120,14 @@ class ProductController extends Controller
             ];
         });
 
-        // Format product data with complete image information
+        // Format product data with complete image information and null checks
         $productData = [
             'id' => $product->id,
             'name' => $product->name,
             'description' => $product->description,
             'slug' => $product->slug,
             'images' => [
-                'thumbnails' => $product->thumbnailImages->map(function ($image) {
+                'thumbnails' => $product->thumbnailImages ? $product->thumbnailImages->map(function ($image) {
                     return [
                         'id' => $image->id,
                         'image_type' => $image->image_type,
@@ -103,8 +139,8 @@ class ProductController extends Controller
                         'image_url' => $image->image_url,
                         'variants' => $image->image_variants
                     ];
-                }),
-                'gallery' => $product->galleryImages->map(function ($image) {
+                }) : [],
+                'gallery' => $product->galleryImages ? $product->galleryImages->map(function ($image) {
                     return [
                         'id' => $image->id,
                         'image_type' => $image->image_type,
@@ -116,8 +152,8 @@ class ProductController extends Controller
                         'image_url' => $image->image_url,
                         'variants' => $image->image_variants
                     ];
-                }),
-                'hero' => $product->heroImages->map(function ($image) {
+                }) : [],
+                'hero' => $product->heroImages ? $product->heroImages->map(function ($image) {
                     return [
                         'id' => $image->id,
                         'image_type' => $image->image_type,
@@ -129,7 +165,7 @@ class ProductController extends Controller
                         'image_url' => $image->image_url,
                         'variants' => $image->image_variants
                     ];
-                }),
+                }) : [],
                 'main_thumbnail' => $product->mainThumbnail ? [
                     'id' => $product->mainThumbnail->id,
                     'image_type' => $product->mainThumbnail->image_type,

@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -39,8 +40,47 @@ export default function VideoCreate() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/dashboard/videos');
+        post('/dashboard/videos', {
+            onSuccess: () => {
+                toast.success('Video created successfully', {
+                    description: `"${data.title}" has been added to your videos`
+                });
+            },
+            onError: (errors) => {
+                toast.error('Failed to create video', {
+                    description: 'Please check the form and try again'
+                });
+                console.error('Video creation errors:', errors);
+            }
+        });
     };
+
+    const getYouTubeThumbnail = (youtubeId: string) => {
+        return `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`;
+    };
+
+    // Extract YouTube ID from various URL formats
+    const extractYouTubeId = (url: string): string | null => {
+        if (!url) return null;
+
+        const patterns = [
+            /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+            /youtube\.com\/embed\/([^&\n?#]+)/,
+            /youtube\.com\/v\/([^&\n?#]+)/,
+            /youtube\.com\/.*[?&]v=([^&\n?#]+)/,
+        ];
+
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+
+        return null;
+    };
+
+    const currentYouTubeId = extractYouTubeId(data.youtube_url);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -178,6 +218,88 @@ export default function VideoCreate() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Video Preview */}
+                    {currentYouTubeId && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Video Preview</CardTitle>
+                                <p className="text-sm text-muted-foreground">
+                                    Preview of the video that will be created
+                                </p>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Thumbnail */}
+                                    <div>
+                                        <h4 className="text-sm font-medium mb-2">Thumbnail</h4>
+                                        <div className="relative">
+                                            <img
+                                                src={getYouTubeThumbnail(currentYouTubeId)}
+                                                alt={data.title || 'Video thumbnail'}
+                                                className="w-full h-32 object-cover rounded-lg border"
+                                                onError={(e) => {
+                                                    const target = e.target as HTMLImageElement;
+                                                    target.src = '/images/placeholder-video.jpg'; // Fallback image
+                                                }}
+                                            />
+                                            <div className="absolute top-2 right-2">
+                                                <span className="bg-green-500 text-white text-xs px-2 py-1 rounded">
+                                                    New
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Video Info */}
+                                    <div>
+                                        <h4 className="text-sm font-medium mb-2">Video Details</h4>
+                                        <div className="space-y-2 text-sm">
+                                            <div>
+                                                <span className="font-medium">YouTube ID:</span>
+                                                <span className="text-green-600 font-medium ml-1">
+                                                    {currentYouTubeId}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="font-medium">URL:</span>
+                                                <a
+                                                    href={data.youtube_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-blue-600 hover:text-blue-800 ml-1 inline-flex items-center"
+                                                >
+                                                    View on YouTube
+                                                    <ExternalLink className="ml-1 h-3 w-3" />
+                                                </a>
+                                            </div>
+                                            <div className="mt-2 p-2 bg-green-50 rounded text-xs">
+                                                <span className="font-medium text-green-800">Ready to create:</span>
+                                                <span className="text-green-700"> Video URL is valid and ready to be saved.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* No Preview Message */}
+                    {!currentYouTubeId && data.youtube_url && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Video Preview</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-center py-8">
+                                    <div className="text-muted-foreground">
+                                        <p className="text-sm">Unable to extract YouTube ID from the provided URL.</p>
+                                        <p className="text-xs mt-1">Please check the URL format and try again.</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Submit */}
                     <div className="flex items-center justify-end space-x-4">
