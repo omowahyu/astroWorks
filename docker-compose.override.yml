@@ -1,0 +1,104 @@
+# Docker Compose override for local development
+# This file is automatically loaded by docker-compose and provides
+# development-specific configurations
+
+version: '3.8'
+
+services:
+  app:
+    environment:
+      # Development environment variables
+      APP_ENV: local
+      APP_DEBUG: true
+      LOG_LEVEL: debug
+      # Enable hot reloading for Vite
+      VITE_DEV_SERVER_HOST: 0.0.0.0
+      VITE_DEV_SERVER_PORT: 5173
+    volumes:
+      # Mount source code for live editing
+      - .:/app
+      # Exclude node_modules and vendor for performance
+      - /app/node_modules
+      - /app/vendor
+      # Persist storage and cache
+      - ./storage:/app/storage
+      - ./bootstrap/cache:/app/bootstrap/cache
+    ports:
+      # Expose Vite dev server port
+      - "5173:5173"
+    # Override command for development
+    command: >
+      bash -c "
+        # Wait for database
+        until pg_isready -h postgres -p 5432 -U astroworks; do
+          echo 'Waiting for database...'
+          sleep 2
+        done
+        
+        # Install dependencies if needed
+        if [ ! -d 'vendor' ] || [ ! -d 'node_modules' ]; then
+          echo 'Installing dependencies...'
+          composer install
+          npm install
+        fi
+        
+        # Generate key if needed
+        if [ ! -f '.env' ]; then
+          cp .env.example .env
+        fi
+        
+        # Check if APP_KEY is set
+        if ! grep -q 'APP_KEY=base64:' .env; then
+          php artisan key:generate
+        fi
+        
+        # Run migrations
+        php artisan migrate --force
+        
+        # Create storage link
+        php artisan storage:link
+        
+        # Set permissions
+        chown -R www-data:www-data /app/storage /app/bootstrap/cache
+        chmod -R 775 /app/storage /app/bootstrap/cache
+        
+        # Start FrankenPHP
+        frankenphp run --config /etc/caddy/Caddyfile
+      "
+
+  # Add Vite dev server for hot reloading (optional)
+  vite:
+    build: .
+    container_name: astroworks_vite
+    command: npm run dev -- --host 0.0.0.0
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - app
+    networks:
+      - astroworks_network
+    profiles:
+      - dev
+
+  # Add Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: astroworks_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - astroworks_network
+    profiles:
+      - cache
+
+volumes:
+  redis_data:
+    driver: local
