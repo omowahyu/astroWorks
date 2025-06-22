@@ -306,7 +306,7 @@ const ProductCarousel: React.FC<Props> = ({ className = "", categoriesWithProduc
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ duration: 0.4, delay: productIndex * 0.05 }}
                                     >
-                                        <div className="relative overflow-hidden rounded-xl mb-3 bg-gray-100 aspect-[4/5]">
+                                        <div className="relative overflow-hidden rounded-xl mb-3 bg-gray-100 aspect-[4/5] md:aspect-[16/9]">
                                             {/* Product Badge */}
                                             {product.badge && (
                                                 <div className={`absolute top-2 left-2 z-10 px-2 py-1 text-xs font-medium text-white rounded ${getBadgeColor(product.badge)}`}>
@@ -314,16 +314,25 @@ const ProductCarousel: React.FC<Props> = ({ className = "", categoriesWithProduc
                                                 </div>
                                             )}
 
-                                            {/* Product Image */}
-                                            <DynamicImageSingle
-                                                productId={product.id}
+                                            {/* Product Images - Device Specific */}
+                                            {/* Mobile Image (4:5) - Only visible on mobile */}
+                                            <img
+                                                src={product.images?.thumbnails?.find(img => img.device_type === 'mobile')?.image_url ||
+                                                     product.images?.gallery?.find(img => img.device_type === 'mobile')?.image_url ||
+                                                     `https://picsum.photos/seed/${product.id}/400/500`}
                                                 alt={product.name}
-                                                className="w-full h-full"
-                                                rounded="xl"
-                                                useDatabase={true}
-                                                preferThumbnail={true}
-                                                imageType="thumbnail"
-                                                productImages={product.images}
+                                                className="w-full h-full object-cover rounded-xl block md:hidden"
+                                                loading="lazy"
+                                            />
+
+                                            {/* Desktop Image (16:9) - Only visible on desktop */}
+                                            <img
+                                                src={product.images?.thumbnails?.find(img => img.device_type === 'desktop')?.image_url ||
+                                                     product.images?.gallery?.find(img => img.device_type === 'desktop')?.image_url ||
+                                                     `https://picsum.photos/seed/${product.id}/800/450`}
+                                                alt={product.name}
+                                                className="w-full h-full object-cover rounded-xl hidden md:block"
+                                                loading="lazy"
                                             />
                                         </div>
 

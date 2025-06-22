@@ -180,64 +180,31 @@ export default function ProductEdit({ product, categories }: Props) {
         const hasFiles = (data.mobile_images as File[]).length > 0 || (data.desktop_images as File[]).length > 0;
         
         if (hasFiles) {
-            // Use FormData for file uploads with router.post
-            const formData = new FormData();
-            formData.append('name', data.name as string);
-            formData.append('description', data.description as string);
-            formData.append('_method', 'PUT');
+            // Use Inertia's useForm for file uploads with automatic FormData conversion
+            // Add _method for Laravel method spoofing when using files with PUT
+            const submissionData = {
+                ...data,
+                _method: 'PUT',
+                // Send existing images order for mobile
+                existing_mobile_images_order: imagesPreviews.mobile
+                    .filter(preview => preview.existing_id)
+                    .map(preview => preview.existing_id),
+                // Send existing images order for desktop  
+                existing_desktop_images_order: imagesPreviews.desktop
+                    .filter(preview => preview.existing_id)
+                    .map(preview => preview.existing_id)
+            };
 
-            (data.categories as number[]).forEach((categoryId, index) => {
-                formData.append(`categories[${index}]`, categoryId.toString());
-            });
-
-            (data.unit_types as UnitType[]).forEach((unitType, index) => {
-                if (unitType.id) {
-                    formData.append(`unit_types[${index}][id]`, unitType.id.toString());
-                }
-                formData.append(`unit_types[${index}][label]`, unitType.label);
-                formData.append(`unit_types[${index}][price]`, unitType.price);
-                formData.append(`unit_types[${index}][is_default]`, unitType.is_default ? '1' : '0');
-            });
-
-            (data.misc_options as MiscOption[]).forEach((miscOption, index) => {
-                if (miscOption.id) {
-                    formData.append(`misc_options[${index}][id]`, miscOption.id.toString());
-                }
-                formData.append(`misc_options[${index}][label]`, miscOption.label);
-                formData.append(`misc_options[${index}][value]`, miscOption.value);
-                formData.append(`misc_options[${index}][is_default]`, miscOption.is_default ? '1' : '0');
-            });
-
-            (data.mobile_images as File[]).forEach((image, index) => {
-                formData.append(`mobile_images[${index}]`, image);
-            });
-            
-            (data.desktop_images as File[]).forEach((image, index) => {
-                formData.append(`desktop_images[${index}]`, image);
-            });
-
-            // Send existing images order for mobile
-            imagesPreviews.mobile.forEach((preview, index) => {
-                if (preview.existing_id) {
-                    formData.append(`existing_mobile_images_order[${index}]`, preview.existing_id.toString());
-                }
-            });
-            
-            // Send existing images order for desktop
-            imagesPreviews.desktop.forEach((preview, index) => {
-                if (preview.existing_id) {
-                    formData.append(`existing_desktop_images_order[${index}]`, preview.existing_id.toString());
-                }
-            });
-
-            router.post(`/dashboard/products/${product.id}`, formData, {
+            // Use router.post with method spoofing for file uploads
+            // Laravel doesn't support FormData with PUT natively
+            router.post(`/dashboard/products/${product.id}`, submissionData as any, {
                 forceFormData: true,
                 preserveState: true,
                 preserveScroll: true,
                 onSuccess: () => {
                     // Clear the uploaded images from state after successful submission
-                setData('mobile_images', [] as File[]);
-                setData('desktop_images', [] as File[]);
+                    setData('mobile_images', [] as File[]);
+                    setData('desktop_images', [] as File[]);
                     
                     // Clear image previews for newly uploaded images only
                     setImagesPreviews(prev => ({
@@ -263,7 +230,7 @@ export default function ProductEdit({ product, categories }: Props) {
                 _method: 'PUT'
             };
 
-            router.post(`/dashboard/products/${product.id}`, submissionData, {
+            router.post(`/dashboard/products/${product.id}`, submissionData as any, {
                 preserveState: true,
                 preserveScroll: true,
                 onError: (errors: any) => {
@@ -529,189 +496,50 @@ export default function ProductEdit({ product, categories }: Props) {
 
                     {/* Product Images Management */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Gambar Produk</CardTitle>
-                            <CardDescription>
-                                Kelola semua gambar produk dalam satu tempat. Gambar pertama akan menjadi thumbnail utama.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
+                        <CardContent className="space-y-6 pt-6">
                             {/* Unified Image Grid */}
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {/* Existing Images from Server */}
-                                {product.images?.map((image, index) => {
-                                    const isMobile = image.device_type === 'mobile';
-                                    const isFirstImage = index === 0;
-                                    return (
-                                        <div key={`existing-${image.id}`} className="relative group border rounded-lg overflow-hidden bg-gray-50">
-                                            <div className={isMobile ? "aspect-[4/5]" : "aspect-[16/9]"}>
-                                                <img
-                                                    src={image.image_url}
-                                                    alt={image.alt_text || `${isMobile ? 'Mobile' : 'Desktop'} Image ${index + 1}`}
-                                                    className="w-full h-full object-contain"
-                                                    onError={(e) => {
-                                                        const target = e.target as HTMLImageElement;
-                                                        target.src = '/images/placeholder-product.svg';
-                                                    }}
-                                                />
-                                            </div>
-                                            
-                                            {/* Device Type Label */}
-                                            <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                                                {isMobile ? 'Mobile' : 'Desktop'}
-                                            </div>
-                                            
-                                            {/* Thumbnail Badge */}
-                                            {isFirstImage && (
-                                                <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
-                                                    Thumbnail
-                                                </div>
-                                            )}
-                                            
-                                            {/* Server Badge */}
-                                            <div className="absolute bottom-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                                                Server
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                                
-                                {/* New Uploaded Images Preview */}
-                                {[...imagesPreviews.mobile, ...imagesPreviews.desktop].map((image, index) => {
-                                    const isMobile = image.deviceType === 'mobile';
-                                    const globalIndex = (product.images?.length || 0) + index;
-                                    const isFirstOverall = globalIndex === 0;
-                                    
-                                    return (
-                                        <div key={image.id} className="relative group border rounded-lg overflow-hidden bg-gray-50">
-                                            <div className={isMobile ? "aspect-[4/5]" : "aspect-[16/9]"}>
-                                                <img
-                                                    src={image.url}
-                                                    alt={`${isMobile ? 'Mobile' : 'Desktop'} Preview ${index + 1}`}
-                                                    className="w-full h-full object-contain"
-                                                />
-                                            </div>
-                                            
-                                            {/* Device Type Label */}
-                                            <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                                                {isMobile ? 'Mobile' : 'Desktop'}
-                                            </div>
-                                            
-                                            {/* Thumbnail Badge */}
-                                            {isFirstOverall && (
-                                                <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
-                                                    Thumbnail
-                                                </div>
-                                            )}
-                                            
-                                            {/* New Upload Badge */}
-                                            <div className="absolute bottom-2 left-2 bg-orange-600 text-white text-xs px-2 py-1 rounded">
-                                                Baru
-                                            </div>
-                                            
-                                            {/* Action Controls */}
-                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                {index > 0 && (
-                                                    <Button
-                                                        type="button"
-                                                        size="sm"
-                                                        variant="secondary"
-                                                        onClick={() => moveImage(index, index - 1, image.deviceType)}
-                                                        className="h-8 w-8 p-0"
-                                                    >
-                                                        ↑
-                                                    </Button>
-                                                )}
-                                                {index < imagesPreviews[image.deviceType].length - 1 && (
-                                                    <Button
-                                                        type="button"
-                                                        size="sm"
-                                                        variant="secondary"
-                                                        onClick={() => moveImage(index, index + 1, image.deviceType)}
-                                                        className="h-8 w-8 p-0"
-                                                    >
-                                                        ↓
-                                                    </Button>
-                                                )}
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="destructive"
-                                                    onClick={() => removeImage(image.id, image.deviceType)}
-                                                    className="h-8 w-8 p-0"
-                                                >
-                                                    ×
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                                
-                                {/* Empty State */}
-                                {(!product.images || product.images.length === 0) && 
-                                 imagesPreviews.mobile.length === 0 && 
-                                 imagesPreviews.desktop.length === 0 && (
-                                    <div className="col-span-full text-center py-12 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                                        <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                        <p className="text-lg font-medium">Belum ada gambar</p>
-                                        <p className="text-sm">Upload gambar mobile dan desktop untuk produk ini</p>
-                                    </div>
-                                )}
-                            </div>
+                            {/* Image grid section removed - preview only at bottom of form */}
                             
                             {/* Upload Controls */}
                             <div className="border-t pt-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <Label className="text-sm font-medium mb-2 block">Upload Gambar Mobile (4:5)</Label>
-                                        <DeviceImageUpload
-                                            onMobileUpload={handleMobileUpload}
-                                            onDesktopUpload={() => {}}
-                                            maxFiles={10}
-                                            disabled={processing}
-                                            showCompressionOptions={true}
-                                            defaultCompressionLevel="moderate"
-                                            mobileImages={[]}
-                                            desktopImages={[]}
-                                            onRemoveImage={() => {}}
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label className="text-sm font-medium mb-2 block">Upload Gambar Desktop (16:9)</Label>
-                                        <DeviceImageUpload
-                                            onMobileUpload={() => {}}
-                                            onDesktopUpload={handleDesktopUpload}
-                                            maxFiles={10}
-                                            disabled={processing}
-                                            showCompressionOptions={true}
-                                            defaultCompressionLevel="moderate"
-                                            mobileImages={[]}
-                                            desktopImages={[]}
-                                            onRemoveImage={() => {}}
-                                        />
-                                    </div>
-                                </div>
+                                <Label className="text-sm font-medium mb-4 block">Upload Gambar Baru</Label>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Upload gambar mobile (4:5) dan desktop (16:9) untuk produk ini
+                                </p>
+                                <DeviceImageUpload
+                                    onMobileUpload={handleMobileUpload}
+                                    onDesktopUpload={handleDesktopUpload}
+                                    maxFiles={10}
+                                    disabled={processing}
+                                    showCompressionOptions={true}
+                                    defaultCompressionLevel="moderate"
+                                    mobileImages={imagesPreviews.mobile.map(img => ({
+                                        id: parseInt(img.id, 36) || Math.floor(Math.random() * 1000000),
+                                        url: img.url,
+                                        name: img.file?.name || `Image ${img.id}`,
+                                        size: img.file?.size,
+                                        compressed_size: img.file?.size
+                                    }))}
+                                    desktopImages={imagesPreviews.desktop.map(img => ({
+                                        id: parseInt(img.id, 36) || Math.floor(Math.random() * 1000000),
+                                        url: img.url,
+                                        name: img.file?.name || `Image ${img.id}`,
+                                        size: img.file?.size,
+                                        compressed_size: img.file?.size
+                                    }))}
+                                    onRemoveImage={(imageId: number, deviceType: 'mobile' | 'desktop') => {
+                                        const targetArray = deviceType === 'mobile' ? imagesPreviews.mobile : imagesPreviews.desktop;
+                                        const targetImage = targetArray.find(img => 
+                                            parseInt(img.id, 36) === imageId || Math.floor(Math.random() * 1000000) === imageId
+                                        );
+                                        if (targetImage) {
+                                            removeImage(targetImage.id, deviceType);
+                                        }
+                                    }}
+                                />
                             </div>
                             
-                            {/* Preview Component */}
-                            {(product.images && product.images.length > 0) && (
-                                <div className="border-t pt-6">
-                                    <Label className="text-sm font-medium mb-2 block">Preview Frontend</Label>
-                                    <p className="text-sm text-muted-foreground mb-4">
-                                        Pratinjau bagaimana gambar akan tampil di halaman produk
-                                    </p>
-                                    <div className="max-w-md">
-                                        <DynamicImageSingle
-                                            productId={product.id.toString()}
-                                            alt={`${product.name} preview`}
-                                            className="border rounded-lg"
-                                            useDatabase={true}
-                                            preferThumbnail={true}
-                                            debug={false}
-                                        />
-                                    </div>
-                                </div>
-                            )}
+
                         </CardContent>
                     </Card>
 

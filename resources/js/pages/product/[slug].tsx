@@ -351,8 +351,8 @@ export default function ProductShow() {
                   className="w-full aspect-[4/5] md:aspect-[16/9] rounded-3xl"
                   rounded="3xl"
                   useDatabase={true}
-                  preferThumbnail={true}
-                  imageType="thumbnail"
+                  preferThumbnail={false}
+                  imageType="gallery"
                   productImages={product.images}
                 />
               </div>

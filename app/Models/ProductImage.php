@@ -97,15 +97,8 @@ class ProductImage extends Model
             return asset($publicPath);
         }
 
-        // If local file doesn't exist, return a placeholder instead of broken link
-        return "data:image/svg+xml;base64," . base64_encode('
-            <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-                <rect width="100%" height="100%" fill="#f3f4f6"/>
-                <text x="200" y="150" text-anchor="middle" font-family="system-ui" font-size="14" fill="#6b7280">
-                    Gambar tidak tersedia
-                </text>
-            </svg>
-        ');
+        // If local file doesn't exist, use Picsum placeholder like products without images
+        return "https://picsum.photos/seed/{$this->product_id}/800/600";
     }
 
     /**

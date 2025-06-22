@@ -48,7 +48,9 @@ export default defineConfig({
             origin: [
                 // Development URLs
                 'http://localhost:8000',
+                'http://localhost:8001',
                 'https://localhost:8000',
+                'https://localhost:8001',
                 'http://astroworks.test',
                 'https://astroworks.test',
                 // Production URLs (ready for future deployment)

@@ -10,8 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
-use App\Services\ImageOptimizationService;
-
 /**
  * Admin Product Controller
  *
@@ -19,12 +17,6 @@ use App\Services\ImageOptimizationService;
  */
 class ProductController extends Controller
 {
-    protected ImageOptimizationService $imageService;
-
-    public function __construct(ImageOptimizationService $imageService)
-    {
-        $this->imageService = $imageService;
-    }
     /**
      * Display a listing of products
      */
@@ -71,6 +63,9 @@ class ProductController extends Controller
                         return [
                             'id' => $image->id,
                             'image_type' => $image->image_type,
+                            'device_type' => $image->device_type ?? 'desktop',
+                            'aspect_ratio' => $image->aspect_ratio,
+                            'sort_order' => $image->sort_order,
                             'is_thumbnail' => $image->image_type === 'thumbnail',
                             'is_primary' => $image->image_type === 'thumbnail',
                             'display_order' => $image->sort_order,
@@ -88,6 +83,9 @@ class ProductController extends Controller
                         return [
                             'id' => $image->id,
                             'image_type' => $image->image_type,
+                            'device_type' => $image->device_type ?? 'desktop',
+                            'aspect_ratio' => $image->aspect_ratio,
+                            'sort_order' => $image->sort_order,
                             'is_thumbnail' => false,
                             'is_primary' => false,
                             'display_order' => $image->sort_order,
@@ -105,6 +103,9 @@ class ProductController extends Controller
                         return [
                             'id' => $image->id,
                             'image_type' => $image->image_type,
+                            'device_type' => $image->device_type ?? 'desktop',
+                            'aspect_ratio' => $image->aspect_ratio,
+                            'sort_order' => $image->sort_order,
                             'is_thumbnail' => false,
                             'is_primary' => false,
                             'display_order' => $image->sort_order,
@@ -121,6 +122,9 @@ class ProductController extends Controller
                     'main_thumbnail' => $thumbnails->first() ? [
                         'id' => $thumbnails->first()->id,
                         'image_type' => $thumbnails->first()->image_type,
+                        'device_type' => $thumbnails->first()->device_type ?? 'desktop',
+                        'aspect_ratio' => $thumbnails->first()->aspect_ratio,
+                        'sort_order' => $thumbnails->first()->sort_order,
                         'is_thumbnail' => true,
                         'is_primary' => true,
                         'display_order' => $thumbnails->first()->sort_order,
@@ -230,17 +234,23 @@ class ProductController extends Controller
             foreach ($request->file('mobile_images') as $index => $image) {
                 try {
                     $imageNumber = $index + 1;
-                    $filename = "product_{$product->id}_mobile_image_{$imageNumber}";
-                    $imageData = $this->imageService->processProductImage($image, $filename);
+                    $filename = "product_{$product->id}_mobile_image_{$imageNumber}." . $image->getClientOriginalExtension();
+                    $imagePath = $image->storeAs('images', $filename, 'public');
+
+                    // Also copy to public directory for direct access
+                    $publicPath = public_path("storage/images/{$filename}");
+                    if (!file_exists($publicPath)) {
+                        copy(storage_path("app/public/{$imagePath}"), $publicPath);
+                    }
 
                     ProductImage::create([
                         'product_id' => $product->id,
-                        'image_path' => $imageData['original_path'],
+                        'image_path' => $imagePath,
                         'alt_text' => "{$product->name} - Mobile Image {$imageNumber}",
                         'image_type' => $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
                         'sort_order' => $index,
                         'device_type' => 'mobile',
-                        'aspect_ratio' => '4:5'
+                        'aspect_ratio' => 0.8
                     ]);
                 } catch (\Exception $e) {
                     \Log::error("Failed to process mobile image for product {$product->id}: " . $e->getMessage());
@@ -253,17 +263,23 @@ class ProductController extends Controller
             foreach ($request->file('desktop_images') as $index => $image) {
                 try {
                     $imageNumber = $index + 1;
-                    $filename = "product_{$product->id}_desktop_image_{$imageNumber}";
-                    $imageData = $this->imageService->processProductImage($image, $filename);
+                    $filename = "product_{$product->id}_desktop_image_{$imageNumber}." . $image->getClientOriginalExtension();
+                    $imagePath = $image->storeAs('images', $filename, 'public');
+
+                    // Also copy to public directory for direct access
+                    $publicPath = public_path("storage/images/{$filename}");
+                    if (!file_exists($publicPath)) {
+                        copy(storage_path("app/public/{$imagePath}"), $publicPath);
+                    }
 
                     ProductImage::create([
                         'product_id' => $product->id,
-                        'image_path' => $imageData['original_path'],
+                        'image_path' => $imagePath,
                         'alt_text' => "{$product->name} - Desktop Image {$imageNumber}",
                         'image_type' => $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
                         'sort_order' => $index,
                         'device_type' => 'desktop',
-                        'aspect_ratio' => '16:9'
+                        'aspect_ratio' => 1.78
                     ]);
                 } catch (\Exception $e) {
                     \Log::error("Failed to process desktop image for product {$product->id}: " . $e->getMessage());
@@ -437,21 +453,27 @@ class ProductController extends Controller
         // Handle new mobile images
         if (isset($validated['mobile_images']) && !empty($validated['mobile_images'])) {
             $existingMobileCount = $product->images()->where('device_type', 'mobile')->count();
-            
+
             foreach ($validated['mobile_images'] as $index => $image) {
                 try {
                     $imageNumber = $existingMobileCount + $index + 1;
-                    $filename = "product_{$product->id}_mobile_image_{$imageNumber}";
-                    $imageData = $this->imageService->processProductImage($image, $filename);
+                    $filename = "product_{$product->id}_mobile_image_{$imageNumber}." . $image->getClientOriginalExtension();
+                    $imagePath = $image->storeAs('images', $filename, 'public');
+
+                    // Also copy to public directory for direct access
+                    $publicPath = public_path("storage/images/{$filename}");
+                    if (!file_exists($publicPath)) {
+                        copy(storage_path("app/public/{$imagePath}"), $publicPath);
+                    }
 
                     ProductImage::create([
                         'product_id' => $product->id,
-                        'image_path' => $imageData['original_path'],
+                        'image_path' => $imagePath,
                         'alt_text' => "{$product->name} - Mobile Image {$imageNumber}",
                         'image_type' => $existingMobileCount === 0 && $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
                         'sort_order' => $existingMobileCount + $index,
                         'device_type' => 'mobile',
-                        'aspect_ratio' => '4:5'
+                        'aspect_ratio' => 0.8
                     ]);
                 } catch (\Exception $e) {
                     \Log::error("Failed to process mobile image for product {$product->id}: " . $e->getMessage());
@@ -462,21 +484,27 @@ class ProductController extends Controller
         // Handle new desktop images
         if (isset($validated['desktop_images']) && !empty($validated['desktop_images'])) {
             $existingDesktopCount = $product->images()->where('device_type', 'desktop')->count();
-            
+
             foreach ($validated['desktop_images'] as $index => $image) {
                 try {
                     $imageNumber = $existingDesktopCount + $index + 1;
-                    $filename = "product_{$product->id}_desktop_image_{$imageNumber}";
-                    $imageData = $this->imageService->processProductImage($image, $filename);
+                    $filename = "product_{$product->id}_desktop_image_{$imageNumber}." . $image->getClientOriginalExtension();
+                    $imagePath = $image->storeAs('images', $filename, 'public');
+
+                    // Also copy to public directory for direct access
+                    $publicPath = public_path("storage/images/{$filename}");
+                    if (!file_exists($publicPath)) {
+                        copy(storage_path("app/public/{$imagePath}"), $publicPath);
+                    }
 
                     ProductImage::create([
                         'product_id' => $product->id,
-                        'image_path' => $imageData['original_path'],
+                        'image_path' => $imagePath,
                         'alt_text' => "{$product->name} - Desktop Image {$imageNumber}",
                         'image_type' => $existingDesktopCount === 0 && $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
                         'sort_order' => $existingDesktopCount + $index,
                         'device_type' => 'desktop',
-                        'aspect_ratio' => '16:9'
+                        'aspect_ratio' => 1.78
                     ]);
                 } catch (\Exception $e) {
                     \Log::error("Failed to process desktop image for product {$product->id}: " . $e->getMessage());

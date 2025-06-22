@@ -140,8 +140,8 @@ export default function ProductsIndex({ products }: Props) {
                                                     className="w-full h-full"
                                                     rounded="lg"
                                                     useDatabase={true}
-                                                    preferThumbnail={true}
-                                                    imageType="thumbnail"
+                                                    preferThumbnail={false}
+                                                    imageType="gallery"
                                                     productImages={product.images}
                                                     debug={false}
                                                 />

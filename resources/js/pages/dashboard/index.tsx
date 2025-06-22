@@ -1,9 +1,9 @@
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type PageProps } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
 import { ProductsOverview } from '@/components/dashboard/products-overview';
 import { VideosOverview } from '@/components/dashboard/videos-overview';
+import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -12,7 +12,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-interface DashboardPageProps {
+interface DashboardPageProps extends PageProps {
     productsOverview?: any;
     videosOverview?: any;
 }
