@@ -18,25 +18,25 @@ const Header = () => {
                     {/* Bilah Navigasi */}
                     <nav className="lg:absolute flex justify-around w-full lg:w-fit items-center lg:gap-10 text-white lg:right-0 mt-4 lg:mt-0">
                         {/* Company */}
-                        <a href="/company" className="flex flex-col items-center hover:text-blue-200 transition-colors duration-200">
+                        <a href="/company" className="flex flex-col items-center hover:text-primary/80 transition-colors duration-200">
                             <img src='images/icons/company.svg' alt="Company" className="h-5 mb-1" />
                             <span className="text-xs lg:text-sm">Company</span>
                         </a>
 
                         {/* Tutorial */}
-                        <a href="/" className="flex flex-col items-center hover:text-blue-200 transition-colors duration-200">
+                        <a href="/" className="flex flex-col items-center hover:text-primary/80 transition-colors duration-200">
                             <img src='images/icons/tutorial.svg' alt="Tutorial" className="h-5 mb-1" />
                             <span className="text-xs lg:text-sm">Tutorial</span>
                         </a>
 
                         {/* Chat */}
-                        <a href='/' className="flex flex-col items-center hover:text-blue-200 transition-colors duration-200">
+                        <a href='/wa.me/6281312312312' className="flex flex-col items-center hover:text-primary/80 transition-colors duration-200">
                             <img src='images/icons/chat.svg' alt="Chat" className="h-5 mb-1" />
                             <span className="text-xs lg:text-sm">Chat</span>
                         </a>
 
                         {/* Keranjang */}
-                        <a href="/cart" className="flex flex-col items-center hover:text-blue-200 transition-colors duration-200">
+                        <a href="/cart" className="flex flex-col items-center hover:text-primary/80 transition-colors duration-200">
                             <img src='images/icons/cart.svg' alt="Keranjang" className="h-5 mb-1" />
                             <span className="text-xs lg:text-sm">Keranjang</span>
                         </a>

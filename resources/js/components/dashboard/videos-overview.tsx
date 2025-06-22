@@ -44,24 +44,24 @@ export const VideosOverview: React.FC<VideosOverviewProps> = ({
     className = '' 
 }) => {
     return (
-        <div className={`bg-white rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 ${className}`}>
+        <div className={`bg-card text-card-foreground rounded-xl border border-border p-6 ${className}`}>
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-red-100 rounded-lg">
-                        <Video className="w-5 h-5 text-red-600" />
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                        <Video className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        <h3 className="text-lg font-semibold text-foreground">
                             Videos
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                             Manage homepage videos
                         </p>
                     </div>
                 </div>
                 <Link href="/dashboard/videos/create">
-                    <Button size="sm" className="bg-red-600 hover:bg-red-700">
+                    <Button size="sm">
                         <Plus className="w-4 h-4 mr-2" />
                         Add Video
                     </Button>
@@ -71,18 +71,18 @@ export const VideosOverview: React.FC<VideosOverviewProps> = ({
             {/* Statistics */}
             <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <div className="text-2xl font-bold text-foreground">
                         {data.total_videos}
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-sm text-muted-foreground">
                         Total Videos
                     </div>
                 </div>
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-2xl font-bold text-chart-1">
                         {data.active_videos}
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-sm text-muted-foreground">
                         Active
                     </div>
                 </div>
@@ -91,34 +91,34 @@ export const VideosOverview: React.FC<VideosOverviewProps> = ({
             {/* Featured Video */}
             {data.featured_video && (
                 <div className="mb-6">
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                    <h4 className="text-sm font-medium text-foreground mb-3">
                         Featured Video
                     </h4>
                     <div className="relative">
-                        <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                        <div className="aspect-video bg-muted rounded-lg overflow-hidden">
                             <img
                                 src={data.featured_video.thumbnail_url}
                                 alt={data.featured_video.title}
                                 className="w-full h-full object-cover"
                             />
                             <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                                <div className="p-3 bg-white bg-opacity-90 rounded-full">
-                                    <Play className="w-6 h-6 text-gray-900" />
+                                <div className="p-3 bg-background bg-opacity-90 rounded-full">
+                                    <Play className="w-6 h-6 text-foreground" />
                                 </div>
                             </div>
                         </div>
                         <div className="mt-2">
-                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                            <p className="text-sm font-medium text-foreground truncate">
                                 {data.featured_video.title}
                             </p>
                             <div className="flex items-center mt-1">
                                 {data.featured_video.is_active ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-chart-1/20 text-chart-1">
                                         <Play className="w-3 h-3 mr-1" />
                                         Active
                                     </span>
                                 ) : (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive/20 text-destructive">
                                         <Pause className="w-3 h-3 mr-1" />
                                         Inactive
                                     </span>
@@ -131,13 +131,13 @@ export const VideosOverview: React.FC<VideosOverviewProps> = ({
 
             {/* Recent Videos */}
             <div>
-                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                <h4 className="text-sm font-medium text-foreground mb-3">
                     Recent Videos
                 </h4>
                 <div className="space-y-3">
                     {data.recent_videos.slice(0, 3).map((video) => (
                         <div key={video.id} className="flex items-center space-x-3">
-                            <div className="w-12 h-8 bg-gray-100 rounded overflow-hidden">
+                            <div className="w-12 h-8 bg-muted rounded overflow-hidden">
                                 <img
                                     src={video.thumbnail_url}
                                     alt={video.title}
@@ -145,19 +145,19 @@ export const VideosOverview: React.FC<VideosOverviewProps> = ({
                                 />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                <p className="text-sm font-medium text-foreground truncate">
                                     {video.title}
                                 </p>
                                 <div className="flex items-center space-x-2">
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    <p className="text-xs text-muted-foreground">
                                         {new Date(video.created_at).toLocaleDateString()}
                                     </p>
                                     {video.is_active ? (
-                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-chart-1/20 text-chart-1">
                                             Active
                                         </span>
                                     ) : (
-                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-destructive/20 text-destructive">
                                             Inactive
                                         </span>
                                     )}
@@ -169,10 +169,10 @@ export const VideosOverview: React.FC<VideosOverviewProps> = ({
             </div>
 
             {/* View All Link */}
-            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="mt-6 pt-4 border-t border-border">
                 <Link
                     href="/dashboard/videos"
-                    className="flex items-center justify-center text-sm text-red-600 hover:text-red-700 font-medium"
+                    className="flex items-center justify-center text-sm text-primary hover:text-primary/80 font-medium transition-colors"
                 >
                     <Video className="w-4 h-4 mr-2" />
                     Manage All Videos

@@ -133,7 +133,7 @@ export default function ProductsIndex({ products }: Props) {
                                 <CardHeader>
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-start space-x-4">
-                                            <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                                            <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden">
                                                 <DynamicImageSingle
                                                     productId={product.id.toString()}
                                                     alt={product.name}
@@ -168,7 +168,7 @@ export default function ProductsIndex({ products }: Props) {
                                                     ))}
                                                 </div>
                                                 {product.default_unit && (
-                                                    <p className="text-sm font-medium text-green-600 mt-1">
+                                                    <p className="text-sm font-medium text-chart-1 mt-1">
                                                         {formatPrice(product.default_unit.price)} - {product.default_unit.label}
                                                     </p>
                                                 )}
@@ -189,7 +189,7 @@ export default function ProductsIndex({ products }: Props) {
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => handleDelete(product.id)}
-                                                className="text-red-600 hover:text-red-700"
+                                                className="text-destructive hover:text-destructive/80 transition-colors"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>

@@ -361,7 +361,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
         src={mobileImageUrl || placeholderSvg}
         alt={alt}
         className={`
-          absolute inset-0 w-full h-full object-cover
+          absolute inset-0 w-full h-full object-contain
           transition-opacity duration-300 ease-out
           ${getRoundedClasses()}
           ${mobileImageLoaded && mobileImageUrl ? 'opacity-100' : 'opacity-0'}
@@ -380,7 +380,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
         src={desktopImageUrl || placeholderSvg}
         alt={alt}
         className={`
-          absolute inset-0 w-full h-full object-cover
+          absolute inset-0 w-full h-full object-contain
           transition-opacity duration-300 ease-out
           ${getRoundedClasses()}
           ${desktopImageLoaded && desktopImageUrl ? 'opacity-100' : 'opacity-0'}

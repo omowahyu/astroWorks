@@ -37,24 +37,24 @@ export const ProductsOverview: React.FC<ProductsOverviewProps> = ({
     className = '' 
 }) => {
     return (
-        <div className={`bg-white rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-6 ${className}`}>
+        <div className={`bg-card text-card-foreground rounded-xl border border-border p-6 ${className}`}>
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                        <Package className="w-5 h-5 text-blue-600" />
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                        <Package className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        <h3 className="text-lg font-semibold text-foreground">
                             Products
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                             Manage your product catalog
                         </p>
                     </div>
                 </div>
                 <Link href="/dashboard/products/create">
-                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                    <Button size="sm">
                         <Plus className="w-4 h-4 mr-2" />
                         Add Product
                     </Button>
@@ -64,26 +64,26 @@ export const ProductsOverview: React.FC<ProductsOverviewProps> = ({
             {/* Statistics */}
             <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <div className="text-2xl font-bold text-foreground">
                         {data.total_products}
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-sm text-muted-foreground">
                         Total Products
                     </div>
                 </div>
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-2xl font-bold text-chart-1">
                         {data.active_products}
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-sm text-muted-foreground">
                         Active
                     </div>
                 </div>
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">
+                    <div className="text-2xl font-bold text-chart-2">
                         {data.categories_count}
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-sm text-muted-foreground">
                         Categories
                     </div>
                 </div>
@@ -91,7 +91,7 @@ export const ProductsOverview: React.FC<ProductsOverviewProps> = ({
 
             {/* Recent Products */}
             <div>
-                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                <h4 className="text-sm font-medium text-foreground mb-3">
                     Recent Products
                 </h4>
                 <div className="space-y-3">
@@ -108,10 +108,10 @@ export const ProductsOverview: React.FC<ProductsOverviewProps> = ({
                                 />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                <p className="text-sm font-medium text-foreground truncate">
                                     {product.name}
                                 </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <p className="text-xs text-muted-foreground">
                                     {new Date(product.created_at).toLocaleDateString()}
                                 </p>
                             </div>
@@ -121,10 +121,10 @@ export const ProductsOverview: React.FC<ProductsOverviewProps> = ({
             </div>
 
             {/* View All Link */}
-            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="mt-6 pt-4 border-t border-border">
                 <Link
                     href="/dashboard/products"
-                    className="flex items-center justify-center text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    className="flex items-center justify-center text-sm text-primary hover:text-primary/80 font-medium transition-colors"
                 >
                     <TrendingUp className="w-4 h-4 mr-2" />
                     View All Products

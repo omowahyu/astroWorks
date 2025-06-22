@@ -21,10 +21,22 @@ class PaymentSetting extends Model
      */
     public static function get(string $key, $default = null)
     {
-        return Cache::remember("payment_setting_{$key}", 3600, function () use ($key, $default) {
+        try {
+            // Check if application is fully bootstrapped
+            if (app()->bound('cache')) {
+                return Cache::remember("payment_setting_{$key}", 3600, function () use ($key, $default) {
+                    $setting = static::where('key', $key)->first();
+                    return $setting ? $setting->value : $default;
+                });
+            }
+            
+            // Fallback to direct database query if cache is not available
             $setting = static::where('key', $key)->first();
             return $setting ? $setting->value : $default;
-        });
+        } catch (\Exception $e) {
+            // If any error occurs, return default value
+            return $default;
+        }
     }
 
     /**
@@ -37,7 +49,13 @@ class PaymentSetting extends Model
             ['value' => $value]
         );
 
-        Cache::forget("payment_setting_{$key}");
+        try {
+            if (app()->bound('cache')) {
+                Cache::forget("payment_setting_{$key}");
+            }
+        } catch (\Exception $e) {
+            // Ignore cache errors during early bootstrap
+        }
     }
 
     /**
@@ -45,9 +63,18 @@ class PaymentSetting extends Model
      */
     public static function getAllGrouped(): array
     {
-        return Cache::remember('payment_settings_grouped', 3600, function () {
+        try {
+            if (app()->bound('cache')) {
+                return Cache::remember('payment_settings_grouped', 3600, function () {
+                    return static::all()->groupBy('group')->toArray();
+                });
+            }
+            
+            // Fallback to direct query if cache is not available
             return static::all()->groupBy('group')->toArray();
-        });
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     /**

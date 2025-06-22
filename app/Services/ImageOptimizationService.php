@@ -84,11 +84,13 @@ class ImageOptimizationService
     {
         // Encode image without metadata
         // This removes EXIF, IPTC, XMP data while preserving image quality
-        return $image->encode(quality: 100)->toString();
+        return $image->encode(new \Intervention\Image\Encoders\JpegEncoder(100))->toString();
     }
 
     /**
-     * Generate different aspect ratio variants
+     * Generate optimized variants without hard cropping
+     * Uses soft cropping approach - images maintain original proportions
+     * CSS aspect-ratio will handle display formatting
      *
      * @param \Intervention\Image\Image $image
      * @param string $baseFilename
@@ -99,9 +101,9 @@ class ImageOptimizationService
     {
         $variants = [];
         
-        // Mobile Portrait (4:5 aspect ratio)
+        // Mobile Portrait - optimized for mobile viewing (no hard crop)
         $mobilePortrait = clone $image;
-        $mobilePortrait = $this->cropToAspectRatio($mobilePortrait, 4, 5);
+        $mobilePortrait = $this->optimizeForDevice($mobilePortrait, 'mobile');
         $mobilePortraitData = $this->removeMetadata($mobilePortrait);
         $mobilePortraitPath = "images/{$baseFilename}_mobile_portrait.{$extension}";
         
@@ -109,9 +111,9 @@ class ImageOptimizationService
         file_put_contents(public_path("storage/images/{$baseFilename}_mobile_portrait.{$extension}"), $mobilePortraitData);
         $variants['mobile_portrait'] = $mobilePortraitPath;
         
-        // Mobile Square (1:1 aspect ratio)
+        // Mobile Square - optimized for square display (no hard crop)
         $mobileSquare = clone $image;
-        $mobileSquare = $this->cropToAspectRatio($mobileSquare, 1, 1);
+        $mobileSquare = $this->optimizeForDevice($mobileSquare, 'mobile');
         $mobileSquareData = $this->removeMetadata($mobileSquare);
         $mobileSquarePath = "images/{$baseFilename}_mobile_square.{$extension}";
         
@@ -119,9 +121,9 @@ class ImageOptimizationService
         file_put_contents(public_path("storage/images/{$baseFilename}_mobile_square.{$extension}"), $mobileSquareData);
         $variants['mobile_square'] = $mobileSquarePath;
         
-        // Desktop Landscape (16:9 aspect ratio)
+        // Desktop Landscape - optimized for desktop viewing (no hard crop)
         $desktopLandscape = clone $image;
-        $desktopLandscape = $this->cropToAspectRatio($desktopLandscape, 16, 9);
+        $desktopLandscape = $this->optimizeForDevice($desktopLandscape, 'desktop');
         $desktopLandscapeData = $this->removeMetadata($desktopLandscape);
         $desktopLandscapePath = "images/{$baseFilename}_desktop_landscape.{$extension}";
         
@@ -133,36 +135,41 @@ class ImageOptimizationService
     }
 
     /**
-     * Crop image to specific aspect ratio from center
+     * Optimize image for device without hard cropping
+     * Maintains original aspect ratio and uses soft cropping via CSS
      *
      * @param \Intervention\Image\Image $image
-     * @param int $widthRatio
-     * @param int $heightRatio
+     * @param string $deviceType
      * @return \Intervention\Image\Image
      */
-    protected function cropToAspectRatio($image, int $widthRatio, int $heightRatio)
+    protected function optimizeForDevice($image, string $deviceType)
     {
+        // Define optimal dimensions for each device type
+        $maxDimensions = [
+            'mobile' => ['width' => 800, 'height' => 1200],
+            'desktop' => ['width' => 1920, 'height' => 1080]
+        ];
+        
+        $maxWidth = $maxDimensions[$deviceType]['width'];
+        $maxHeight = $maxDimensions[$deviceType]['height'];
+        
+        // Resize image proportionally to fit within max dimensions
+        // This preserves aspect ratio without cropping
         $currentWidth = $image->width();
         $currentHeight = $image->height();
         
-        $targetRatio = $widthRatio / $heightRatio;
-        $currentRatio = $currentWidth / $currentHeight;
+        // Calculate scale factor to fit within max dimensions
+        $scaleWidth = $maxWidth / $currentWidth;
+        $scaleHeight = $maxHeight / $currentHeight;
+        $scale = min($scaleWidth, $scaleHeight, 1); // Don't upscale
         
-        if ($currentRatio > $targetRatio) {
-            // Image is wider than target ratio, crop width
-            $newWidth = $currentHeight * $targetRatio;
-            $newHeight = $currentHeight;
-            $x = ($currentWidth - $newWidth) / 2;
-            $y = 0;
-        } else {
-            // Image is taller than target ratio, crop height
-            $newWidth = $currentWidth;
-            $newHeight = $currentWidth / $targetRatio;
-            $x = 0;
-            $y = ($currentHeight - $newHeight) / 2;
+        if ($scale < 1) {
+            $newWidth = (int)($currentWidth * $scale);
+            $newHeight = (int)($currentHeight * $scale);
+            $image = $image->resize($newWidth, $newHeight);
         }
         
-        return $image->crop((int)$newWidth, (int)$newHeight, (int)$x, (int)$y);
+        return $image;
     }
 
     /**

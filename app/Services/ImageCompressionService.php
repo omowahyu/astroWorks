@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Exceptions\ImageProcessingException;
+use App\Services\LoggingService;
 use Illuminate\Http\UploadedFile;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
@@ -33,56 +35,136 @@ class ImageCompressionService
      * @param UploadedFile $file
      * @param string $compressionLevel ('lossless', 'minimal', 'moderate', 'aggressive')
      * @return array
-     * @throws \Exception
+     * @throws ImageProcessingException
      */
     public function compressImage(UploadedFile $file, string $compressionLevel = 'lossless'): array
     {
-        // Validate file size
-        if ($file->getSize() > self::MAX_FILE_SIZE) {
-            throw new \Exception('File size exceeds 30MB limit. Current size: ' . $this->formatFileSize($file->getSize()));
-        }
+        $startTime = microtime(true);
 
-        // Validate compression level
-        if (!array_key_exists($compressionLevel, self::QUALITY_SETTINGS)) {
-            throw new \Exception('Invalid compression level. Use: lossless, minimal, moderate, or aggressive');
-        }
-
-        $originalSize = $file->getSize();
-        $originalPath = $file->getPathname();
-
-        // Get original image info
-        $imageInfo = getimagesize($originalPath);
-        if (!$imageInfo) {
-            throw new \Exception('Invalid image file');
-        }
-
-        $originalWidth = $imageInfo[0];
-        $originalHeight = $imageInfo[1];
-        $mimeType = $imageInfo['mime'];
-
-        // Load image with Intervention Image
-        $image = $this->imageManager->read($originalPath);
-
-        // Apply compression based on level
-        $compressedData = $this->applyCompression($image, $mimeType, $compressionLevel);
-
-        // Calculate compression stats
-        $compressedSize = strlen($compressedData);
-        $compressionRatio = round((($originalSize - $compressedSize) / $originalSize) * 100, 2);
-
-        return [
-            'compressed_data' => $compressedData,
-            'original_size' => $originalSize,
-            'compressed_size' => $compressedSize,
-            'compression_ratio' => $compressionRatio,
-            'savings_bytes' => $originalSize - $compressedSize,
-            'width' => $originalWidth,
-            'height' => $originalHeight,
-            'mime_type' => $mimeType,
-            'aspect_ratio' => round($originalWidth / $originalHeight, 2),
+        $context = [
+            'file_name' => $file->getClientOriginalName(),
+            'file_size' => $file->getSize(),
             'compression_level' => $compressionLevel,
-            'quality_used' => self::QUALITY_SETTINGS[$compressionLevel]
+            'mime_type' => $file->getMimeType()
         ];
+
+        try {
+            // Log operation start
+            LoggingService::logImageOperation('compression.start', $context);
+
+            // Validate file size
+            if ($file->getSize() > self::MAX_FILE_SIZE) {
+                throw ImageProcessingException::validationFailed(
+                    'File size exceeds 30MB limit. Current size: ' . $this->formatFileSize($file->getSize()),
+                    $context
+                );
+            }
+
+            // Validate compression level
+            if (!array_key_exists($compressionLevel, self::QUALITY_SETTINGS)) {
+                throw ImageProcessingException::validationFailed(
+                    'Invalid compression level. Use: lossless, minimal, moderate, or aggressive',
+                    $context
+                );
+            }
+
+            $originalSize = $file->getSize();
+            $originalPath = $file->getPathname();
+
+            // Get original image info
+            $imageInfo = getimagesize($originalPath);
+            if (!$imageInfo) {
+                throw ImageProcessingException::validationFailed('Invalid image file', $context);
+            }
+
+            $originalWidth = $imageInfo[0];
+            $originalHeight = $imageInfo[1];
+            $mimeType = $imageInfo['mime'];
+
+            // Load image with Intervention Image
+            try {
+                $image = $this->imageManager->read($originalPath);
+            } catch (\Exception $e) {
+                throw ImageProcessingException::compressionFailed(
+                    'Failed to load image: ' . $e->getMessage(),
+                    array_merge($context, ['intervention_error' => $e->getMessage()])
+                );
+            }
+
+            // Apply compression based on level
+            try {
+                $compressedData = $this->applyCompression($image, $mimeType, $compressionLevel);
+            } catch (\Exception $e) {
+                // Clean up memory before throwing exception
+                $image = null;
+                gc_collect_cycles();
+                
+                throw ImageProcessingException::compressionFailed(
+                    'Compression process failed: ' . $e->getMessage(),
+                    array_merge($context, ['compression_error' => $e->getMessage()])
+                );
+            }
+
+            // Clean up image object to free memory
+            $image = null;
+            gc_collect_cycles();
+
+            // Calculate compression stats
+            $compressedSize = strlen($compressedData);
+            $compressionRatio = round((($originalSize - $compressedSize) / $originalSize) * 100, 2);
+
+            $result = [
+                'compressed_data' => $compressedData,
+                'original_size' => $originalSize,
+                'compressed_size' => $compressedSize,
+                'compression_ratio' => $compressionRatio,
+                'savings_bytes' => $originalSize - $compressedSize,
+                'width' => $originalWidth,
+                'height' => $originalHeight,
+                'mime_type' => $mimeType,
+                'aspect_ratio' => round($originalWidth / $originalHeight, 2),
+                'compression_level' => $compressionLevel,
+                'quality_used' => self::QUALITY_SETTINGS[$compressionLevel]
+            ];
+
+            // Log successful compression with performance metrics
+            LoggingService::logPerformance('compression', $startTime, [
+                'compression_ratio' => $compressionRatio,
+                'original_size' => $originalSize,
+                'compressed_size' => $compressedSize,
+                'savings_bytes' => $originalSize - $compressedSize
+            ]);
+
+            LoggingService::logImageOperation('compression.success', array_merge($context, [
+                'compression_ratio' => $compressionRatio,
+                'savings_bytes' => $originalSize - $compressedSize
+            ]));
+
+            return $result;
+
+        } catch (ImageProcessingException $e) {
+            // Clean up memory before re-throwing
+            if (isset($image)) {
+                $image = null;
+                gc_collect_cycles();
+            }
+            // Re-throw our custom exceptions
+            throw $e;
+        } catch (\Exception $e) {
+            // Clean up memory before throwing
+            if (isset($image)) {
+                $image = null;
+                gc_collect_cycles();
+            }
+            // Wrap unexpected exceptions
+            throw ImageProcessingException::compressionFailed(
+                'Unexpected error during compression: ' . $e->getMessage(),
+                array_merge($context, [
+                    'unexpected_error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ])
+            );
+        }
     }
 
     /**
@@ -195,12 +277,18 @@ class ImageCompressionService
                 $totalOriginalSize += $result['original_size'];
                 $totalCompressedSize += $result['compressed_size'];
                 
+                // Force garbage collection after each file to prevent memory buildup
+                gc_collect_cycles();
+                
             } catch (\Exception $e) {
                 $errors[] = [
                     'file_index' => $index,
                     'file_name' => $file->getClientOriginalName(),
                     'error' => $e->getMessage()
                 ];
+                
+                // Clean up memory even on error
+                gc_collect_cycles();
             }
         }
 

@@ -1,3 +1,4 @@
+# Use FrankenPHP as base image
 FROM dunglas/frankenphp:php8.3
 
 # Install system dependencies

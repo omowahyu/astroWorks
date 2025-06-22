@@ -100,7 +100,7 @@ export default function VideosIndex({ videos }: Props) {
                                 <CardHeader>
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-start space-x-4">
-                                            <div className="w-32 h-20 bg-gray-100 rounded-lg overflow-hidden">
+                                            <div className="w-32 h-20 bg-muted rounded-lg overflow-hidden">
                                                 <img
                                                     src={getYouTubeThumbnail(video.youtube_id)}
                                                     alt={video.title}

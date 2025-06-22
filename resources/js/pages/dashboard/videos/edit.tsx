@@ -90,8 +90,8 @@ export default function VideoEdit({ video }: Props) {
                 </div>
 
                 {/* TODO: Add video edit form here */}
-                <div className="bg-white p-6 rounded-lg border">
-                    <p className="text-gray-500">Video edit form will be implemented here.</p>
+                <div className="bg-card p-6 rounded-lg border border-border">
+                    <p className="text-muted-foreground">Video edit form will be implemented here.</p>
                 </div>
             </div>
         </AppLayout>

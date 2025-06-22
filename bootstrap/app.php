@@ -1,11 +1,16 @@
 <?php
 
+// Increase memory limit for image processing
+ini_set('memory_limit', '512M');
+
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\ImageUploadRateLimit;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Support\Facades\RateLimiter;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -21,6 +26,13 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // Register custom rate limiters
+        $middleware->alias([
+            'image.rate.limit' => ImageUploadRateLimit::class,
+        ]);
+
+        // Rate limiter configuration moved to AppServiceProvider::boot()
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

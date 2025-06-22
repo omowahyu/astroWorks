@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\HealthCheckController;
 
 Route::get('/', function () {
     // Cache homepage data for 10 minutes (more aggressive caching)
@@ -85,6 +86,10 @@ Route::post('/update-cart', [ProductController::class, 'updateCart'])->name('car
 
 Route::get('/cart', [ProductController::class, 'cart'])->name('cart');
 
+// Health check endpoints
+Route::get('/health', [HealthCheckController::class, 'basic'])->name('health.basic');
+Route::get('/health/detailed', [HealthCheckController::class, 'detailed'])->name('health.detailed');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         // Get dashboard data
@@ -154,8 +159,8 @@ Route::prefix('dashboard')->name('dashboard.')->middleware(['auth', 'verified'])
     Route::patch('payment', [App\Http\Controllers\Admin\PaymentSettingController::class, 'update'])
         ->name('payment.update');
 
-    // Image Upload Routes with Compression
-    Route::prefix('images')->name('images.')->group(function () {
+    // Image Upload Routes with Compression and Rate Limiting
+    Route::prefix('images')->name('images.')->middleware(['throttle:image_uploads'])->group(function () {
         Route::post('upload', [App\Http\Controllers\Admin\ImageUploadController::class, 'uploadDeviceImages'])->name('upload');
         Route::post('analyze', [App\Http\Controllers\Admin\ImageUploadController::class, 'analyzeImage'])->name('analyze');
         Route::post('compression-preview', [App\Http\Controllers\Admin\ImageUploadController::class, 'getCompressionPreview'])->name('compression-preview');

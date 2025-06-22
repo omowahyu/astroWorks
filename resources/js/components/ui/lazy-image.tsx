@@ -8,6 +8,7 @@ interface LazyImageProps {
     placeholder?: string;
     onLoad?: () => void;
     onError?: () => void;
+    objectFit?: 'cover' | 'contain' | 'fill' | 'scale-down' | 'none';
 }
 
 export function LazyImage({ 
@@ -16,7 +17,8 @@ export function LazyImage({
     className, 
     placeholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y3ZjdmNyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjE0cHgiIGZpbGw9IiNjY2MiPkxvYWRpbmcuLi48L3RleHQ+PC9zdmc+',
     onLoad,
-    onError 
+    onError,
+    objectFit = 'contain'
 }: LazyImageProps) {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isInView, setIsInView] = useState(false);
@@ -61,7 +63,7 @@ export function LazyImage({
                 <img
                     src={placeholder}
                     alt=""
-                    className={cn("absolute inset-0 w-full h-full object-cover", className)}
+                    className={cn(`absolute inset-0 w-full h-full object-${objectFit}`, className)}
                 />
             )}
             
@@ -71,7 +73,7 @@ export function LazyImage({
                 src={isInView ? src : placeholder}
                 alt={alt}
                 className={cn(
-                    "w-full h-full object-cover transition-opacity duration-300",
+                    `w-full h-full object-${objectFit} transition-opacity duration-300`,
                     isLoaded ? "opacity-100" : "opacity-0",
                     className
                 )}

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Plus, Trash2, Upload, X, GripVertical } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, X } from 'lucide-react';
+import DeviceImageUpload from '@/components/image/device-image-upload';
 
 interface Category {
     id: number;
@@ -34,7 +34,18 @@ interface MiscOption {
     is_default: boolean;
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
+interface ProductFormData {
+    name: string;
+    description: string;
+    categories: number[];
+    unit_types: UnitType[];
+    misc_options: MiscOption[];
+    mobile_images: File[];
+    desktop_images: File[];
+    [key: string]: any;
+}
+
+const breadcrumbs = [
     {
         title: 'Dashboard',
         href: '/dashboard',
@@ -49,42 +60,52 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-interface ImagePreview {
-    file: File;
-    url: string;
-    id: string;
-}
+
 
 export default function ProductCreate({ categories }: Props) {
     const [unitTypes, setUnitTypes] = useState<UnitType[]>([
         { label: '', price: '', is_default: true }
     ]);
     const [miscOptions, setMiscOptions] = useState<MiscOption[]>([]);
-    const [imagesPreviews, setImagesPreviews] = useState<ImagePreview[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string>('');
 
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         description: '',
         categories: [] as number[],
-        unit_types: unitTypes,
-        misc_options: miscOptions,
-        images: [] as File[]
+        unit_types: unitTypes as any,
+        misc_options: miscOptions as any,
+        mobile_images: [] as File[],
+        desktop_images: [] as File[]
     });
 
     // Sync unitTypes and miscOptions with form data
     useEffect(() => {
-        setData('unit_types', unitTypes);
+        setData('unit_types', unitTypes as any);
     }, [unitTypes]);
 
     useEffect(() => {
-        setData('misc_options', miscOptions);
+        setData('misc_options', miscOptions as any);
     }, [miscOptions]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        post('/dashboard/products');
+        // Validate unit types before submission
+        const hasEmptyUnitTypes = unitTypes.some(ut => !ut.label.trim() || !ut.price.trim());
+        if (hasEmptyUnitTypes) {
+            alert('Please fill in all unit type labels and prices before submitting.');
+            return;
+        }
+
+        // Update data with current state before submission
+        const submissionData = {
+            ...data,
+            unit_types: unitTypes,
+            misc_options: miscOptions
+        };
+
+        post('/dashboard/products', submissionData);
     };
 
     const addUnitType = () => {
@@ -127,63 +148,19 @@ export default function ProductCreate({ categories }: Props) {
     };
 
     const handleCategoryChange = (value: string) => {
-        if (value && !data.categories.includes(parseInt(value))) {
-            setData('categories', [...data.categories, parseInt(value)]);
+        if (value && data.categories && !(data.categories as number[]).includes(parseInt(value))) {
+            setData('categories', [...(data.categories as number[]), parseInt(value)]);
             setSelectedCategory('');
         }
     };
 
     const removeCategoryFromSelection = (categoryId: number) => {
-        setData('categories', data.categories.filter(id => id !== categoryId));
-    };
-
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const files = Array.from(e.target.files);
-            const newPreviews: ImagePreview[] = files.map(file => ({
-                file,
-                url: URL.createObjectURL(file),
-                id: Math.random().toString(36).substr(2, 9)
-            }));
-
-            setImagesPreviews(prev => [...prev, ...newPreviews]);
-            setData('images', [...data.images, ...files]);
+        if (data.categories) {
+            setData('categories', (data.categories as number[]).filter((id: number) => id !== categoryId));
         }
     };
 
-    const removeImage = (imageId: string) => {
-        const imageToRemove = imagesPreviews.find(img => img.id === imageId);
-        if (imageToRemove) {
-            URL.revokeObjectURL(imageToRemove.url);
-            setImagesPreviews(prev => prev.filter(img => img.id !== imageId));
-            setData('images', data.images.filter(file => file !== imageToRemove.file));
-        }
-    };
 
-    const moveImage = (fromIndex: number, toIndex: number) => {
-        const newPreviews = [...imagesPreviews];
-        const newImages = [...data.images];
-
-        // Move preview
-        const [movedPreview] = newPreviews.splice(fromIndex, 1);
-        newPreviews.splice(toIndex, 0, movedPreview);
-
-        // Move file
-        const [movedFile] = newImages.splice(fromIndex, 1);
-        newImages.splice(toIndex, 0, movedFile);
-
-        setImagesPreviews(newPreviews);
-        setData('images', newImages);
-    };
-
-    // Cleanup object URLs on unmount
-    useEffect(() => {
-        return () => {
-            imagesPreviews.forEach(image => {
-                URL.revokeObjectURL(image.url);
-            });
-        };
-    }, [imagesPreviews]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -251,8 +228,8 @@ export default function ProductCreate({ categories }: Props) {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {categories
-                                            .filter(category => !data.categories.includes(category.id))
-                                            .map((category) => (
+                            .filter(category => !(data.categories as number[])?.includes(category.id))
+                            .map((category) => (
                                                 <SelectItem key={category.id} value={category.id.toString()}>
                                                     <div className="flex items-center justify-between w-full">
                                                         <span>
@@ -272,11 +249,11 @@ export default function ProductCreate({ categories }: Props) {
                             </div>
 
                             {/* Selected Categories */}
-                            {data.categories.length > 0 && (
+                            {data.categories && (data.categories as number[]).length > 0 && (
                                 <div>
                                     <Label>Selected Categories</Label>
                                     <div className="flex flex-wrap gap-2 mt-2">
-                                        {data.categories.map((categoryId) => {
+                                        {(data.categories as number[]).map((categoryId: number) => {
                                             const category = categories.find(c => c.id === categoryId);
                                             return category ? (
                                                 <div key={categoryId} className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
@@ -424,101 +401,42 @@ export default function ProductCreate({ categories }: Props) {
                         </CardContent>
                     </Card>
 
-                    {/* Images */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Product Images</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div>
-                                <Label htmlFor="images">Upload Images</Label>
-                                <div className="mt-2">
-                                    <Input
-                                        id="images"
-                                        type="file"
-                                        multiple
-                                        accept="image/*"
-                                        onChange={handleImageChange}
-                                        className="hidden"
-                                    />
-                                    <Label
-                                        htmlFor="images"
-                                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
-                                    >
-                                        <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                                        <span className="text-sm text-gray-600">Click to upload images</span>
-                                        <span className="text-xs text-gray-400">PNG, JPG, GIF up to 2MB each</span>
-                                    </Label>
-                                </div>
-                                {errors.images && <p className="text-sm text-red-600 mt-1">{errors.images}</p>}
-                            </div>
-
-                            {/* Image Previews */}
-                            {imagesPreviews.length > 0 && (
-                                <div>
-                                    <Label>Image Preview & Order</Label>
-                                    <p className="text-sm text-muted-foreground mb-3">
-                                        Drag to reorder. The first image will be used as the thumbnail.
-                                    </p>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                        {imagesPreviews.map((image, index) => (
-                                            <div
-                                                key={image.id}
-                                                className="relative group border rounded-lg overflow-hidden"
-                                                draggable
-                                                onDragStart={(e) => {
-                                                    e.dataTransfer.setData('text/plain', index.toString());
-                                                }}
-                                                onDragOver={(e) => e.preventDefault()}
-                                                onDrop={(e) => {
-                                                    e.preventDefault();
-                                                    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                                                    moveImage(fromIndex, index);
-                                                }}
-                                            >
-                                                <div className="aspect-square relative">
-                                                    <img
-                                                        src={image.url}
-                                                        alt={`Preview ${index + 1}`}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                    {index === 0 && (
-                                                        <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                                                            Thumbnail
-                                                        </div>
-                                                    )}
-                                                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                                                        {index + 1}
-                                                    </div>
-                                                </div>
-
-                                                {/* Controls */}
-                                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
-                                                    <div className="opacity-0 group-hover:opacity-100 flex space-x-2">
-                                                        <button
-                                                            type="button"
-                                                            className="p-1 bg-white rounded-full hover:bg-gray-100"
-                                                            title="Drag to reorder"
-                                                        >
-                                                            <GripVertical className="h-4 w-4 text-gray-600" />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeImage(image.id)}
-                                                            className="p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
-                                                            title="Remove image"
-                                                        >
-                                                            <X className="h-4 w-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                    {/* Images Upload */}
+                    <div className="space-y-6">
+                        <DeviceImageUpload
+                            onMobileUpload={(files: FileList) => {
+                                const fileArray = Array.from(files);
+                                setData('mobile_images', [...(data.mobile_images as File[]), ...fileArray]);
+                            }}
+                            onDesktopUpload={(files: FileList) => {
+                                const fileArray = Array.from(files);
+                                setData('desktop_images', [...(data.desktop_images as File[]), ...fileArray]);
+                            }}
+                            mobileImages={(data.mobile_images as File[]).map((file, index) => ({
+                                id: index,
+                                url: URL.createObjectURL(file),
+                                name: file.name,
+                                size: file.size,
+                                compressed_size: file.size
+                            }))}
+                            desktopImages={(data.desktop_images as File[]).map((file, index) => ({
+                                id: index,
+                                url: URL.createObjectURL(file),
+                                name: file.name,
+                                size: file.size,
+                                compressed_size: file.size
+                            }))}
+                            onRemoveImage={(imageId: number, deviceType: 'mobile' | 'desktop') => {
+                                if (deviceType === 'mobile') {
+                                    const newImages = (data.mobile_images as File[]).filter((_, index) => index !== imageId);
+                                    setData('mobile_images', newImages);
+                                } else {
+                                    const newImages = (data.desktop_images as File[]).filter((_, index) => index !== imageId);
+                                    setData('desktop_images', newImages);
+                                }
+                            }}
+                        />
+                    </div>
 
                     {/* Submit */}
                     <div className="flex items-center justify-end space-x-4">

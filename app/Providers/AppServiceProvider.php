@@ -21,6 +21,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Configure rate limiters
+        \Illuminate\Support\Facades\RateLimiter::for('image_uploads', function ($request) {
+            return \Illuminate\Cache\RateLimiting\Limit::perMinute(10)
+                ->by($request->user()?->id ?: $request->ip())
+                ->response(function () {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Too many upload attempts. Please try again later.',
+                        'error_type' => 'rate_limit_exceeded'
+                    ], 429);
+                });
+        });
     }
 }

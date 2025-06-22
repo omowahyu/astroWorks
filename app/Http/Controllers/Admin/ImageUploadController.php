@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ImageUploadRequest;
 use App\Services\DeviceImageUploadService;
 use App\Services\ImageCompressionService;
+use App\Services\LoggingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -24,19 +26,12 @@ class ImageUploadController extends Controller
     /**
      * Upload images for specific device type
      *
-     * @param Request $request
+     * @param ImageUploadRequest $request
      * @return JsonResponse
      */
-    public function uploadDeviceImages(Request $request): JsonResponse
+    public function uploadDeviceImages(ImageUploadRequest $request): JsonResponse
     {
-        $request->validate([
-            'product_id' => 'required|integer|exists:products,id',
-            'device_type' => 'required|in:mobile,desktop',
-            'image_type' => 'required|in:thumbnail,gallery,hero',
-            'compression_level' => 'required|in:lossless,minimal,moderate,aggressive',
-            'images' => 'required|array|max:10',
-            'images.*' => 'required|file|image|max:30720' // 30MB in KB
-        ]);
+        $startTime = microtime(true);
 
         try {
             $files = $request->file('images');
@@ -45,6 +40,15 @@ class ImageUploadController extends Controller
             $imageType = $request->input('image_type');
             $compressionLevel = $request->input('compression_level');
 
+            // Log upload start
+            LoggingService::logImageOperation('upload.start', [
+                'product_id' => $productId,
+                'device_type' => $deviceType,
+                'image_type' => $imageType,
+                'compression_level' => $compressionLevel,
+                'file_count' => count($files)
+            ]);
+
             $result = $this->uploadService->uploadMultipleForDevice(
                 $files,
                 $productId,
@@ -52,6 +56,22 @@ class ImageUploadController extends Controller
                 $imageType,
                 $compressionLevel
             );
+
+            // Log performance metrics
+            LoggingService::logPerformance('image_upload', $startTime, [
+                'files_processed' => count($files),
+                'successful_uploads' => count($result['uploaded']),
+                'failed_uploads' => count($result['errors']),
+                'device_type' => $deviceType,
+                'compression_level' => $compressionLevel
+            ]);
+
+            // Log successful upload
+            LoggingService::logImageOperation('upload.success', [
+                'product_id' => $productId,
+                'uploaded_count' => count($result['uploaded']),
+                'error_count' => count($result['errors'])
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -63,16 +83,25 @@ class ImageUploadController extends Controller
                         'total_uploaded' => count($result['uploaded']),
                         'total_errors' => count($result['errors']),
                         'device_type' => $deviceType,
-                        'compression_level' => $compressionLevel
+                        'compression_level' => $compressionLevel,
+                        'processing_time_ms' => round((microtime(true) - $startTime) * 1000, 2)
                     ]
                 ]
             ]);
 
         } catch (\Exception $e) {
+            // Log upload failure
+            LoggingService::logImageOperation('upload.failed', [
+                'product_id' => $request->input('product_id'),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 'error');
+
             return response()->json([
                 'success' => false,
-                'message' => 'Upload failed: ' . $e->getMessage()
-            ], 400);
+                'message' => 'Upload failed: ' . $e->getMessage(),
+                'error_type' => get_class($e)
+            ], 500);
         }
     }
 

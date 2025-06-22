@@ -117,7 +117,7 @@ export default function PaymentSettings() {
                             </Label>
                             {renderSettingInput(setting)}
                             {setting.description && (
-                                <p className="text-xs text-gray-500">{setting.description}</p>
+                                <p className="text-xs text-muted-foreground">{setting.description}</p>
                             )}
                             {errors[setting.key] && (
                                 <p className="text-xs text-red-600">{errors[setting.key]}</p>
@@ -135,8 +135,8 @@ export default function PaymentSettings() {
 
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Payment Settings</h1>
-                    <p className="text-gray-600">Manage your payment and WhatsApp checkout settings</p>
+                    <h1 className="text-2xl font-bold text-foreground">Payment Settings</h1>
+                    <p className="text-muted-foreground">Manage your payment and WhatsApp checkout settings</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -179,7 +179,6 @@ export default function PaymentSettings() {
                         <Button
                             type="submit"
                             disabled={processing}
-                            className="bg-blue-600 hover:bg-blue-700"
                         >
                             {processing ? 'Saving...' : 'Save Settings'}
                         </Button>
@@ -194,8 +193,8 @@ export default function PaymentSettings() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div>
-                            <h4 className="font-medium text-sm text-gray-700 mb-2">Bank Transfer Information:</h4>
-                            <div className="bg-gray-50 dark:bg-gray-50/5 p-3 rounded-lg text-sm">
+                            <h4 className="font-medium text-sm text-foreground mb-2">Bank Transfer Information:</h4>
+                            <div className="bg-muted p-3 rounded-lg text-sm">
                                 <p className="font-medium">Bank {data.bank_name || 'BCA'}</p>
                                 <p>{data.bank_account_name || 'Astro Works Indonesia PT'}</p>
                                 <p className="font-mono font-bold text-lg">{data.bank_account_number || '7025899002'}</p>
@@ -203,8 +202,8 @@ export default function PaymentSettings() {
                         </div>
 
                         <div>
-                            <h4 className="font-medium text-sm text-gray-700 mb-2">WhatsApp Number:</h4>
-                            <div className="bg-gray-50 dark:bg-gray-50/5 p-3 rounded-lg text-sm">
+                            <h4 className="font-medium text-sm text-foreground mb-2">WhatsApp Number:</h4>
+                            <div className="bg-muted p-3 rounded-lg text-sm">
                                 <p className="font-mono">+{data.whatsapp_number || '62822222137'}</p>
                             </div>
                         </div>

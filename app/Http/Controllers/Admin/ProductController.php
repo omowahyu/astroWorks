@@ -179,8 +179,10 @@ class ProductController extends Controller
             'misc_options.*.label' => 'required|string|max:255',
             'misc_options.*.value' => 'required|string|max:255',
             'misc_options.*.is_default' => 'boolean',
-            'images' => 'array',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+            'mobile_images' => 'array',
+            'mobile_images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:30720',
+            'desktop_images' => 'array',
+            'desktop_images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:30720'
         ]);
 
         // Generate unique slug
@@ -223,23 +225,48 @@ class ProductController extends Controller
             }
         }
 
-        // Handle image uploads (simplified version without optimization)
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $index => $image) {
+        // Handle mobile image uploads
+        if ($request->hasFile('mobile_images')) {
+            foreach ($request->file('mobile_images') as $index => $image) {
                 try {
-                    $filename = "product_{$product->id}_image_" . ($index + 1) . '.' . $image->getClientOriginalExtension();
-                    $imagePath = $image->storeAs('images', $filename, 'public');
+                    $imageNumber = $index + 1;
+                    $filename = "product_{$product->id}_mobile_image_{$imageNumber}";
+                    $imageData = $this->imageService->processProductImage($image, $filename);
 
                     ProductImage::create([
                         'product_id' => $product->id,
-                        'image_path' => $imagePath,
-                        'alt_text' => "{$product->name} - Image " . ($index + 1),
+                        'image_path' => $imageData['original_path'],
+                        'alt_text' => "{$product->name} - Mobile Image {$imageNumber}",
                         'image_type' => $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
-                        'sort_order' => $index
+                        'sort_order' => $index,
+                        'device_type' => 'mobile',
+                        'aspect_ratio' => '4:5'
                     ]);
                 } catch (\Exception $e) {
-                    // Log error but continue with other images
-                    \Log::error("Failed to process image for product {$product->id}: " . $e->getMessage());
+                    \Log::error("Failed to process mobile image for product {$product->id}: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Handle desktop image uploads
+        if ($request->hasFile('desktop_images')) {
+            foreach ($request->file('desktop_images') as $index => $image) {
+                try {
+                    $imageNumber = $index + 1;
+                    $filename = "product_{$product->id}_desktop_image_{$imageNumber}";
+                    $imageData = $this->imageService->processProductImage($image, $filename);
+
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'image_path' => $imageData['original_path'],
+                        'alt_text' => "{$product->name} - Desktop Image {$imageNumber}",
+                        'image_type' => $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
+                        'sort_order' => $index,
+                        'device_type' => 'desktop',
+                        'aspect_ratio' => '16:9'
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to process desktop image for product {$product->id}: " . $e->getMessage());
                 }
             }
         }
@@ -265,7 +292,7 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
-        $product->load(['images', 'unitTypes', 'categories']);
+        $product->load(['images', 'unitTypes', 'miscOptions', 'categories']);
         $categories = Category::withCount('products')->orderBy('name')->get();
 
         return Inertia::render('dashboard/products/edit', [
@@ -289,6 +316,14 @@ class ProductController extends Controller
                         'label' => $unitType->label,
                         'price' => $unitType->price,
                         'is_default' => $unitType->is_default
+                    ];
+                }),
+                'misc_options' => $product->miscOptions->map(function ($miscOption) {
+                    return [
+                        'id' => $miscOption->id,
+                        'label' => $miscOption->label,
+                        'value' => $miscOption->value,
+                        'is_default' => $miscOption->is_default
                     ];
                 }),
                 'images' => $product->images->map(function ($image) {
@@ -326,7 +361,15 @@ class ProductController extends Controller
             'unit_types.*.id' => 'nullable|exists:unit_types,id',
             'unit_types.*.label' => 'required|string|max:255',
             'unit_types.*.price' => 'required|numeric|min:0',
-            'unit_types.*.is_default' => 'boolean'
+            'unit_types.*.is_default' => 'boolean',
+            'mobile_images' => 'array',
+            'mobile_images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:30720',
+            'desktop_images' => 'array',
+            'desktop_images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:30720',
+            'existing_mobile_images_order' => 'array',
+            'existing_mobile_images_order.*' => 'exists:product_images,id',
+            'existing_desktop_images_order' => 'array',
+            'existing_desktop_images_order.*' => 'exists:product_images,id'
         ]);
 
         $product->update([
@@ -367,6 +410,76 @@ class ProductController extends Controller
                         'price' => $unitTypeData['price'],
                         'is_default' => $unitTypeData['is_default'] ?? false
                     ]);
+                }
+            }
+        }
+
+        // Handle existing images order for mobile
+        if (isset($validated['existing_mobile_images_order'])) {
+            foreach ($validated['existing_mobile_images_order'] as $index => $imageId) {
+                ProductImage::where('id', $imageId)
+                    ->where('product_id', $product->id)
+                    ->where('device_type', 'mobile')
+                    ->update(['sort_order' => $index]);
+            }
+        }
+
+        // Handle existing images order for desktop
+        if (isset($validated['existing_desktop_images_order'])) {
+            foreach ($validated['existing_desktop_images_order'] as $index => $imageId) {
+                ProductImage::where('id', $imageId)
+                    ->where('product_id', $product->id)
+                    ->where('device_type', 'desktop')
+                    ->update(['sort_order' => $index]);
+            }
+        }
+
+        // Handle new mobile images
+        if (isset($validated['mobile_images']) && !empty($validated['mobile_images'])) {
+            $existingMobileCount = $product->images()->where('device_type', 'mobile')->count();
+            
+            foreach ($validated['mobile_images'] as $index => $image) {
+                try {
+                    $imageNumber = $existingMobileCount + $index + 1;
+                    $filename = "product_{$product->id}_mobile_image_{$imageNumber}";
+                    $imageData = $this->imageService->processProductImage($image, $filename);
+
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'image_path' => $imageData['original_path'],
+                        'alt_text' => "{$product->name} - Mobile Image {$imageNumber}",
+                        'image_type' => $existingMobileCount === 0 && $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
+                        'sort_order' => $existingMobileCount + $index,
+                        'device_type' => 'mobile',
+                        'aspect_ratio' => '4:5'
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to process mobile image for product {$product->id}: " . $e->getMessage());
+                }
+            }
+        }
+
+        // Handle new desktop images
+        if (isset($validated['desktop_images']) && !empty($validated['desktop_images'])) {
+            $existingDesktopCount = $product->images()->where('device_type', 'desktop')->count();
+            
+            foreach ($validated['desktop_images'] as $index => $image) {
+                try {
+                    $imageNumber = $existingDesktopCount + $index + 1;
+                    $filename = "product_{$product->id}_desktop_image_{$imageNumber}";
+                    $imageData = $this->imageService->processProductImage($image, $filename);
+
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'image_path' => $imageData['original_path'],
+                        'alt_text' => "{$product->name} - Desktop Image {$imageNumber}",
+                        'image_type' => $existingDesktopCount === 0 && $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
+                        'sort_order' => $existingDesktopCount + $index,
+                        'device_type' => 'desktop',
+                        'aspect_ratio' => '16:9'
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to process desktop image for product {$product->id}: " . $e->getMessage());
                 }
             }
         }
