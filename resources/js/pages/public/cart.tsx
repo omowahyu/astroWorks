@@ -180,7 +180,8 @@ export default function Cart() {
                                                         preferThumbnail={true}
                                                         imageType="thumbnail"
                                                         deviceType="auto"
-                                                        debug={false}
+                                                        debug={true}
+                                                        productImages={null}
                                                     />
                                                 </div>
                                                 <div>
@@ -232,7 +233,8 @@ export default function Cart() {
                                                                     preferThumbnail={true}
                                                                     imageType="thumbnail"
                                                                     deviceType="auto"
-                                                                    debug={false}
+                                                                    debug={true}
+                                                                    productImages={null}
                                                                 />
                                                             </div>
                                                             <div>

@@ -136,6 +136,125 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
         });
     }, []);
 
+    // Load image data from API when useDatabase is true but productImages is null
+    const loadImageFromAPI = useCallback(async (): Promise<void> => {
+        if (debug) {
+            console.log('🖼️ DynamicImageSingle: Starting loadImageFromAPI for product:', productId);
+        }
+        setLoading(true);
+
+        try {
+            const response = await fetch(`/api/products/${productId}/images`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const apiProductImages = await response.json();
+
+            if (debug) {
+                console.log('🖼️ DynamicImageSingle: API response for product:', productId, apiProductImages);
+            }
+
+            // Use the API data to load images
+            if (apiProductImages && (apiProductImages.thumbnails?.length > 0 || apiProductImages.gallery?.length > 0 || apiProductImages.hero?.length > 0 || apiProductImages.main_thumbnail)) {
+                // Temporarily set productImages and call loadImageFromProps
+                const tempProductImages = apiProductImages;
+
+                // Get device-specific images
+                const mobileImages = {
+                    thumbnails: filterImagesByDevice(tempProductImages.thumbnails, 'mobile'),
+                    gallery: filterImagesByDevice(tempProductImages.gallery, 'mobile'),
+                    hero: filterImagesByDevice(tempProductImages.hero, 'mobile')
+                };
+
+                const desktopImages = {
+                    thumbnails: filterImagesByDevice(tempProductImages.thumbnails, 'desktop'),
+                    gallery: filterImagesByDevice(tempProductImages.gallery, 'desktop'),
+                    hero: filterImagesByDevice(tempProductImages.hero, 'desktop')
+                };
+
+                // Select mobile image
+                let mobileImage: ProductImageData | null = null;
+                if (preferThumbnail && tempProductImages.main_thumbnail && (tempProductImages.main_thumbnail as ProductImageData & { device_type?: string }).device_type === 'mobile') {
+                    mobileImage = tempProductImages.main_thumbnail;
+                } else if (imageType === 'thumbnail' && mobileImages.thumbnails.length > 0) {
+                    mobileImage = mobileImages.thumbnails[0];
+                } else if (imageType === 'gallery' && mobileImages.gallery.length > 0) {
+                    mobileImage = mobileImages.gallery[Math.min(index - 1, mobileImages.gallery.length - 1)];
+                } else if (imageType === 'hero' && mobileImages.hero.length > 0) {
+                    mobileImage = mobileImages.hero[0];
+                }
+
+                // Select desktop image
+                let desktopImage: ProductImageData | null = null;
+                if (preferThumbnail && tempProductImages.main_thumbnail && (tempProductImages.main_thumbnail as ProductImageData & { device_type?: string }).device_type === 'desktop') {
+                    desktopImage = tempProductImages.main_thumbnail;
+                } else if (imageType === 'thumbnail' && desktopImages.thumbnails.length > 0) {
+                    desktopImage = desktopImages.thumbnails[0];
+                } else if (imageType === 'gallery' && desktopImages.gallery.length > 0) {
+                    desktopImage = desktopImages.gallery[Math.min(index - 1, desktopImages.gallery.length - 1)];
+                } else if (imageType === 'hero' && desktopImages.hero.length > 0) {
+                    desktopImage = desktopImages.hero[0];
+                }
+
+                // Fallback logic (same as loadImageFromProps)
+                if (!mobileImage && !desktopImage) {
+                    if (tempProductImages.main_thumbnail && tempProductImages.main_thumbnail.image_url?.trim()) {
+                        const mainThumbDeviceType = (tempProductImages.main_thumbnail as ProductImageData & { device_type?: string }).device_type || 'desktop';
+                        if (mainThumbDeviceType === 'mobile') {
+                            mobileImage = tempProductImages.main_thumbnail;
+                        } else {
+                            desktopImage = tempProductImages.main_thumbnail;
+                        }
+                    }
+
+                    if (!mobileImage && !desktopImage) {
+                        const allImages = [
+                            ...(tempProductImages.thumbnails || []),
+                            ...(tempProductImages.gallery || []),
+                            ...(tempProductImages.hero || [])
+                        ].filter(img => img?.image_url?.trim());
+
+                        if (allImages.length > 0) {
+                            const firstImage = allImages[Math.min(index - 1, allImages.length - 1)] || allImages[0];
+                            const imageDeviceType = (firstImage as ProductImageData & { device_type?: string }).device_type || 'desktop';
+                            if (imageDeviceType === 'mobile') {
+                                mobileImage = firstImage;
+                            } else {
+                                desktopImage = firstImage;
+                            }
+                        }
+                    }
+                }
+
+                // Set image URLs
+                setMobileImageUrl(mobileImage?.image_url || '');
+                setDesktopImageUrl(desktopImage?.image_url || '');
+
+                // Set error state only if no images are available for either device
+                const hasAnyImage = mobileImage || desktopImage;
+                setImageError(!hasAnyImage);
+
+                if (debug) {
+                    console.log('🖼️ API Image loading complete:', {
+                        productId,
+                        mobileImage: mobileImage?.image_url,
+                        desktopImage: desktopImage?.image_url,
+                        hasAnyImage
+                    });
+                }
+            } else {
+                if (debug) console.log('🖼️ No images found in API response for product:', productId);
+                setImageError(true);
+            }
+        } catch (error) {
+            if (debug) console.error('🖼️ Error loading image from API for product:', productId, error);
+            setImageError(true);
+        } finally {
+            setLoading(false);
+        }
+    }, [productId, imageType, preferThumbnail, index, debug, filterImagesByDevice]);
+
     // Load device-specific image data from Inertia props
     const loadImageFromProps = useCallback((): void => {
         if (debug) {
@@ -359,16 +478,24 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
         return () => observerRef.current?.disconnect();
     }, [setupIntersectionObserver]);
 
-    // Load image immediately when productImages are available (no lazy loading for better performance)
+    // Load image immediately when productImages are available OR when useDatabase is true (no lazy loading for better performance)
     useEffect(() => {
-        if (productId && productImages && !hasLoadedOnce) {
-            if (debug) {
-                console.log('🖼️ DynamicImageSingle: Loading image immediately for product:', productId);
+        if (productId && !hasLoadedOnce) {
+            if (productImages) {
+                if (debug) {
+                    console.log('🖼️ DynamicImageSingle: Loading image immediately from props for product:', productId);
+                }
+                setHasLoadedOnce(true);
+                loadImageFromProps();
+            } else if (useDatabase) {
+                if (debug) {
+                    console.log('🖼️ DynamicImageSingle: Loading image from API for product:', productId);
+                }
+                setHasLoadedOnce(true);
+                loadImageFromAPI();
             }
-            setHasLoadedOnce(true);
-            loadImageFromProps();
         }
-    }, [productId, productImages, hasLoadedOnce, loadImageFromProps, debug]);
+    }, [productId, productImages, useDatabase, hasLoadedOnce, loadImageFromProps, loadImageFromAPI, debug]);
 
     // Reset loading states when URLs change
     useEffect(() => setMobileImageLoaded(false), [mobileImageUrl]);

@@ -22,5 +22,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // Public API routes
 Route::prefix('products')->group(function () {
     Route::get('/', [ProductController::class, 'index'])->name('api.products.index');
+    Route::get('/{id}/images', [ProductController::class, 'images'])->name('api.products.images');
     Route::get('/{slug}', [ProductController::class, 'show'])->name('api.products.show');
 });

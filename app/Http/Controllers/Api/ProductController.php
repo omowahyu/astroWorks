@@ -231,4 +231,80 @@ class ProductController extends Controller
             'accessories' => $accessories,
         ]);
     }
+
+    /**
+     * Get images for a specific product by ID
+     */
+    public function images(int $id): JsonResponse
+    {
+        $product = Product::with([
+            'thumbnailImages',
+            'galleryImages',
+            'heroImages',
+            'mainThumbnail',
+        ])->find($id);
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found',
+            ], 404);
+        }
+
+        // Format image data
+        $imageData = [
+            'thumbnails' => $product->thumbnailImages->map(function ($image) {
+                return [
+                    'id' => $image->id,
+                    'image_type' => $image->image_type,
+                    'device_type' => $image->device_type ?? 'desktop',
+                    'aspect_ratio' => $image->aspect_ratio,
+                    'image_dimensions' => $image->image_dimensions,
+                    'sort_order' => $image->sort_order,
+                    'alt_text' => $image->alt_text,
+                    'image_url' => $image->image_url,
+                    'variants' => $image->image_variants,
+                ];
+            }),
+            'gallery' => $product->galleryImages->map(function ($image) {
+                return [
+                    'id' => $image->id,
+                    'image_type' => $image->image_type,
+                    'device_type' => $image->device_type ?? 'desktop',
+                    'aspect_ratio' => $image->aspect_ratio,
+                    'image_dimensions' => $image->image_dimensions,
+                    'sort_order' => $image->sort_order,
+                    'alt_text' => $image->alt_text,
+                    'image_url' => $image->image_url,
+                    'variants' => $image->image_variants,
+                ];
+            }),
+            'hero' => $product->heroImages->map(function ($image) {
+                return [
+                    'id' => $image->id,
+                    'image_type' => $image->image_type,
+                    'device_type' => $image->device_type ?? 'desktop',
+                    'aspect_ratio' => $image->aspect_ratio,
+                    'image_dimensions' => $image->image_dimensions,
+                    'sort_order' => $image->sort_order,
+                    'alt_text' => $image->alt_text,
+                    'image_url' => $image->image_url,
+                    'variants' => $image->image_variants,
+                ];
+            }),
+            'main_thumbnail' => $product->mainThumbnail ? [
+                'id' => $product->mainThumbnail->id,
+                'image_type' => $product->mainThumbnail->image_type,
+                'device_type' => $product->mainThumbnail->device_type ?? 'desktop',
+                'aspect_ratio' => $product->mainThumbnail->aspect_ratio,
+                'image_dimensions' => $product->mainThumbnail->image_dimensions,
+                'sort_order' => $product->mainThumbnail->sort_order,
+                'alt_text' => $product->mainThumbnail->alt_text,
+                'image_url' => $product->mainThumbnail->image_url,
+                'variants' => $product->mainThumbnail->image_variants,
+            ] : null,
+        ];
+
+        return response()->json($imageData);
+    }
 }
