@@ -13,7 +13,7 @@ export default function ProductShowcase() {
                             produksi.
                         </p>
                         <div className="flex justify-center mt-12">
-                            <img src="/images/statics/company/freeDesign&Cepat.png" alt="freeDesign&Cepat" className="object-cover w-full h-full" />
+                            <img src="/images/statics/company/FreeDesign&Cepat.png" alt="freeDesign&Cepat" className="object-cover w-full h-full" />
                         </div>
                     </div>
                     <div className="bg-gray-200 text-black p-2 lg:p-12 flex flex-col items-center justify-start">

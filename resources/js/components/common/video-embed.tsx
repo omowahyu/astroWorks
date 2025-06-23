@@ -17,7 +17,7 @@ interface VideoEmbedProps {
     autoplay?: boolean;
     loop?: boolean;
     muted?: boolean;
-    controls?: boolean;
+    controls?: boolean
     allowInteraction?: boolean;
 }
 
