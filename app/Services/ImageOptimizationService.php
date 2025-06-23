@@ -47,10 +47,6 @@ class ImageOptimizationService
         $originalPath = "images/{$baseFilename}.{$extension}";
         Storage::disk('public')->put($originalPath, $optimizedImageData);
 
-        // Also save to public/storage/images for direct access
-        $publicPath = public_path("storage/images/{$baseFilename}.{$extension}");
-        file_put_contents($publicPath, $optimizedImageData);
-
         $optimizedSize = strlen($optimizedImageData);
 
         return [
@@ -100,7 +96,6 @@ class ImageOptimizationService
         $mobilePortraitPath = "images/{$baseFilename}_mobile_portrait.{$extension}";
 
         Storage::disk('public')->put($mobilePortraitPath, $mobilePortraitData);
-        file_put_contents(public_path("storage/images/{$baseFilename}_mobile_portrait.{$extension}"), $mobilePortraitData);
         $variants['mobile_portrait'] = $mobilePortraitPath;
 
         // Mobile Square - optimized for square display (no hard crop)
@@ -110,7 +105,6 @@ class ImageOptimizationService
         $mobileSquarePath = "images/{$baseFilename}_mobile_square.{$extension}";
 
         Storage::disk('public')->put($mobileSquarePath, $mobileSquareData);
-        file_put_contents(public_path("storage/images/{$baseFilename}_mobile_square.{$extension}"), $mobileSquareData);
         $variants['mobile_square'] = $mobileSquarePath;
 
         // Desktop Landscape - optimized for desktop viewing (no hard crop)
@@ -120,7 +114,6 @@ class ImageOptimizationService
         $desktopLandscapePath = "images/{$baseFilename}_desktop_landscape.{$extension}";
 
         Storage::disk('public')->put($desktopLandscapePath, $desktopLandscapeData);
-        file_put_contents(public_path("storage/images/{$baseFilename}_desktop_landscape.{$extension}"), $desktopLandscapeData);
         $variants['desktop_landscape'] = $desktopLandscapePath;
 
         return $variants;
@@ -204,11 +197,7 @@ class ImageOptimizationService
                 // Delete from storage
                 Storage::disk('public')->delete($path);
 
-                // Delete from public directory
-                $publicPath = public_path('storage/'.$path);
-                if (file_exists($publicPath)) {
-                    unlink($publicPath);
-                }
+                // Note: No need to delete from public directory since it's a symbolic link
             }
         }
     }
