@@ -77,7 +77,7 @@ const VideoEmbed = ({
             <iframe
                 src={embedUrl}
                 title={video?.title || "YouTube video player"}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
                 allowFullScreen
                 className="h-full w-full -translate-y-2 scale-110"
                 style={{
