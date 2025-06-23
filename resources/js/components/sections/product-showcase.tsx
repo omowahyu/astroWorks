@@ -13,7 +13,7 @@ export default function ProductShowcase() {
                             produksi.
                         </p>
                         <div className="flex justify-center mt-12">
-                            <img src="/images/statics/company/FreeDesign&Cepat.png" alt="freeDesign&Cepat" className="object-cover w-full h-full" />
+                            <img src="/images/statics/company/FreeDesign&Cepat.png" alt="freeDesign&Cepat" className=" w-full h-full" />
                         </div>
                     </div>
                     <div className="bg-gray-200 text-black p-2 lg:p-12 flex flex-col items-center justify-start">
@@ -23,7 +23,7 @@ export default function ProductShowcase() {
                             skandinavia
                         </p>
                         <div className="flex justify-center items-center mt-12 h-full">
-                            <img src="/images/statics/company/JaminanTermurah.svg" alt="freeDesign&Cepat" className="object-cover w-full h-26 lg:h-56" />
+                            <img src="/images/statics/company/JaminanTermurah.svg" alt="freeDesign&Cepat" className=" w-full h-32 lg:h-56" />
                         </div>
                     </div>
                 </div>
