@@ -13,7 +13,7 @@ const Header = () => {
                     {/* Logo/Brand */}
                     <div className="flex-shrink-0 mt-4 lg:mt-0">
                         <a href="/" className="flex items-center">
-                            <img src='/images/logo/astrokabinet.svg' alt="Astro Works Logo" className="h-4 lg:h-5 mb-2 lg:ml-2" />
+                            <img src='/images/logo/astrokabinet.svg' alt="Astro Works Logo" className="h-10" />
                         </a>
                     </div>
                     {/* Bilah Navigasi */}

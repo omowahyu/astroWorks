@@ -246,7 +246,7 @@ export default function ProductShow() {
             </Link>
 
             <Link href="/" aria-label="Astro Works Homepage">
-              <img src="/images/logo/astrokabinet.svg" alt="Astro Works Logo" className="h-4" />
+              <img src="/images/logo/astrokabinet.svg" alt="Astro Works Logo" className="h-10" />
             </Link>
 
             <button className="hover:opacity-80 transition-opacity" aria-label="Share this page">
@@ -257,7 +257,7 @@ export default function ProductShow() {
           </div>
         </header>
         {/* Main Content */}
-        <main className="lg:h-auto lg:container bg-gray-50 lg:px-8 py-0 lg:py-32 mx-auto lg:mt-8 flex flex-col overflow-hidden lg:overflow-x-visible">
+        <main className="lg:h-auto lg:container bg-gray-50 lg:px-8 py-0 lg:py-32 mx-auto lg:mt-8 pb-10 flex flex-col overflow-hidden lg:overflow-x-visible ">
 
           {isAccessory ? (
             /* Accessory Product Layout */
