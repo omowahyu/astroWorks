@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 
 // --- React project imports ---
 import DynamicImageSingle from '../image/dynamic-image-single'; // TSX component with new database schema

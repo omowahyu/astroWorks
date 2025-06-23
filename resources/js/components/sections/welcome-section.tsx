@@ -48,27 +48,18 @@ export default function WelcomeSection() {
             <div className="container mx-auto mt-16">
                 <motion.div
                     ref={containerRef}
-                    className="relative h-72 w-full overflow-hidden rounded-lg bg-gray-200 cursor-grab"
+                    className="lg:hidden relative h-72 w-full overflow-hidden  cursor-grab"
                     whileTap={{ cursor: 'grabbing' }}
                 >
-                    {/* Elemen yang akan digeser. Gunakan inline-flex agar lebarnya pas dengan gambar di dalamnya. */}
                     <motion.div
                         ref={draggableRef}
                         className="inline-flex"
                         drag="x"
-                        // 4. Terapkan batas geser yang sudah dihitung secara dinamis
-                        // right: 0      -> Tidak bisa digeser ke kanan melebihi posisi awal
-                        // left: -dragConstraint -> Bisa digeser ke kiri sejauh perbedaan lebarnya
                         dragConstraints={{ right: 0, left: -dragConstraint }}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5 }}
                     >
-                        {/* KUNCI PADA GAMBAR:
-                      - h-72: Samakan tingginya dengan kontainer.
-                      - w-auto: Biarkan browser menghitung lebarnya secara otomatis sesuai rasio aspek.
-                      - max-w-none: SANGAT PENTING! Ini mengizinkan gambar menjadi lebih lebar dari parent-nya.
-                    */}
                         <img
                             src="/images/statics/company/Welcome.png"
                             className="pointer-events-none h-72 w-auto max-w-none object-cover"
@@ -85,6 +76,7 @@ export default function WelcomeSection() {
                         />
                     </motion.div>
                 </motion.div>
+                <img src="/images/statics/company/Welcome.png" className="hidden lg:block h-full w-full object-cover" alt="" />
             </div>
         </section>
     )

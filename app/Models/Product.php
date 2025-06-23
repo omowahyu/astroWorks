@@ -2,13 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
- * 
- *
  * @property int $id
  * @property string $name
  * @property string|null $description
@@ -26,6 +24,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property-read int|null $misc_options_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\UnitType> $unitTypes
  * @property-read int|null $unit_types_count
+ *
  * @method static \Database\Factories\ProductFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Product newQuery()
@@ -39,6 +38,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Product whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Product withTrashed()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Product withoutTrashed()
+ *
  * @mixin \Eloquent
  */
 class Product extends Model
@@ -94,9 +94,9 @@ class Product extends Model
     public function primaryImage(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(ProductImage::class)
-                    ->where('image_type', ProductImage::TYPE_THUMBNAIL)
-                    ->orderBy('sort_order')
-                    ->orderBy('created_at');
+            ->where('image_type', ProductImage::TYPE_THUMBNAIL)
+            ->orderBy('sort_order')
+            ->orderBy('created_at');
     }
 
     /**
@@ -129,9 +129,9 @@ class Product extends Model
     public function mainThumbnail(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(ProductImage::class)
-                    ->thumbnails()
-                    ->orderBy('sort_order')
-                    ->orderBy('created_at');
+            ->thumbnails()
+            ->orderBy('sort_order')
+            ->orderBy('created_at');
     }
 
     /**
@@ -144,8 +144,6 @@ class Product extends Model
 
     /**
      * Get the primary image URL or a fallback
-     *
-     * @return string
      */
     public function getPrimaryImageUrlAttribute(): string
     {
@@ -172,8 +170,6 @@ class Product extends Model
 
     /**
      * Get all image URLs for the product
-     *
-     * @return array
      */
     public function getImageUrlsAttribute(): array
     {
@@ -182,10 +178,11 @@ class Product extends Model
         // If no database images, use placeholder images
         if (empty($urls)) {
             $id = $this->id;
+
             return [
                 "https://picsum.photos/seed/{$id}/800/600",
-                "https://picsum.photos/seed/" . ($id + 1) . "/800/600",
-                "https://picsum.photos/seed/" . ($id + 2) . "/800/600",
+                'https://picsum.photos/seed/'.($id + 1).'/800/600',
+                'https://picsum.photos/seed/'.($id + 2).'/800/600',
             ];
         }
 
@@ -195,8 +192,6 @@ class Product extends Model
     /**
      * Get image variants for responsive display
      * Mobile: 4:5 portrait, Desktop: 16:9 landscape
-     *
-     * @return array
      */
     public function getImageVariantsAttribute(): array
     {

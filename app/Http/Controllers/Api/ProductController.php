@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
@@ -18,7 +18,7 @@ class ProductController extends Controller
             'thumbnailImages',
             'mainThumbnail',
             'defaultUnit',
-            'categories'
+            'categories',
         ]);
 
         // Apply filters if provided
@@ -29,7 +29,7 @@ class ProductController extends Controller
         }
 
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('name', 'like', '%'.$request->search.'%');
         }
 
         $products = $query->paginate($request->get('per_page', 15));
@@ -42,7 +42,7 @@ class ProductController extends Controller
                 'last_page' => $products->lastPage(),
                 'per_page' => $products->perPage(),
                 'total' => $products->total(),
-            ]
+            ],
         ]);
     }
 
@@ -60,10 +60,10 @@ class ProductController extends Controller
             'miscOptions',
             'defaultUnit',
             'defaultMisc',
-            'categories'
+            'categories',
         ])->where('slug', $slug)->first();
 
-        if (!$product) {
+        if (! $product) {
             // Try to find by ID if slug doesn't work
             $product = Product::with([
                 'thumbnailImages',
@@ -74,14 +74,14 @@ class ProductController extends Controller
                 'miscOptions',
                 'defaultUnit',
                 'defaultMisc',
-                'categories'
+                'categories',
             ])->find($slug);
         }
 
-        if (!$product) {
+        if (! $product) {
             return response()->json([
                 'success' => false,
-                'message' => 'Product not found'
+                'message' => 'Product not found',
             ], 404);
         }
 
@@ -97,7 +97,7 @@ class ProductController extends Controller
             'thumbnailImages',
             'galleryImages',
             'heroImages',
-            'primaryImage'
+            'primaryImage',
         ])->get()->map(function ($accessory) {
             return [
                 'id' => $accessory->id,
@@ -115,7 +115,7 @@ class ProductController extends Controller
                             'sort_order' => $image->sort_order,
                             'image_url' => $image->image_url,
                             'alt_text' => $image->alt_text,
-                            'variants' => $image->image_variants
+                            'variants' => $image->image_variants,
                         ];
                     }),
                     'gallery' => $accessory->galleryImages->map(function ($image) {
@@ -127,7 +127,7 @@ class ProductController extends Controller
                             'sort_order' => $image->sort_order,
                             'image_url' => $image->image_url,
                             'alt_text' => $image->alt_text,
-                            'variants' => $image->image_variants
+                            'variants' => $image->image_variants,
                         ];
                     }),
                     'hero' => $accessory->heroImages->map(function ($image) {
@@ -139,7 +139,7 @@ class ProductController extends Controller
                             'sort_order' => $image->sort_order,
                             'image_url' => $image->image_url,
                             'alt_text' => $image->alt_text,
-                            'variants' => $image->image_variants
+                            'variants' => $image->image_variants,
                         ];
                     }),
                     'main_thumbnail' => $accessory->mainThumbnail ? [
@@ -150,13 +150,13 @@ class ProductController extends Controller
                         'sort_order' => $accessory->mainThumbnail->sort_order,
                         'image_url' => $accessory->mainThumbnail->image_url,
                         'alt_text' => $accessory->mainThumbnail->alt_text,
-                        'variants' => $accessory->mainThumbnail->image_variants
-                    ] : null
+                        'variants' => $accessory->mainThumbnail->image_variants,
+                    ] : null,
                 ],
                 'unit_types' => $accessory->unitTypes,
                 'misc_options' => $accessory->miscOptions,
                 'default_unit' => $accessory->defaultUnit,
-                'default_misc' => $accessory->defaultMisc
+                'default_misc' => $accessory->defaultMisc,
             ];
         });
 
@@ -177,7 +177,7 @@ class ProductController extends Controller
                         'sort_order' => $image->sort_order,
                         'alt_text' => $image->alt_text,
                         'image_url' => $image->image_url,
-                        'variants' => $image->image_variants
+                        'variants' => $image->image_variants,
                     ];
                 }),
                 'gallery' => $product->galleryImages->map(function ($image) {
@@ -190,7 +190,7 @@ class ProductController extends Controller
                         'sort_order' => $image->sort_order,
                         'alt_text' => $image->alt_text,
                         'image_url' => $image->image_url,
-                        'variants' => $image->image_variants
+                        'variants' => $image->image_variants,
                     ];
                 }),
                 'hero' => $product->heroImages->map(function ($image) {
@@ -203,7 +203,7 @@ class ProductController extends Controller
                         'sort_order' => $image->sort_order,
                         'alt_text' => $image->alt_text,
                         'image_url' => $image->image_url,
-                        'variants' => $image->image_variants
+                        'variants' => $image->image_variants,
                     ];
                 }),
                 'main_thumbnail' => $product->mainThumbnail ? [
@@ -215,20 +215,20 @@ class ProductController extends Controller
                     'sort_order' => $product->mainThumbnail->sort_order,
                     'alt_text' => $product->mainThumbnail->alt_text,
                     'image_url' => $product->mainThumbnail->image_url,
-                    'variants' => $product->mainThumbnail->image_variants
-                ] : null
+                    'variants' => $product->mainThumbnail->image_variants,
+                ] : null,
             ],
             'unit_types' => $product->unitTypes,
             'misc_options' => $product->miscOptions,
             'default_unit' => $product->defaultUnit,
             'default_misc' => $product->defaultMisc,
-            'categories' => $product->categories
+            'categories' => $product->categories,
         ];
 
         return response()->json([
             'success' => true,
             'data' => $productData,
-            'accessories' => $accessories
+            'accessories' => $accessories,
         ]);
     }
 }

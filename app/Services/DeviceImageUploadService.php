@@ -3,33 +3,30 @@
 namespace App\Services;
 
 use App\Models\ProductImage;
-use App\Services\ImageCompressionService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class DeviceImageUploadService
 {
     private ImageManager $imageManager;
+
     private ImageCompressionService $compressionService;
 
     public function __construct(ImageCompressionService $compressionService)
     {
-        $this->imageManager = new ImageManager(new Driver());
+        $this->imageManager = new ImageManager(new Driver);
         $this->compressionService = $compressionService;
     }
 
     /**
      * Upload and process image for specific device type with compression
      *
-     * @param UploadedFile $file
-     * @param int $productId
-     * @param string $deviceType ('mobile' or 'desktop')
-     * @param string $imageType ('thumbnail', 'gallery', 'hero')
-     * @param int $sortOrder
-     * @param string $compressionLevel ('lossless', 'minimal', 'moderate', 'aggressive')
-     * @return ProductImage
+     * @param  string  $deviceType  ('mobile' or 'desktop')
+     * @param  string  $imageType  ('thumbnail', 'gallery', 'hero')
+     * @param  string  $compressionLevel  ('lossless', 'minimal', 'moderate', 'aggressive')
+     *
      * @throws \Exception
      */
     public function uploadForDevice(
@@ -41,7 +38,7 @@ class DeviceImageUploadService
         string $compressionLevel = 'lossless'
     ): ProductImage {
         // Validate device type
-        if (!in_array($deviceType, ProductImage::DEVICE_TYPES)) {
+        if (! in_array($deviceType, ProductImage::DEVICE_TYPES)) {
             throw new \Exception("Invalid device type: {$deviceType}");
         }
 
@@ -60,7 +57,7 @@ class DeviceImageUploadService
         $filename = $this->generateFilename($productId, $deviceType, $imageType, $file->getClientOriginalExtension());
 
         // Store the compressed image
-        $imagePath = 'images/' . $filename;
+        $imagePath = 'images/'.$filename;
         Storage::disk('public')->put($imagePath, $compressionResult['compressed_data']);
 
         // Create database record with compression info
@@ -78,17 +75,15 @@ class DeviceImageUploadService
                 'compressed_size' => $compressionResult['compressed_size'],
                 'compression_ratio' => $compressionResult['compression_ratio'],
                 'compression_level' => $compressionLevel,
-                'quality_used' => $compressionResult['quality_used']
+                'quality_used' => $compressionResult['quality_used'],
             ],
-            'sort_order' => $sortOrder
+            'sort_order' => $sortOrder,
         ]);
     }
 
     /**
      * Validate aspect ratio for device type
      *
-     * @param float $aspectRatio
-     * @param string $deviceType
      * @throws \Exception
      */
     private function validateAspectRatio(float $aspectRatio, string $deviceType): void
@@ -99,8 +94,8 @@ class DeviceImageUploadService
             $expectedRatio = ProductImage::ASPECT_RATIO_MOBILE; // 4:5 = 0.8
             if (abs($aspectRatio - $expectedRatio) > $tolerance) {
                 throw new \Exception(
-                    "Mobile images must have 4:5 aspect ratio (0.8). Current ratio: {$aspectRatio}. " .
-                    "Please upload an image with dimensions like 400x500, 800x1000, etc."
+                    "Mobile images must have 4:5 aspect ratio (0.8). Current ratio: {$aspectRatio}. ".
+                    'Please upload an image with dimensions like 400x500, 800x1000, etc.'
                 );
             }
         }
@@ -109,8 +104,8 @@ class DeviceImageUploadService
             $expectedRatio = ProductImage::ASPECT_RATIO_DESKTOP; // 16:9 = 1.78
             if (abs($aspectRatio - $expectedRatio) > $tolerance) {
                 throw new \Exception(
-                    "Desktop images must have 16:9 aspect ratio (1.78). Current ratio: {$aspectRatio}. " .
-                    "Please upload an image with dimensions like 1920x1080, 1600x900, etc."
+                    "Desktop images must have 16:9 aspect ratio (1.78). Current ratio: {$aspectRatio}. ".
+                    'Please upload an image with dimensions like 1920x1080, 1600x900, etc.'
                 );
             }
         }
@@ -118,30 +113,17 @@ class DeviceImageUploadService
 
     /**
      * Generate unique filename
-     *
-     * @param int $productId
-     * @param string $deviceType
-     * @param string $imageType
-     * @param string $extension
-     * @return string
      */
     private function generateFilename(int $productId, string $deviceType, string $imageType, string $extension): string
     {
         $timestamp = now()->format('YmdHis');
         $random = substr(md5(uniqid()), 0, 6);
-        
+
         return "product_{$productId}_{$deviceType}_{$imageType}_{$timestamp}_{$random}.{$extension}";
     }
 
     /**
      * Upload multiple images for device type with compression
-     *
-     * @param array $files
-     * @param int $productId
-     * @param string $deviceType
-     * @param string $imageType
-     * @param string $compressionLevel
-     * @return array
      */
     public function uploadMultipleForDevice(
         array $files,
@@ -167,23 +149,20 @@ class DeviceImageUploadService
             } catch (\Exception $e) {
                 $errors[] = [
                     'file' => $file->getClientOriginalName(),
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ];
             }
         }
 
         return [
             'uploaded' => $uploadedImages,
-            'errors' => $errors
+            'errors' => $errors,
         ];
     }
 
     /**
      * Get images for specific device and product
      *
-     * @param int $productId
-     * @param string $deviceType
-     * @param string|null $imageType
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getImagesForDevice(int $productId, string $deviceType, ?string $imageType = null)
@@ -201,10 +180,6 @@ class DeviceImageUploadService
 
     /**
      * Get thumbnail image for device
-     *
-     * @param int $productId
-     * @param string $deviceType
-     * @return ProductImage|null
      */
     public function getThumbnailForDevice(int $productId, string $deviceType): ?ProductImage
     {
@@ -216,9 +191,6 @@ class DeviceImageUploadService
 
     /**
      * Delete image and file
-     *
-     * @param ProductImage $image
-     * @return bool
      */
     public function deleteImage(ProductImage $image): bool
     {
@@ -233,10 +205,6 @@ class DeviceImageUploadService
 
     /**
      * Get compression analysis for uploaded file
-     *
-     * @param UploadedFile $file
-     * @param string $deviceType
-     * @return array
      */
     public function analyzeImageForUpload(UploadedFile $file, string $deviceType): array
     {
@@ -255,7 +223,7 @@ class DeviceImageUploadService
             try {
                 $this->validateAspectRatio($aspectRatio, $deviceType);
                 $aspectRatioValid = true;
-                $aspectRatioMessage = 'Aspect ratio is valid for ' . $deviceType;
+                $aspectRatioMessage = 'Aspect ratio is valid for '.$deviceType;
             } catch (\Exception $e) {
                 $aspectRatioMessage = $e->getMessage();
             }
@@ -268,28 +236,26 @@ class DeviceImageUploadService
                     'mime_type' => $file->getMimeType(),
                     'width' => $imageInfo[0],
                     'height' => $imageInfo[1],
-                    'aspect_ratio' => $aspectRatio
+                    'aspect_ratio' => $aspectRatio,
                 ],
                 'device_compatibility' => [
                     'device_type' => $deviceType,
                     'aspect_ratio_valid' => $aspectRatioValid,
-                    'aspect_ratio_message' => $aspectRatioMessage
+                    'aspect_ratio_message' => $aspectRatioMessage,
                 ],
                 'compression_recommendation' => $recommendation,
-                'upload_ready' => $aspectRatioValid && $file->getSize() <= 30 * 1024 * 1024
+                'upload_ready' => $aspectRatioValid && $file->getSize() <= 30 * 1024 * 1024,
             ];
         } catch (\Exception $e) {
             return [
                 'error' => $e->getMessage(),
-                'upload_ready' => false
+                'upload_ready' => false,
             ];
         }
     }
 
     /**
      * Get aspect ratio info for device types
-     *
-     * @return array
      */
     public static function getAspectRatioInfo(): array
     {
@@ -298,21 +264,19 @@ class DeviceImageUploadService
                 'ratio' => ProductImage::ASPECT_RATIO_MOBILE,
                 'description' => '4:5 (Portrait)',
                 'examples' => ['400x500', '800x1000', '1200x1500'],
-                'recommended_min' => '400x500'
+                'recommended_min' => '400x500',
             ],
             ProductImage::DEVICE_DESKTOP => [
                 'ratio' => ProductImage::ASPECT_RATIO_DESKTOP,
                 'description' => '16:9 (Landscape)',
                 'examples' => ['1920x1080', '1600x900', '1280x720'],
-                'recommended_min' => '1280x720'
-            ]
+                'recommended_min' => '1280x720',
+            ],
         ];
     }
 
     /**
      * Get compression level recommendations
-     *
-     * @return array
      */
     public static function getCompressionLevels(): array
     {
@@ -321,26 +285,26 @@ class DeviceImageUploadService
                 'label' => 'Lossless',
                 'description' => 'Remove metadata only, no quality loss',
                 'recommended_for' => 'High-quality images, professional photos',
-                'typical_savings' => '5-15%'
+                'typical_savings' => '5-15%',
             ],
             'minimal' => [
                 'label' => 'Minimal',
                 'description' => 'Light compression with minimal quality loss',
                 'recommended_for' => 'Product photos, detailed images',
-                'typical_savings' => '15-30%'
+                'typical_savings' => '15-30%',
             ],
             'moderate' => [
                 'label' => 'Moderate',
                 'description' => 'Balanced compression for web use',
                 'recommended_for' => 'General web images, galleries',
-                'typical_savings' => '30-50%'
+                'typical_savings' => '30-50%',
             ],
             'aggressive' => [
                 'label' => 'Aggressive',
                 'description' => 'Maximum compression for smaller files',
                 'recommended_for' => 'Large files, thumbnails',
-                'typical_savings' => '50-70%'
-            ]
+                'typical_savings' => '50-70%',
+            ],
         ];
     }
 }

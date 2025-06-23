@@ -20,11 +20,11 @@ foreach ($products as $product) {
     echo "   Thumbnail Images: {$product->thumbnailImages->count()}\n";
     echo "   Gallery Images: {$product->galleryImages->count()}\n";
     echo "   Hero Images: {$product->heroImages->count()}\n";
-    
+
     if ($product->mainThumbnail) {
         echo "   Main Thumbnail: {$product->mainThumbnail->image_path} (sort_order: {$product->mainThumbnail->sort_order})\n";
     }
-    
+
     // Show ordering for gallery images
     if ($product->galleryImages->count() > 0) {
         echo "   Gallery Images Order:\n";
@@ -32,7 +32,7 @@ foreach ($products as $product) {
             echo "     - {$image->image_path} (sort_order: {$image->sort_order})\n";
         }
     }
-    
+
     echo "\n";
 }
 
@@ -62,24 +62,24 @@ echo "====================================\n";
 
 $product = Product::with([
     'thumbnailImages',
-    'galleryImages', 
+    'galleryImages',
     'heroImages',
-    'mainThumbnail'
+    'mainThumbnail',
 ])->first();
 
 if ($product) {
     echo "Testing data mapping for Product: {$product->name}\n";
-    
+
     $thumbnailData = $product->thumbnailImages->map(function ($image) {
         return [
             'id' => $image->id,
             'image_type' => $image->image_type,
             'sort_order' => $image->sort_order,
             'alt_text' => $image->alt_text,
-            'image_url' => $image->image_url
+            'image_url' => $image->image_url,
         ];
     });
-    
+
     echo "Thumbnail data structure:\n";
     foreach ($thumbnailData as $data) {
         echo "  - ID: {$data['id']}, Type: {$data['image_type']}, Order: {$data['sort_order']}\n";

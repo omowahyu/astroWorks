@@ -1,9 +1,9 @@
 <?php
 
+use App\Http\Controllers\HealthCheckController;
+use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\HealthCheckController;
 
 Route::get('/', function () {
     // Cache homepage data for 10 minutes (more aggressive caching)
@@ -14,105 +14,105 @@ Route::get('/', function () {
     // Optimized query with selective fields and limited data + longer caching
     $categoriesWithProducts = \Illuminate\Support\Facades\Cache::remember('homepage.categories', 600, function () {
         return \App\Models\Category::select(['categories.id', 'categories.name', 'categories.is_accessory'])
-        ->with([
-            'products' => function ($query) {
-                $query->select(['products.id', 'products.name', 'products.description', 'products.slug'])
-                      ->take(6); // Limit products per category for homepage
-            },
-            'products.thumbnailImages' => function ($query) {
-                $query->select(['product_images.id', 'product_images.product_id', 'product_images.image_path', 'product_images.alt_text', 'product_images.sort_order', 'product_images.device_type', 'product_images.aspect_ratio'])
-                      ->orderBy('product_images.sort_order')
-                      ->take(2); // Get both mobile and desktop thumbnails
-            },
-            'products.galleryImages' => function ($query) {
-                $query->select(['product_images.id', 'product_images.product_id', 'product_images.image_path', 'product_images.alt_text', 'product_images.sort_order', 'product_images.device_type', 'product_images.aspect_ratio'])
-                      ->orderBy('product_images.sort_order')
-                      ->take(4); // Get some gallery images for homepage
-            },
-            'products.heroImages' => function ($query) {
-                $query->select(['product_images.id', 'product_images.product_id', 'product_images.image_path', 'product_images.alt_text', 'product_images.sort_order', 'product_images.device_type', 'product_images.aspect_ratio'])
-                      ->orderBy('product_images.sort_order')
-                      ->take(2); // Get both mobile and desktop hero images
-            },
-            'products.defaultUnit' => function ($query) {
-                $query->select(['unit_types.id', 'unit_types.product_id', 'unit_types.label', 'unit_types.price']);
-            }
-        ])
+            ->with([
+                'products' => function ($query) {
+                    $query->select(['products.id', 'products.name', 'products.description', 'products.slug'])
+                        ->take(6); // Limit products per category for homepage
+                },
+                'products.thumbnailImages' => function ($query) {
+                    $query->select(['product_images.id', 'product_images.product_id', 'product_images.image_path', 'product_images.alt_text', 'product_images.sort_order', 'product_images.device_type', 'product_images.aspect_ratio'])
+                        ->orderBy('product_images.sort_order')
+                        ->take(2); // Get both mobile and desktop thumbnails
+                },
+                'products.galleryImages' => function ($query) {
+                    $query->select(['product_images.id', 'product_images.product_id', 'product_images.image_path', 'product_images.alt_text', 'product_images.sort_order', 'product_images.device_type', 'product_images.aspect_ratio'])
+                        ->orderBy('product_images.sort_order')
+                        ->take(4); // Get some gallery images for homepage
+                },
+                'products.heroImages' => function ($query) {
+                    $query->select(['product_images.id', 'product_images.product_id', 'product_images.image_path', 'product_images.alt_text', 'product_images.sort_order', 'product_images.device_type', 'product_images.aspect_ratio'])
+                        ->orderBy('product_images.sort_order')
+                        ->take(2); // Get both mobile and desktop hero images
+                },
+                'products.defaultUnit' => function ($query) {
+                    $query->select(['unit_types.id', 'unit_types.product_id', 'unit_types.label', 'unit_types.price']);
+                },
+            ])
             ->whereHas('products') // Only categories that have products
             ->get()
             ->map(function ($category) {
-            return [
-                'id' => $category->id,
-                'name' => $category->name,
-                'is_accessory' => $category->is_accessory,
-                'products' => $category->products->map(function ($product) {
-                    // Get device-specific thumbnails
-                    $mobileThumbnail = $product->thumbnailImages->where('device_type', 'mobile')->first();
-                    $desktopThumbnail = $product->thumbnailImages->where('device_type', 'desktop')->first();
-                    $anyThumbnail = $product->thumbnailImages->first(); // Fallback
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'is_accessory' => $category->is_accessory,
+                    'products' => $category->products->map(function ($product) {
+                        // Get device-specific thumbnails
+                        $mobileThumbnail = $product->thumbnailImages->where('device_type', 'mobile')->first();
+                        $desktopThumbnail = $product->thumbnailImages->where('device_type', 'desktop')->first();
+                        $anyThumbnail = $product->thumbnailImages->first(); // Fallback
 
-                    return [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'description' => $product->description,
-                        'slug' => $product->slug,
-                        'primary_image_url' => $product->primary_image_url,
-                        'images' => [
-                            'thumbnails' => array_filter([
-                                $mobileThumbnail ? [
-                                    'id' => $mobileThumbnail->id,
-                                    'image_url' => $mobileThumbnail->image_url,
-                                    'alt_text' => $mobileThumbnail->alt_text,
-                                    'device_type' => $mobileThumbnail->device_type,
-                                    'aspect_ratio' => $mobileThumbnail->aspect_ratio
+                        return [
+                            'id' => $product->id,
+                            'name' => $product->name,
+                            'description' => $product->description,
+                            'slug' => $product->slug,
+                            'primary_image_url' => $product->primary_image_url,
+                            'images' => [
+                                'thumbnails' => array_filter([
+                                    $mobileThumbnail ? [
+                                        'id' => $mobileThumbnail->id,
+                                        'image_url' => $mobileThumbnail->image_url,
+                                        'alt_text' => $mobileThumbnail->alt_text,
+                                        'device_type' => $mobileThumbnail->device_type,
+                                        'aspect_ratio' => $mobileThumbnail->aspect_ratio,
+                                    ] : null,
+                                    $desktopThumbnail ? [
+                                        'id' => $desktopThumbnail->id,
+                                        'image_url' => $desktopThumbnail->image_url,
+                                        'alt_text' => $desktopThumbnail->alt_text,
+                                        'device_type' => $desktopThumbnail->device_type,
+                                        'aspect_ratio' => $desktopThumbnail->aspect_ratio,
+                                    ] : null,
+                                ]),
+                                'gallery' => $product->galleryImages->map(function ($image) {
+                                    return [
+                                        'id' => $image->id,
+                                        'image_url' => $image->image_url,
+                                        'alt_text' => $image->alt_text,
+                                        'device_type' => $image->device_type ?? 'desktop',
+                                        'aspect_ratio' => $image->aspect_ratio,
+                                    ];
+                                })->toArray(),
+                                'hero' => $product->heroImages->map(function ($image) {
+                                    return [
+                                        'id' => $image->id,
+                                        'image_url' => $image->image_url,
+                                        'alt_text' => $image->alt_text,
+                                        'device_type' => $image->device_type ?? 'desktop',
+                                        'aspect_ratio' => $image->aspect_ratio,
+                                    ];
+                                })->toArray(),
+                                'main_thumbnail' => $anyThumbnail ? [
+                                    'id' => $anyThumbnail->id,
+                                    'image_url' => $anyThumbnail->image_url,
+                                    'alt_text' => $anyThumbnail->alt_text,
+                                    'device_type' => $anyThumbnail->device_type ?? 'desktop',
+                                    'aspect_ratio' => $anyThumbnail->aspect_ratio,
                                 ] : null,
-                                $desktopThumbnail ? [
-                                    'id' => $desktopThumbnail->id,
-                                    'image_url' => $desktopThumbnail->image_url,
-                                    'alt_text' => $desktopThumbnail->alt_text,
-                                    'device_type' => $desktopThumbnail->device_type,
-                                    'aspect_ratio' => $desktopThumbnail->aspect_ratio
-                                ] : null
-                            ]),
-                            'gallery' => $product->galleryImages->map(function ($image) {
-                                return [
-                                    'id' => $image->id,
-                                    'image_url' => $image->image_url,
-                                    'alt_text' => $image->alt_text,
-                                    'device_type' => $image->device_type ?? 'desktop',
-                                    'aspect_ratio' => $image->aspect_ratio
-                                ];
-                            })->toArray(),
-                            'hero' => $product->heroImages->map(function ($image) {
-                                return [
-                                    'id' => $image->id,
-                                    'image_url' => $image->image_url,
-                                    'alt_text' => $image->alt_text,
-                                    'device_type' => $image->device_type ?? 'desktop',
-                                    'aspect_ratio' => $image->aspect_ratio
-                                ];
-                            })->toArray(),
-                            'main_thumbnail' => $anyThumbnail ? [
-                                'id' => $anyThumbnail->id,
-                                'image_url' => $anyThumbnail->image_url,
-                                'alt_text' => $anyThumbnail->alt_text,
-                                'device_type' => $anyThumbnail->device_type ?? 'desktop',
-                                'aspect_ratio' => $anyThumbnail->aspect_ratio
-                            ] : null
-                        ],
-                        'default_unit' => $product->defaultUnit ? [
-                            'label' => $product->defaultUnit->label,
-                            'price' => $product->defaultUnit->price
-                        ] : null
-                    ];
-                })
-            ];
-        });
+                            ],
+                            'default_unit' => $product->defaultUnit ? [
+                                'label' => $product->defaultUnit->label,
+                                'price' => $product->defaultUnit->price,
+                        ] : null,
+                        ];
+                    }),
+                ];
+            });
     });
 
     return Inertia::render('public/homepage', [
         'featuredVideo' => $featuredVideo,
-        'categories' => $categoriesWithProducts
+        'categories' => $categoriesWithProducts,
     ]);
 })->name('home');
 
@@ -149,21 +149,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
                         'id' => $product->id,
                         'name' => $product->name,
                         'created_at' => $product->created_at,
-                        'primary_image_url' => $product->primary_image_url
+                        'primary_image_url' => $product->primary_image_url,
                     ];
-                })
+                }),
         ];
 
         $videosOverview = [
             'total_videos' => \App\Models\Video::count(),
             'active_videos' => \App\Models\Video::where('is_active', true)->count(),
             'featured_video' => \App\Models\Video::active()->ordered()->first(),
-            'recent_videos' => \App\Models\Video::latest()->take(5)->get()
+            'recent_videos' => \App\Models\Video::latest()->take(5)->get(),
         ];
 
         return Inertia::render('dashboard', [
             'productsOverview' => $productsOverview,
-            'videosOverview' => $videosOverview
+            'videosOverview' => $videosOverview,
         ]);
     })->name('dashboard');
 });

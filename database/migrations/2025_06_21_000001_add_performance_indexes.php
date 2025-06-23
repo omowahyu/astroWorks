@@ -162,7 +162,7 @@ return new class extends Migration
     public function down(): void
     {
         // Drop indexes in reverse order
-        
+
         Schema::table('users', function (Blueprint $table) {
             $table->dropIndex('users_email_verified_at_index');
         });
@@ -230,6 +230,4 @@ return new class extends Migration
             $table->dropIndex('products_slug_index');
         });
     }
-
-
 };

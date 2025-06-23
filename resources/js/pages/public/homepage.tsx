@@ -15,7 +15,7 @@ interface PageProps extends SharedData {
 
 // React functional component
 export default function Welcome() {
-    const { auth, featuredVideo, categories } = usePage<PageProps>().props;
+    const { featuredVideo, categories } = usePage<PageProps>().props;
 
     return (
         <HomeDefaultLayout

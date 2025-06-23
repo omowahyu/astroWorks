@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Video Model
@@ -38,7 +38,7 @@ class Video extends Model
         'autoplay',
         'loop',
         'muted',
-        'sort_order'
+        'sort_order',
     ];
 
     protected $casts = [
@@ -46,7 +46,7 @@ class Video extends Model
         'autoplay' => 'boolean',
         'loop' => 'boolean',
         'muted' => 'boolean',
-        'sort_order' => 'integer'
+        'sort_order' => 'integer',
     ];
 
     /**
@@ -56,6 +56,7 @@ class Video extends Model
     {
         $pattern = '/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/';
         preg_match($pattern, $url, $matches);
+
         return $matches[1] ?? null;
     }
 
@@ -72,7 +73,7 @@ class Video extends Model
 
         if ($this->loop) {
             $params[] = 'loop=1';
-            $params[] = 'playlist=' . $this->youtube_id;
+            $params[] = 'playlist='.$this->youtube_id;
         }
 
         if ($this->muted) {
@@ -84,7 +85,7 @@ class Video extends Model
 
         $queryString = implode('&', $params);
 
-        return "https://www.youtube.com/embed/{$this->youtube_id}?" . $queryString;
+        return "https://www.youtube.com/embed/{$this->youtube_id}?".$queryString;
     }
 
     /**
@@ -122,7 +123,7 @@ class Video extends Model
     {
         static::saving(function ($video) {
             // Extract YouTube ID from URL if not set
-            if (!$video->youtube_id && $video->youtube_url) {
+            if (! $video->youtube_id && $video->youtube_url) {
                 $video->youtube_id = self::extractYouTubeId($video->youtube_url);
             }
         });

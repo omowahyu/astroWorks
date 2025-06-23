@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Video;
+use Illuminate\Database\Seeder;
 
 class VideoSeeder extends Seeder
 {
@@ -21,7 +21,7 @@ class VideoSeeder extends Seeder
                 'autoplay' => false, // Disable autoplay to prevent CORS issues
                 'loop' => false,
                 'muted' => true,
-                'sort_order' => 1
+                'sort_order' => 1,
             ],
             [
                 'title' => 'Custom Cabinet Installation Process',
@@ -31,7 +31,7 @@ class VideoSeeder extends Seeder
                 'autoplay' => false,
                 'loop' => false,
                 'muted' => true,
-                'sort_order' => 2
+                'sort_order' => 2,
             ],
             [
                 'title' => 'Behind the Scenes: Cabinet Manufacturing',
@@ -41,7 +41,7 @@ class VideoSeeder extends Seeder
                 'autoplay' => false,
                 'loop' => false,
                 'muted' => true,
-                'sort_order' => 3
+                'sort_order' => 3,
             ],
             [
                 'title' => 'Customer Testimonials',
@@ -51,8 +51,8 @@ class VideoSeeder extends Seeder
                 'autoplay' => false,
                 'loop' => false,
                 'muted' => true,
-                'sort_order' => 4
-            ]
+                'sort_order' => 4,
+            ],
         ];
 
         foreach ($videos as $videoData) {

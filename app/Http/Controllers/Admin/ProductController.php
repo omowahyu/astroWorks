@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Product;
 use App\Models\Category;
+use App\Models\Product;
 use App\Models\ProductImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+
 /**
  * Admin Product Controller
  *
@@ -44,19 +45,19 @@ class ProductController extends Controller
                     return [
                         'id' => $category->id,
                         'name' => $category->name,
-                        'is_accessory' => $category->is_accessory
+                        'is_accessory' => $category->is_accessory,
                     ];
                 }),
                 'primary_image_url' => $product->primary_image_url,
                 'thumbnail_image' => $thumbnails->first() ? [
                     'id' => $thumbnails->first()->id,
                     'image_url' => $thumbnails->first()->image_url,
-                    'alt_text' => $thumbnails->first()->alt_text
+                    'alt_text' => $thumbnails->first()->alt_text,
                 ] : null,
                 'default_unit' => $product->defaultUnit ? [
                     'id' => $product->defaultUnit->id,
                     'label' => $product->defaultUnit->label,
-                    'price' => $product->defaultUnit->price
+                    'price' => $product->defaultUnit->price,
                 ] : null,
                 'images' => [
                     'thumbnails' => $thumbnails->map(function ($image) {
@@ -76,7 +77,7 @@ class ProductController extends Controller
                                 'mobile_portrait' => null,
                                 'mobile_square' => null,
                                 'desktop_landscape' => null,
-                            ]
+                            ],
                         ];
                     })->values(),
                     'gallery' => $gallery->map(function ($image) {
@@ -96,7 +97,7 @@ class ProductController extends Controller
                                 'mobile_portrait' => null,
                                 'mobile_square' => null,
                                 'desktop_landscape' => null,
-                            ]
+                            ],
                         ];
                     })->values(),
                     'hero' => $hero->map(function ($image) {
@@ -116,7 +117,7 @@ class ProductController extends Controller
                                 'mobile_portrait' => null,
                                 'mobile_square' => null,
                                 'desktop_landscape' => null,
-                            ]
+                            ],
                         ];
                     })->values(),
                     'main_thumbnail' => $thumbnails->first() ? [
@@ -135,14 +136,14 @@ class ProductController extends Controller
                             'mobile_portrait' => null,
                             'mobile_square' => null,
                             'desktop_landscape' => null,
-                        ]
-                    ] : null
-                ]
+                        ],
+                    ] : null,
+                ],
             ];
         });
 
         return Inertia::render('dashboard/products/index', [
-            'products' => $formattedProducts
+            'products' => $formattedProducts,
         ]);
     }
 
@@ -159,9 +160,9 @@ class ProductController extends Controller
                     'id' => $category->id,
                     'name' => $category->name,
                     'is_accessory' => $category->is_accessory,
-                    'products_count' => $category->products_count
+                    'products_count' => $category->products_count,
                 ];
-            })
+            }),
         ]);
     }
 
@@ -186,7 +187,7 @@ class ProductController extends Controller
             'mobile_images' => 'array',
             'mobile_images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:30720',
             'desktop_images' => 'array',
-            'desktop_images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:30720'
+            'desktop_images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:30720',
         ]);
 
         // Generate unique slug
@@ -194,14 +195,14 @@ class ProductController extends Controller
         $originalSlug = $slug;
         $counter = 1;
         while (Product::where('slug', $slug)->exists()) {
-            $slug = $originalSlug . '-' . $counter;
+            $slug = $originalSlug.'-'.$counter;
             $counter++;
         }
 
         $product = Product::create([
             'name' => $validated['name'],
             'description' => $validated['description'],
-            'slug' => $slug
+            'slug' => $slug,
         ]);
 
         // Attach categories
@@ -214,7 +215,7 @@ class ProductController extends Controller
             $product->unitTypes()->create([
                 'label' => $unitTypeData['label'],
                 'price' => $unitTypeData['price'],
-                'is_default' => $unitTypeData['is_default'] ?? ($index === 0)
+                'is_default' => $unitTypeData['is_default'] ?? ($index === 0),
             ]);
         }
 
@@ -224,7 +225,7 @@ class ProductController extends Controller
                 $product->miscOptions()->create([
                     'label' => $miscOptionData['label'],
                     'value' => $miscOptionData['value'],
-                    'is_default' => $miscOptionData['is_default'] ?? false
+                    'is_default' => $miscOptionData['is_default'] ?? false,
                 ]);
             }
         }
@@ -234,12 +235,12 @@ class ProductController extends Controller
             foreach ($request->file('mobile_images') as $index => $image) {
                 try {
                     $imageNumber = $index + 1;
-                    $filename = "product_{$product->id}_mobile_image_{$imageNumber}." . $image->getClientOriginalExtension();
+                    $filename = "product_{$product->id}_mobile_image_{$imageNumber}.".$image->getClientOriginalExtension();
                     $imagePath = $image->storeAs('images', $filename, 'public');
 
                     // Also copy to public directory for direct access
                     $publicPath = public_path("storage/images/{$filename}");
-                    if (!file_exists($publicPath)) {
+                    if (! file_exists($publicPath)) {
                         copy(storage_path("app/public/{$imagePath}"), $publicPath);
                     }
 
@@ -250,10 +251,10 @@ class ProductController extends Controller
                         'image_type' => $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
                         'sort_order' => $index,
                         'device_type' => 'mobile',
-                        'aspect_ratio' => 0.8
+                        'aspect_ratio' => 0.8,
                     ]);
                 } catch (\Exception $e) {
-                    \Log::error("Failed to process mobile image for product {$product->id}: " . $e->getMessage());
+                    \Log::error("Failed to process mobile image for product {$product->id}: ".$e->getMessage());
                 }
             }
         }
@@ -263,12 +264,12 @@ class ProductController extends Controller
             foreach ($request->file('desktop_images') as $index => $image) {
                 try {
                     $imageNumber = $index + 1;
-                    $filename = "product_{$product->id}_desktop_image_{$imageNumber}." . $image->getClientOriginalExtension();
+                    $filename = "product_{$product->id}_desktop_image_{$imageNumber}.".$image->getClientOriginalExtension();
                     $imagePath = $image->storeAs('images', $filename, 'public');
 
                     // Also copy to public directory for direct access
                     $publicPath = public_path("storage/images/{$filename}");
-                    if (!file_exists($publicPath)) {
+                    if (! file_exists($publicPath)) {
                         copy(storage_path("app/public/{$imagePath}"), $publicPath);
                     }
 
@@ -279,10 +280,10 @@ class ProductController extends Controller
                         'image_type' => $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
                         'sort_order' => $index,
                         'device_type' => 'desktop',
-                        'aspect_ratio' => 1.78
+                        'aspect_ratio' => 1.78,
                     ]);
                 } catch (\Exception $e) {
-                    \Log::error("Failed to process desktop image for product {$product->id}: " . $e->getMessage());
+                    \Log::error("Failed to process desktop image for product {$product->id}: ".$e->getMessage());
                 }
             }
         }
@@ -299,7 +300,7 @@ class ProductController extends Controller
         $product->load(['images', 'unitTypes', 'miscOptions', 'categories']);
 
         return Inertia::render('dashboard/products/show', [
-            'product' => $product
+            'product' => $product,
         ]);
     }
 
@@ -323,7 +324,7 @@ class ProductController extends Controller
                     return [
                         'id' => $category->id,
                         'name' => $category->name,
-                        'is_accessory' => $category->is_accessory
+                        'is_accessory' => $category->is_accessory,
                     ];
                 }),
                 'unit_types' => $product->unitTypes->map(function ($unitType) {
@@ -331,7 +332,7 @@ class ProductController extends Controller
                         'id' => $unitType->id,
                         'label' => $unitType->label,
                         'price' => $unitType->price,
-                        'is_default' => $unitType->is_default
+                        'is_default' => $unitType->is_default,
                     ];
                 }),
                 'misc_options' => $product->miscOptions->map(function ($miscOption) {
@@ -339,7 +340,7 @@ class ProductController extends Controller
                         'id' => $miscOption->id,
                         'label' => $miscOption->label,
                         'value' => $miscOption->value,
-                        'is_default' => $miscOption->is_default
+                        'is_default' => $miscOption->is_default,
                     ];
                 }),
                 'images' => $product->images->map(function ($image) {
@@ -351,18 +352,18 @@ class ProductController extends Controller
                         'image_type' => $image->image_type,
                         'sort_order' => $image->sort_order,
                         'device_type' => $image->device_type ?? 'desktop',
-                        'aspect_ratio' => $image->aspect_ratio ?? ($image->device_type === 'mobile' ? 0.8 : 1.78)
+                        'aspect_ratio' => $image->aspect_ratio ?? ($image->device_type === 'mobile' ? 0.8 : 1.78),
                     ];
-                })
+                }),
             ],
             'categories' => $categories->map(function ($category) {
                 return [
                     'id' => $category->id,
                     'name' => $category->name,
                     'is_accessory' => $category->is_accessory,
-                    'products_count' => $category->products_count
+                    'products_count' => $category->products_count,
                 ];
-            })
+            }),
         ]);
     }
 
@@ -390,12 +391,12 @@ class ProductController extends Controller
             'existing_desktop_images_order' => 'array',
             'existing_desktop_images_order.*' => 'exists:product_images,id',
             'deleted_image_ids' => 'array',
-            'deleted_image_ids.*' => 'exists:product_images,id'
+            'deleted_image_ids.*' => 'exists:product_images,id',
         ]);
 
         $product->update([
             'name' => $validated['name'],
-            'description' => $validated['description']
+            'description' => $validated['description'],
         ]);
 
         // Sync categories
@@ -411,7 +412,7 @@ class ProductController extends Controller
 
             // Delete unit types that are not in the submitted data
             $toDelete = array_diff($existingIds, $submittedIds);
-            if (!empty($toDelete)) {
+            if (! empty($toDelete)) {
                 $product->unitTypes()->whereIn('id', $toDelete)->delete();
             }
 
@@ -422,21 +423,21 @@ class ProductController extends Controller
                     $product->unitTypes()->where('id', $unitTypeData['id'])->update([
                         'label' => $unitTypeData['label'],
                         'price' => $unitTypeData['price'],
-                        'is_default' => $unitTypeData['is_default'] ?? false
+                        'is_default' => $unitTypeData['is_default'] ?? false,
                     ]);
                 } else {
                     // Create new
                     $product->unitTypes()->create([
                         'label' => $unitTypeData['label'],
                         'price' => $unitTypeData['price'],
-                        'is_default' => $unitTypeData['is_default'] ?? false
+                        'is_default' => $unitTypeData['is_default'] ?? false,
                     ]);
                 }
             }
         }
 
         // Handle deleted images
-        if (isset($validated['deleted_image_ids']) && !empty($validated['deleted_image_ids'])) {
+        if (isset($validated['deleted_image_ids']) && ! empty($validated['deleted_image_ids'])) {
             foreach ($validated['deleted_image_ids'] as $imageId) {
                 $image = ProductImage::where('id', $imageId)
                     ->where('product_id', $product->id)
@@ -444,9 +445,9 @@ class ProductController extends Controller
 
                 if ($image) {
                     // Delete physical file if it exists
-                    if (!filter_var($image->image_path, FILTER_VALIDATE_URL)) {
+                    if (! filter_var($image->image_path, FILTER_VALIDATE_URL)) {
                         Storage::disk('public')->delete($image->image_path);
-                        $publicPath = public_path("storage/images/" . basename($image->image_path));
+                        $publicPath = public_path('storage/images/'.basename($image->image_path));
                         if (file_exists($publicPath)) {
                             unlink($publicPath);
                         }
@@ -479,18 +480,18 @@ class ProductController extends Controller
         }
 
         // Handle new mobile images
-        if (isset($validated['mobile_images']) && !empty($validated['mobile_images'])) {
+        if (isset($validated['mobile_images']) && ! empty($validated['mobile_images'])) {
             $existingMobileCount = $product->images()->where('device_type', 'mobile')->count();
 
             foreach ($validated['mobile_images'] as $index => $image) {
                 try {
                     $imageNumber = $existingMobileCount + $index + 1;
-                    $filename = "product_{$product->id}_mobile_image_{$imageNumber}." . $image->getClientOriginalExtension();
+                    $filename = "product_{$product->id}_mobile_image_{$imageNumber}.".$image->getClientOriginalExtension();
                     $imagePath = $image->storeAs('images', $filename, 'public');
 
                     // Also copy to public directory for direct access
                     $publicPath = public_path("storage/images/{$filename}");
-                    if (!file_exists($publicPath)) {
+                    if (! file_exists($publicPath)) {
                         copy(storage_path("app/public/{$imagePath}"), $publicPath);
                     }
 
@@ -501,27 +502,27 @@ class ProductController extends Controller
                         'image_type' => $existingMobileCount === 0 && $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
                         'sort_order' => $existingMobileCount + $index,
                         'device_type' => 'mobile',
-                        'aspect_ratio' => 0.8
+                        'aspect_ratio' => 0.8,
                     ]);
                 } catch (\Exception $e) {
-                    \Log::error("Failed to process mobile image for product {$product->id}: " . $e->getMessage());
+                    \Log::error("Failed to process mobile image for product {$product->id}: ".$e->getMessage());
                 }
             }
         }
 
         // Handle new desktop images
-        if (isset($validated['desktop_images']) && !empty($validated['desktop_images'])) {
+        if (isset($validated['desktop_images']) && ! empty($validated['desktop_images'])) {
             $existingDesktopCount = $product->images()->where('device_type', 'desktop')->count();
 
             foreach ($validated['desktop_images'] as $index => $image) {
                 try {
                     $imageNumber = $existingDesktopCount + $index + 1;
-                    $filename = "product_{$product->id}_desktop_image_{$imageNumber}." . $image->getClientOriginalExtension();
+                    $filename = "product_{$product->id}_desktop_image_{$imageNumber}.".$image->getClientOriginalExtension();
                     $imagePath = $image->storeAs('images', $filename, 'public');
 
                     // Also copy to public directory for direct access
                     $publicPath = public_path("storage/images/{$filename}");
-                    if (!file_exists($publicPath)) {
+                    if (! file_exists($publicPath)) {
                         copy(storage_path("app/public/{$imagePath}"), $publicPath);
                     }
 
@@ -532,10 +533,10 @@ class ProductController extends Controller
                         'image_type' => $existingDesktopCount === 0 && $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
                         'sort_order' => $existingDesktopCount + $index,
                         'device_type' => 'desktop',
-                        'aspect_ratio' => 1.78
+                        'aspect_ratio' => 1.78,
                     ]);
                 } catch (\Exception $e) {
-                    \Log::error("Failed to process desktop image for product {$product->id}: " . $e->getMessage());
+                    \Log::error("Failed to process desktop image for product {$product->id}: ".$e->getMessage());
                 }
             }
         }
@@ -552,7 +553,7 @@ class ProductController extends Controller
         // Delete associated images from storage
         foreach ($product->images as $image) {
             Storage::disk('public')->delete($image->image_path);
-            $publicPath = public_path("storage/images/" . basename($image->image_path));
+            $publicPath = public_path('storage/images/'.basename($image->image_path));
             if (file_exists($publicPath)) {
                 unlink($publicPath);
             }
@@ -571,7 +572,7 @@ class ProductController extends Controller
     {
         $request->validate([
             'images' => 'required|array',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $existingImagesCount = $product->images()->count();
@@ -587,10 +588,10 @@ class ProductController extends Controller
                     'image_path' => $imageData['original_path'],
                     'alt_text' => "{$product->name} - Image {$imageNumber}",
                     'image_type' => $existingImagesCount === 0 && $index === 0 ? ProductImage::TYPE_THUMBNAIL : ProductImage::TYPE_GALLERY,
-                    'sort_order' => $existingImagesCount + $index
+                    'sort_order' => $existingImagesCount + $index,
                 ]);
             } catch (\Exception $e) {
-                \Log::error("Failed to process additional image for product {$product->id}: " . $e->getMessage());
+                \Log::error("Failed to process additional image for product {$product->id}: ".$e->getMessage());
             }
         }
 

@@ -2,13 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-
 use App\Models\Product;
-use App\Models\UnitType;
 use App\Models\ProductMiscOption;
-use App\Models\ProductImage;
-
+use App\Models\UnitType;
+use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
 {
@@ -31,6 +28,4 @@ class ProductSeeder extends Seeder
             // Note: No placeholder images - use only real uploaded images
         });
     }
-
-
 }

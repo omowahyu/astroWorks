@@ -22,18 +22,18 @@ if ($product) {
     // Group images by type and device (like DynamicImageSingle does)
     $thumbnails = $product->images->where('image_type', 'thumbnail');
     $gallery = $product->images->where('image_type', 'gallery');
-    
+
     // Separate by device type
     $mobileImages = [
         'thumbnails' => $thumbnails->where('device_type', 'mobile')->values(),
         'gallery' => $gallery->where('device_type', 'mobile')->values(),
-        'hero' => collect([])
+        'hero' => collect([]),
     ];
 
     $desktopImages = [
         'thumbnails' => $thumbnails->where('device_type', 'desktop')->values(),
         'gallery' => $gallery->where('device_type', 'desktop')->values(),
-        'hero' => collect([])
+        'hero' => collect([]),
     ];
 
     echo "Product: {$product->name}\n";
@@ -41,26 +41,26 @@ if ($product) {
 
     echo "Available images by device:\n";
     echo "Mobile:\n";
-    echo "  - Thumbnails: " . count($mobileImages['thumbnails']) . "\n";
-    echo "  - Gallery: " . count($mobileImages['gallery']) . "\n";
-    
+    echo '  - Thumbnails: '.count($mobileImages['thumbnails'])."\n";
+    echo '  - Gallery: '.count($mobileImages['gallery'])."\n";
+
     echo "Desktop:\n";
-    echo "  - Thumbnails: " . count($desktopImages['thumbnails']) . "\n";
-    echo "  - Gallery: " . count($desktopImages['gallery']) . "\n\n";
+    echo '  - Thumbnails: '.count($desktopImages['thumbnails'])."\n";
+    echo '  - Gallery: '.count($desktopImages['gallery'])."\n\n";
 
     // Simulate DynamicImageSingle logic with new settings:
     // preferThumbnail=false, imageType="gallery"
-    
+
     echo "DynamicImageSingle selection logic (preferThumbnail=false, imageType='gallery'):\n";
-    
+
     // Mobile image selection
     $selectedMobileImage = null;
     if ($mobileImages['gallery']->count() > 0) {
         $selectedMobileImage = $mobileImages['gallery']->first(); // First gallery image
-        echo "✅ Mobile: Selected gallery image - " . basename($selectedMobileImage->image_path) . "\n";
+        echo '✅ Mobile: Selected gallery image - '.basename($selectedMobileImage->image_path)."\n";
     } elseif ($mobileImages['thumbnails']->count() > 0) {
         $selectedMobileImage = $mobileImages['thumbnails']->first(); // Fallback to thumbnail
-        echo "⚠️ Mobile: Fallback to thumbnail - " . basename($selectedMobileImage->image_path) . "\n";
+        echo '⚠️ Mobile: Fallback to thumbnail - '.basename($selectedMobileImage->image_path)."\n";
     } else {
         echo "❌ Mobile: No image available\n";
     }
@@ -69,10 +69,10 @@ if ($product) {
     $selectedDesktopImage = null;
     if ($desktopImages['gallery']->count() > 0) {
         $selectedDesktopImage = $desktopImages['gallery']->first(); // First gallery image
-        echo "✅ Desktop: Selected gallery image - " . basename($selectedDesktopImage->image_path) . "\n";
+        echo '✅ Desktop: Selected gallery image - '.basename($selectedDesktopImage->image_path)."\n";
     } elseif ($desktopImages['thumbnails']->count() > 0) {
         $selectedDesktopImage = $desktopImages['thumbnails']->first(); // Fallback to thumbnail
-        echo "⚠️ Desktop: Fallback to thumbnail - " . basename($selectedDesktopImage->image_path) . "\n";
+        echo '⚠️ Desktop: Fallback to thumbnail - '.basename($selectedDesktopImage->image_path)."\n";
     } else {
         echo "❌ Desktop: No image available\n";
     }
@@ -99,20 +99,20 @@ $otherProducts = Product::with(['images'])->where('id', '!=', 12)->take(3)->get(
 foreach ($otherProducts as $product) {
     $thumbnails = $product->images->where('image_type', 'thumbnail');
     $gallery = $product->images->where('image_type', 'gallery');
-    
+
     $mobileGallery = $gallery->where('device_type', 'mobile')->count();
     $desktopGallery = $gallery->where('device_type', 'desktop')->count();
     $mobileThumbnails = $thumbnails->where('device_type', 'mobile')->count();
     $desktopThumbnails = $thumbnails->where('device_type', 'desktop')->count();
-    
+
     echo "Product: {$product->name} (ID: {$product->id})\n";
     echo "  Mobile: {$mobileGallery} gallery, {$mobileThumbnails} thumbnails\n";
     echo "  Desktop: {$desktopGallery} gallery, {$desktopThumbnails} thumbnails\n";
-    
+
     // Check if this product will have images on both devices
     $hasMobileImage = $mobileGallery > 0 || $mobileThumbnails > 0;
     $hasDesktopImage = $desktopGallery > 0 || $desktopThumbnails > 0;
-    
+
     if ($hasMobileImage && $hasDesktopImage) {
         echo "  ✅ Will show device-specific images\n";
     } elseif ($hasMobileImage || $hasDesktopImage) {

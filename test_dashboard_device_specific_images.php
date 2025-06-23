@@ -62,22 +62,22 @@ if ($product) {
                 'sort_order' => $thumbnails->first()->sort_order,
                 'alt_text' => $thumbnails->first()->alt_text,
                 'image_url' => $thumbnails->first()->image_url,
-            ] : null
-        ]
+            ] : null,
+        ],
     ];
 
     echo "Dashboard data structure:\n";
-    echo "Thumbnails: " . count($dashboardData['images']['thumbnails']) . " images\n";
+    echo 'Thumbnails: '.count($dashboardData['images']['thumbnails'])." images\n";
     foreach ($dashboardData['images']['thumbnails'] as $thumb) {
         echo "  - {$thumb['device_type']} (aspect: {$thumb['aspect_ratio']}): {$thumb['image_url']}\n";
     }
 
-    echo "Gallery: " . count($dashboardData['images']['gallery']) . " images\n";
+    echo 'Gallery: '.count($dashboardData['images']['gallery'])." images\n";
     foreach ($dashboardData['images']['gallery'] as $gallery) {
         echo "  - {$gallery['device_type']} (aspect: {$gallery['aspect_ratio']}): {$gallery['image_url']}\n";
     }
 
-    echo "Main thumbnail: " . ($dashboardData['images']['main_thumbnail'] ? 'Available' : 'None') . "\n";
+    echo 'Main thumbnail: '.($dashboardData['images']['main_thumbnail'] ? 'Available' : 'None')."\n";
     if ($dashboardData['images']['main_thumbnail']) {
         $mainThumb = $dashboardData['images']['main_thumbnail'];
         echo "  - {$mainThumb['device_type']} (aspect: {$mainThumb['aspect_ratio']}): {$mainThumb['image_url']}\n";
@@ -92,31 +92,31 @@ echo "----------------------------------------------\n";
 
 if ($product) {
     $productImages = $dashboardData['images'];
-    
+
     // Separate mobile and desktop images (like DynamicImageSingle does)
     $mobileImages = [
-        'thumbnails' => array_filter($productImages['thumbnails'], fn($img) => $img['device_type'] === 'mobile'),
-        'gallery' => array_filter($productImages['gallery'], fn($img) => $img['device_type'] === 'mobile'),
-        'hero' => []
+        'thumbnails' => array_filter($productImages['thumbnails'], fn ($img) => $img['device_type'] === 'mobile'),
+        'gallery' => array_filter($productImages['gallery'], fn ($img) => $img['device_type'] === 'mobile'),
+        'hero' => [],
     ];
-    
+
     $desktopImages = [
-        'thumbnails' => array_filter($productImages['thumbnails'], fn($img) => $img['device_type'] === 'desktop'),
-        'gallery' => array_filter($productImages['gallery'], fn($img) => $img['device_type'] === 'desktop'),
-        'hero' => []
+        'thumbnails' => array_filter($productImages['thumbnails'], fn ($img) => $img['device_type'] === 'desktop'),
+        'gallery' => array_filter($productImages['gallery'], fn ($img) => $img['device_type'] === 'desktop'),
+        'hero' => [],
     ];
 
     echo "Mobile images available:\n";
-    echo "  Thumbnails: " . count($mobileImages['thumbnails']) . "\n";
-    echo "  Gallery: " . count($mobileImages['gallery']) . "\n";
+    echo '  Thumbnails: '.count($mobileImages['thumbnails'])."\n";
+    echo '  Gallery: '.count($mobileImages['gallery'])."\n";
     if (count($mobileImages['thumbnails']) > 0) {
         $mobileThumb = array_values($mobileImages['thumbnails'])[0];
         echo "  Selected mobile image: {$mobileThumb['image_url']}\n";
     }
 
     echo "\nDesktop images available:\n";
-    echo "  Thumbnails: " . count($desktopImages['thumbnails']) . "\n";
-    echo "  Gallery: " . count($desktopImages['gallery']) . "\n";
+    echo '  Thumbnails: '.count($desktopImages['thumbnails'])."\n";
+    echo '  Gallery: '.count($desktopImages['gallery'])."\n";
     if (count($desktopImages['gallery']) > 0) {
         $desktopGallery = array_values($desktopImages['gallery'])[0];
         echo "  Selected desktop image: {$desktopGallery['image_url']}\n";
@@ -134,11 +134,11 @@ if ($product) {
         $expectedRatio = $image->device_type === 'mobile' ? 0.8 : 1.78;
         $actualRatio = $image->aspect_ratio;
         $isCorrect = abs($actualRatio - $expectedRatio) < 0.01;
-        
+
         echo "Image ID {$image->id} ({$image->device_type}):\n";
-        echo "  Expected ratio: {$expectedRatio} (" . ($image->device_type === 'mobile' ? '4:5' : '16:9') . ")\n";
+        echo "  Expected ratio: {$expectedRatio} (".($image->device_type === 'mobile' ? '4:5' : '16:9').")\n";
         echo "  Actual ratio: {$actualRatio}\n";
-        echo "  Correct: " . ($isCorrect ? 'Yes' : 'No') . "\n\n";
+        echo '  Correct: '.($isCorrect ? 'Yes' : 'No')."\n\n";
     }
 }
 

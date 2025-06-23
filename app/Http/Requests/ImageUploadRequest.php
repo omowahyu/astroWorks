@@ -3,8 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Services\LoggingService;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 class ImageUploadRequest extends FormRequest
@@ -34,8 +34,8 @@ class ImageUploadRequest extends FormRequest
                 'image',
                 'max:30720', // 30MB in KB
                 'mimes:jpeg,jpg,png,webp,gif',
-                'dimensions:min_width=100,min_height=100,max_width=8000,max_height=8000'
-            ]
+                'dimensions:min_width=100,min_height=100,max_width=8000,max_height=8000',
+            ],
         ];
     }
 
@@ -60,7 +60,7 @@ class ImageUploadRequest extends FormRequest
             'images.*.image' => 'Each file must be a valid image',
             'images.*.max' => 'Each image must not exceed 30MB',
             'images.*.mimes' => 'Images must be in JPEG, PNG, WebP, or GIF format',
-            'images.*.dimensions' => 'Images must be between 100x100 and 8000x8000 pixels'
+            'images.*.dimensions' => 'Images must be between 100x100 and 8000x8000 pixels',
         ];
     }
 
@@ -74,7 +74,7 @@ class ImageUploadRequest extends FormRequest
             'device_type' => 'device type',
             'image_type' => 'image type',
             'compression_level' => 'compression level',
-            'images.*' => 'image'
+            'images.*' => 'image',
         ];
     }
 
@@ -94,7 +94,7 @@ class ImageUploadRequest extends FormRequest
         if ($this->hasFile('images')) {
             $fileCount = count($this->file('images'));
             $totalSize = 0;
-            
+
             foreach ($this->file('images') as $file) {
                 $totalSize += $file->getSize();
             }
@@ -103,7 +103,7 @@ class ImageUploadRequest extends FormRequest
                 LoggingService::logSecurityEvent('suspicious_upload_attempt', 'warning', [
                     'file_count' => $fileCount,
                     'total_size' => $totalSize,
-                    'errors' => $validator->errors()->toArray()
+                    'errors' => $validator->errors()->toArray(),
                 ]);
             }
         }
@@ -113,7 +113,7 @@ class ImageUploadRequest extends FormRequest
                 'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $validator->errors(),
-                'error_count' => $validator->errors()->count()
+                'error_count' => $validator->errors()->count(),
             ], 422)
         );
     }
@@ -125,37 +125,37 @@ class ImageUploadRequest extends FormRequest
     {
         $validator->after(function (Validator $validator) {
             // Custom validation for aspect ratio based on device type
-            if ($this->hasFile('images') && !$validator->errors()->has('device_type')) {
+            if ($this->hasFile('images') && ! $validator->errors()->has('device_type')) {
                 $deviceType = $this->input('device_type');
-                
+
                 foreach ($this->file('images') as $index => $file) {
                     if ($file->isValid()) {
                         $imageInfo = getimagesize($file->getPathname());
                         if ($imageInfo) {
                             $aspectRatio = $imageInfo[0] / $imageInfo[1];
-                            
+
                             // Mobile should be 4:5 (0.8) with 15% tolerance
                             if ($deviceType === 'mobile') {
                                 $targetRatio = 0.8;
                                 $tolerance = 0.15;
-                                
+
                                 if (abs($aspectRatio - $targetRatio) > ($targetRatio * $tolerance)) {
                                     $validator->errors()->add(
                                         "images.{$index}",
-                                        "Mobile images should have a 4:5 aspect ratio (portrait). Current ratio: " . round($aspectRatio, 2)
+                                        'Mobile images should have a 4:5 aspect ratio (portrait). Current ratio: '.round($aspectRatio, 2)
                                     );
                                 }
                             }
-                            
+
                             // Desktop should be 16:9 (1.78) with 15% tolerance
                             if ($deviceType === 'desktop') {
                                 $targetRatio = 1.78;
                                 $tolerance = 0.15;
-                                
+
                                 if (abs($aspectRatio - $targetRatio) > ($targetRatio * $tolerance)) {
                                     $validator->errors()->add(
                                         "images.{$index}",
-                                        "Desktop images should have a 16:9 aspect ratio (landscape). Current ratio: " . round($aspectRatio, 2)
+                                        'Desktop images should have a 16:9 aspect ratio (landscape). Current ratio: '.round($aspectRatio, 2)
                                     );
                                 }
                             }
@@ -176,17 +176,17 @@ class ImageUploadRequest extends FormRequest
     {
         $userId = auth()->id();
         $cacheKey = "image_upload_rate_limit:{$userId}";
-        
+
         $uploadCount = cache()->get($cacheKey, 0);
         $maxUploads = 50; // Max 50 uploads per hour
-        
+
         if ($uploadCount >= $maxUploads) {
             LoggingService::logSecurityEvent('rate_limit_exceeded', 'warning', [
                 'user_id' => $userId,
                 'upload_count' => $uploadCount,
-                'max_uploads' => $maxUploads
+                'max_uploads' => $maxUploads,
             ]);
-            
+
             $validator->errors()->add('images', 'Upload rate limit exceeded. Please try again later.');
         } else {
             // Increment counter
@@ -204,7 +204,7 @@ class ImageUploadRequest extends FormRequest
             'operation' => 'image_upload_attempt',
             'product_id' => $this->input('product_id'),
             'device_type' => $this->input('device_type'),
-            'image_count' => $this->hasFile('images') ? count($this->file('images')) : 0
+            'image_count' => $this->hasFile('images') ? count($this->file('images')) : 0,
         ]);
     }
 }

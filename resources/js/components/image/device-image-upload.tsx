@@ -96,7 +96,7 @@ const compressMultipleImages = async (files: FileList, compressionLevel: string)
     return dt.files;
 };
 
-const validateFiles = async (files: FileList, deviceType: 'mobile' | 'desktop'): Promise<FileList | null> => {
+const validateFiles = async (files: FileList): Promise<FileList | null> => {
     const validFiles: File[] = [];
     
     for (let i = 0; i < files.length; i++) {
@@ -198,14 +198,6 @@ const DeviceImageUpload: React.FC<DeviceImageUploadProps> = ({
         }
         e.target.value = '';
     }, [onMobileUpload, onDesktopUpload, compressionLevel]);
-
-    const formatFileSize = (bytes: number): string => {
-        if (!bytes) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    };
 
     const renderUploadArea = (deviceType: 'mobile' | 'desktop') => {
         const isDragOver = dragOver === deviceType;

@@ -1,7 +1,6 @@
 
-// import AppLogoIcon from '@/components/AppLogoIcon'; // File tidak ada
-import { Link, usePage } from '@inertiajs/react';
-import React, { useState } from 'react';
+import { usePage } from '@inertiajs/react';
+import React from 'react';
 
 const Header = () => {
     const { props } = usePage();

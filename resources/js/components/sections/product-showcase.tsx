@@ -1,5 +1,3 @@
-import { Award } from 'lucide-react';
-
 export default function ProductShowcase() {
     return (
         <section className="pt-12 pb-4 px-2">

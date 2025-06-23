@@ -13,7 +13,7 @@ class PaymentSetting extends Model
         'type',
         'group',
         'label',
-        'description'
+        'description',
     ];
 
     /**
@@ -26,12 +26,14 @@ class PaymentSetting extends Model
             if (app()->bound('cache')) {
                 return Cache::remember("payment_setting_{$key}", 3600, function () use ($key, $default) {
                     $setting = static::where('key', $key)->first();
+
                     return $setting ? $setting->value : $default;
                 });
             }
-            
+
             // Fallback to direct database query if cache is not available
             $setting = static::where('key', $key)->first();
+
             return $setting ? $setting->value : $default;
         } catch (\Exception $e) {
             // If any error occurs, return default value
@@ -69,7 +71,7 @@ class PaymentSetting extends Model
                     return static::all()->groupBy('group')->toArray();
                 });
             }
-            
+
             // Fallback to direct query if cache is not available
             return static::all()->groupBy('group')->toArray();
         } catch (\Exception $e) {

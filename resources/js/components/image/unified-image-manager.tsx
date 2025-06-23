@@ -1,22 +1,16 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import { 
-    Smartphone, 
-    Monitor, 
-    Upload, 
-    X, 
-    Settings2, 
-    ImageIcon, 
-    CheckCircle, 
-    AlertCircle,
+import {
+    Smartphone,
+    Monitor,
+    Upload,
+    X,
+    Settings2,
     Trash2,
-    GripVertical,
-    Eye,
     RotateCcw
 } from 'lucide-react';
 
@@ -78,7 +72,7 @@ const UnifiedImageManager: React.FC<UnifiedImageManagerProps> = ({
     newMobileImages,
     newDesktopImages,
     onRemoveNewImage,
-    maxFiles = 10,
+
     disabled = false,
     showCompressionOptions = true,
     defaultCompressionLevel = 'lossless',

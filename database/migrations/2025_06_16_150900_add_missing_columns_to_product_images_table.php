@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -14,15 +14,15 @@ return new class extends Migration
     {
         Schema::table('product_images', function (Blueprint $table) {
             // Check and add columns if they don't exist
-            if (!Schema::hasColumn('product_images', 'image_type')) {
+            if (! Schema::hasColumn('product_images', 'image_type')) {
                 $table->enum('image_type', ['thumbnail', 'gallery', 'hero'])->default('gallery')->after('image_path');
             }
 
-            if (!Schema::hasColumn('product_images', 'is_thumbnail')) {
+            if (! Schema::hasColumn('product_images', 'is_thumbnail')) {
                 $table->boolean('is_thumbnail')->default(false)->after('image_type');
             }
 
-            if (!Schema::hasColumn('product_images', 'display_order')) {
+            if (! Schema::hasColumn('product_images', 'display_order')) {
                 $table->integer('display_order')->default(0)->after('is_thumbnail');
             }
         });
@@ -31,7 +31,7 @@ return new class extends Migration
         DB::table('product_images')->update([
             'image_type' => 'gallery',
             'is_thumbnail' => false,
-            'display_order' => DB::raw('COALESCE(sort_order, 0)')
+            'display_order' => DB::raw('COALESCE(sort_order, 0)'),
         ]);
 
         // Set the first image of each product as thumbnail
@@ -49,7 +49,7 @@ return new class extends Migration
                     ->where('id', $firstImage->id)
                     ->update([
                         'image_type' => 'thumbnail',
-                        'is_thumbnail' => true
+                        'is_thumbnail' => true,
                     ]);
             }
         }

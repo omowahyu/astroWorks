@@ -12,7 +12,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(\App\Services\ImageOptimizationService::class, function ($app) {
-            return new \App\Services\ImageOptimizationService();
+            return new \App\Services\ImageOptimizationService;
         });
     }
 
@@ -29,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
                     return response()->json([
                         'success' => false,
                         'message' => 'Too many upload attempts. Please try again later.',
-                        'error_type' => 'rate_limit_exceeded'
+                        'error_type' => 'rate_limit_exceeded',
                     ], 429);
                 });
         });

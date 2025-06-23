@@ -14,7 +14,7 @@ class PaymentSettingController extends Controller
         $settings = PaymentSetting::all()->groupBy('group');
 
         return Inertia::render('dashboard/payment/index', [
-            'settings' => $settings
+            'settings' => $settings,
         ]);
     }
 

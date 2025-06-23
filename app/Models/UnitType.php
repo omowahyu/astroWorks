@@ -2,12 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 /**
- * 
- *
  * @property int $id
  * @property int $product_id
  * @property string $label
@@ -19,6 +18,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Category> $categories
  * @property-read int|null $categories_count
  * @property-read \App\Models\Product $product
+ *
  * @method static \Database\Factories\UnitTypeFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|UnitType newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|UnitType newQuery()
@@ -34,6 +34,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|UnitType whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|UnitType withTrashed()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|UnitType withoutTrashed()
+ *
  * @mixin \Eloquent
  */
 class UnitType extends Model
@@ -43,7 +44,6 @@ class UnitType extends Model
 
     protected $fillable = ['product_id', 'label', 'price', 'is_default'];
 
-
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<\App\Models\Product>
      */
@@ -52,7 +52,6 @@ class UnitType extends Model
         return $this->belongsTo(Product::class);
     }
 
-
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<\App\Models\Category>
      */
@@ -60,7 +59,6 @@ class UnitType extends Model
     {
         return $this->belongsToMany(Category::class);
     }
-
 
     protected static function booted(): void
     {

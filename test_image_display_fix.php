@@ -19,15 +19,15 @@ echo "----------------------------------------------\n";
 
 $product = Product::with([
     'thumbnailImages',
-    'galleryImages', 
+    'galleryImages',
     'heroImages',
-    'mainThumbnail'
+    'mainThumbnail',
 ])->find(12);
 
 if ($product) {
     echo "Product: {$product->name}\n";
     echo "Primary image URL: {$product->primary_image_url}\n\n";
-    
+
     // Format data like ProductController does for frontend
     $productData = [
         'id' => $product->id,
@@ -74,22 +74,22 @@ if ($product) {
                 'sort_order' => $product->mainThumbnail->sort_order,
                 'alt_text' => $product->mainThumbnail->alt_text,
                 'image_url' => $product->mainThumbnail->image_url,
-            ] : null
-        ]
+            ] : null,
+        ],
     ];
-    
+
     echo "Data structure for DynamicImageSingle:\n";
-    echo "Thumbnails: " . count($productData['images']['thumbnails']) . " images\n";
+    echo 'Thumbnails: '.count($productData['images']['thumbnails'])." images\n";
     foreach ($productData['images']['thumbnails'] as $thumb) {
         echo "  - {$thumb['device_type']}: {$thumb['image_url']}\n";
     }
-    
-    echo "Gallery: " . count($productData['images']['gallery']) . " images\n";
+
+    echo 'Gallery: '.count($productData['images']['gallery'])." images\n";
     foreach ($productData['images']['gallery'] as $gallery) {
         echo "  - {$gallery['device_type']}: {$gallery['image_url']}\n";
     }
-    
-    echo "Main thumbnail: " . ($productData['images']['main_thumbnail'] ? 'Available' : 'None') . "\n";
+
+    echo 'Main thumbnail: '.($productData['images']['main_thumbnail'] ? 'Available' : 'None')."\n";
     if ($productData['images']['main_thumbnail']) {
         echo "  - {$productData['images']['main_thumbnail']['device_type']}: {$productData['images']['main_thumbnail']['image_url']}\n";
     }
@@ -104,13 +104,13 @@ echo "----------------------------\n";
 $recentImages = ProductImage::where('product_id', 12)->get();
 foreach ($recentImages as $img) {
     $url = $img->image_url;
-    $publicPath = public_path('storage/images/' . basename($img->image_path));
+    $publicPath = public_path('storage/images/'.basename($img->image_path));
     $accessible = file_exists($publicPath);
-    
+
     echo "Image ID {$img->id} ({$img->device_type}):\n";
     echo "  URL: {$url}\n";
-    echo "  Accessible: " . ($accessible ? 'Yes' : 'No') . "\n";
-    echo "  File size: " . ($accessible ? number_format(filesize($publicPath) / 1024, 1) . ' KB' : 'N/A') . "\n\n";
+    echo '  Accessible: '.($accessible ? 'Yes' : 'No')."\n";
+    echo '  File size: '.($accessible ? number_format(filesize($publicPath) / 1024, 1).' KB' : 'N/A')."\n\n";
 }
 
 echo "\n";

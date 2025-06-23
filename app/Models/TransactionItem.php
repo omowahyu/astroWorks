@@ -2,12 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 /**
- * 
- *
  * @property int $id
  * @property int $transaction_id
  * @property int $product_id
@@ -20,6 +18,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property-read \App\Models\Product $product
  * @property-read \App\Models\Transaction $transaction
  * @property-read \App\Models\UnitType $unitType
+ *
  * @method static \Database\Factories\TransactionItemFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|TransactionItem newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|TransactionItem newQuery()
@@ -33,6 +32,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|TransactionItem whereTransactionId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|TransactionItem whereUnitTypeId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|TransactionItem whereUpdatedAt($value)
+ *
  * @mixin \Eloquent
  */
 class TransactionItem extends Model

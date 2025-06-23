@@ -3,8 +3,6 @@
 require_once 'vendor/autoload.php';
 
 use App\Models\Product;
-use App\Models\ProductImage;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 // Bootstrap Laravel
@@ -22,12 +20,12 @@ echo "--------------------------------\n";
 $product = Product::find(12);
 if ($product) {
     echo "Product: {$product->name}\n";
-    echo "Total images: " . $product->images->count() . "\n";
-    
+    echo 'Total images: '.$product->images->count()."\n";
+
     foreach ($product->images as $image) {
         echo "- {$image->device_type} image: {$image->image_path} (Type: {$image->image_type})\n";
         echo "  Aspect ratio: {$image->aspect_ratio}\n";
-        echo "  File exists: " . (Storage::disk('public')->exists($image->image_path) ? 'Yes' : 'No') . "\n";
+        echo '  File exists: '.(Storage::disk('public')->exists($image->image_path) ? 'Yes' : 'No')."\n";
     }
 } else {
     echo "❌ Product not found!\n";
@@ -42,9 +40,9 @@ echo "-------------------------------\n";
 $storageDir = storage_path('app/public/images');
 $publicDir = public_path('storage/images');
 
-echo "Storage directory exists: " . (is_dir($storageDir) ? 'Yes' : 'No') . "\n";
-echo "Public symlink exists: " . (is_dir($publicDir) ? 'Yes' : 'No') . "\n";
-echo "Storage writable: " . (is_writable($storageDir) ? 'Yes' : 'No') . "\n";
+echo 'Storage directory exists: '.(is_dir($storageDir) ? 'Yes' : 'No')."\n";
+echo 'Public symlink exists: '.(is_dir($publicDir) ? 'Yes' : 'No')."\n";
+echo 'Storage writable: '.(is_writable($storageDir) ? 'Yes' : 'No')."\n";
 
 echo "\n";
 
@@ -56,21 +54,21 @@ echo "------------------------------------------\n";
 $testProduct = Product::first();
 if ($testProduct) {
     echo "Testing with product: {$testProduct->name} (ID: {$testProduct->id})\n";
-    
+
     // Simulate mobile image processing
     $mobileFilename = "product_{$testProduct->id}_mobile_image_test.jpg";
     echo "Mobile filename would be: {$mobileFilename}\n";
-    
-    // Simulate desktop image processing  
+
+    // Simulate desktop image processing
     $desktopFilename = "product_{$testProduct->id}_desktop_image_test.jpg";
     echo "Desktop filename would be: {$desktopFilename}\n";
-    
+
     // Test aspect ratio values
     $mobileAspectRatio = 0.8;
     $desktopAspectRatio = 1.78;
-    
-    echo "Mobile aspect ratio: {$mobileAspectRatio} (4:5 = " . (4/5) . ")\n";
-    echo "Desktop aspect ratio: {$desktopAspectRatio} (16:9 = " . round(16/9, 2) . ")\n";
+
+    echo "Mobile aspect ratio: {$mobileAspectRatio} (4:5 = ".(4 / 5).")\n";
+    echo "Desktop aspect ratio: {$desktopAspectRatio} (16:9 = ".round(16 / 9, 2).")\n";
 }
 
 echo "\n";
@@ -82,8 +80,8 @@ echo "-----------------------------------\n";
 $validationRules = [
     'mobile_images' => 'array',
     'mobile_images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:30720',
-    'desktop_images' => 'array', 
-    'desktop_images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:30720'
+    'desktop_images' => 'array',
+    'desktop_images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:30720',
 ];
 
 echo "Validation rules are compatible with standard Laravel file upload:\n";

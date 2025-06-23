@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class HealthCheckController extends Controller
@@ -18,7 +18,7 @@ class HealthCheckController extends Controller
             'status' => 'healthy',
             'timestamp' => now()->toISOString(),
             'service' => 'AstroKabinet',
-            'version' => config('app.version', '1.0.0')
+            'version' => config('app.version', '1.0.0'),
         ]);
     }
 
@@ -69,7 +69,7 @@ class HealthCheckController extends Controller
             'service' => 'AstroKabinet',
             'version' => config('app.version', '1.0.0'),
             'response_time_ms' => $responseTime,
-            'checks' => $checks
+            'checks' => $checks,
         ], $overallStatus === 'healthy' ? 200 : 503);
     }
 
@@ -80,29 +80,29 @@ class HealthCheckController extends Controller
     {
         try {
             $startTime = microtime(true);
-            
+
             // Test basic connectivity
             DB::connection()->getPdo();
-            
+
             // Test a simple query
             $result = DB::select('SELECT 1 as test');
-            
+
             // Test products table (main business table)
             $productCount = DB::table('products')->count();
-            
+
             $responseTime = round((microtime(true) - $startTime) * 1000, 2);
-            
+
             return [
                 'status' => 'healthy',
                 'response_time_ms' => $responseTime,
                 'product_count' => $productCount,
-                'connection' => 'active'
+                'connection' => 'active',
             ];
         } catch (\Exception $e) {
             return [
                 'status' => 'unhealthy',
                 'error' => $e->getMessage(),
-                'connection' => 'failed'
+                'connection' => 'failed',
             ];
         }
     }
@@ -114,38 +114,38 @@ class HealthCheckController extends Controller
     {
         try {
             $startTime = microtime(true);
-            $testKey = 'health_check_' . time();
+            $testKey = 'health_check_'.time();
             $testValue = 'test_value';
-            
+
             // Test cache write
             Cache::put($testKey, $testValue, 60);
-            
+
             // Test cache read
             $retrieved = Cache::get($testKey);
-            
+
             // Clean up
             Cache::forget($testKey);
-            
+
             $responseTime = round((microtime(true) - $startTime) * 1000, 2);
-            
+
             if ($retrieved === $testValue) {
                 return [
                     'status' => 'healthy',
                     'response_time_ms' => $responseTime,
-                    'driver' => config('cache.default')
+                    'driver' => config('cache.default'),
                 ];
             } else {
                 return [
                     'status' => 'unhealthy',
                     'error' => 'Cache read/write test failed',
-                    'driver' => config('cache.default')
+                    'driver' => config('cache.default'),
                 ];
             }
         } catch (\Exception $e) {
             return [
                 'status' => 'unhealthy',
                 'error' => $e->getMessage(),
-                'driver' => config('cache.default')
+                'driver' => config('cache.default'),
             ];
         }
     }
@@ -157,41 +157,41 @@ class HealthCheckController extends Controller
     {
         try {
             $startTime = microtime(true);
-            $testFile = 'health_check_' . time() . '.txt';
+            $testFile = 'health_check_'.time().'.txt';
             $testContent = 'health check test';
-            
+
             // Test file write
             Storage::disk('public')->put($testFile, $testContent);
-            
+
             // Test file read
             $retrieved = Storage::disk('public')->get($testFile);
-            
+
             // Test file exists
             $exists = Storage::disk('public')->exists($testFile);
-            
+
             // Clean up
             Storage::disk('public')->delete($testFile);
-            
+
             $responseTime = round((microtime(true) - $startTime) * 1000, 2);
-            
+
             if ($retrieved === $testContent && $exists) {
                 return [
                     'status' => 'healthy',
                     'response_time_ms' => $responseTime,
-                    'disk' => 'public'
+                    'disk' => 'public',
                 ];
             } else {
                 return [
                     'status' => 'unhealthy',
                     'error' => 'Storage read/write test failed',
-                    'disk' => 'public'
+                    'disk' => 'public',
                 ];
             }
         } catch (\Exception $e) {
             return [
                 'status' => 'unhealthy',
                 'error' => $e->getMessage(),
-                'disk' => 'public'
+                'disk' => 'public',
             ];
         }
     }
@@ -204,16 +204,16 @@ class HealthCheckController extends Controller
         $memoryUsage = memory_get_usage(true);
         $memoryPeak = memory_get_peak_usage(true);
         $memoryLimit = $this->parseMemoryLimit(ini_get('memory_limit'));
-        
+
         $usagePercentage = $memoryLimit > 0 ? round(($memoryUsage / $memoryLimit) * 100, 2) : 0;
-        
+
         $status = 'healthy';
         if ($usagePercentage > 90) {
             $status = 'unhealthy';
         } elseif ($usagePercentage > 75) {
             $status = 'degraded';
         }
-        
+
         return [
             'status' => $status,
             'usage_bytes' => $memoryUsage,
@@ -222,7 +222,7 @@ class HealthCheckController extends Controller
             'peak_mb' => round($memoryPeak / 1024 / 1024, 2),
             'limit_bytes' => $memoryLimit,
             'limit_mb' => round($memoryLimit / 1024 / 1024, 2),
-            'usage_percentage' => $usagePercentage
+            'usage_percentage' => $usagePercentage,
         ];
     }
 
@@ -234,17 +234,17 @@ class HealthCheckController extends Controller
         $path = storage_path();
         $freeBytes = disk_free_space($path);
         $totalBytes = disk_total_space($path);
-        
+
         $usedBytes = $totalBytes - $freeBytes;
         $usagePercentage = round(($usedBytes / $totalBytes) * 100, 2);
-        
+
         $status = 'healthy';
         if ($usagePercentage > 95) {
             $status = 'unhealthy';
         } elseif ($usagePercentage > 85) {
             $status = 'degraded';
         }
-        
+
         return [
             'status' => $status,
             'free_bytes' => $freeBytes,
@@ -254,7 +254,7 @@ class HealthCheckController extends Controller
             'total_bytes' => $totalBytes,
             'total_gb' => round($totalBytes / 1024 / 1024 / 1024, 2),
             'usage_percentage' => $usagePercentage,
-            'path' => $path
+            'path' => $path,
         ];
     }
 
@@ -266,11 +266,11 @@ class HealthCheckController extends Controller
         if ($limit === '-1') {
             return 0; // Unlimited
         }
-        
+
         $limit = trim($limit);
         $last = strtolower($limit[strlen($limit) - 1]);
         $value = (int) $limit;
-        
+
         switch ($last) {
             case 'g':
                 $value *= 1024;
@@ -279,7 +279,7 @@ class HealthCheckController extends Controller
             case 'k':
                 $value *= 1024;
         }
-        
+
         return $value;
     }
 }

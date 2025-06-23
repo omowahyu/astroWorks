@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 class ImageProcessingException extends Exception
 {
     protected array $context;
+
     protected string $operation;
 
     public function __construct(
@@ -20,10 +21,10 @@ class ImageProcessingException extends Exception
         ?Exception $previous = null
     ) {
         parent::__construct($message, $code, $previous);
-        
+
         $this->operation = $operation;
         $this->context = $context;
-        
+
         // Log the error immediately with context
         $this->logError();
     }
@@ -39,7 +40,7 @@ class ImageProcessingException extends Exception
             'context' => $this->context,
             'user_id' => auth()->id(),
             'timestamp' => now()->toISOString(),
-            'trace' => $this->getTraceAsString()
+            'trace' => $this->getTraceAsString(),
         ]);
     }
 
@@ -54,8 +55,8 @@ class ImageProcessingException extends Exception
                 'type' => 'image_processing_error',
                 'operation' => $this->operation,
                 'message' => $this->getMessage(),
-                'timestamp' => now()->toISOString()
-            ]
+                'timestamp' => now()->toISOString(),
+            ],
         ];
 
         // Add context for debugging in non-production environments

@@ -29,7 +29,7 @@ class ProductFactory extends Factory
                 'Industrial Kitchen Storage',
                 'Classic Pantry Cabinet',
                 'Sleek Kitchen Counter',
-                'Elegant Kitchen Hutch'
+                'Elegant Kitchen Hutch',
             ],
             'wardrobe' => [
                 'Minimalist Sliding Wardrobe',
@@ -39,7 +39,7 @@ class ProductFactory extends Factory
                 'Contemporary Closet System',
                 'Elegant Bedroom Wardrobe',
                 'Industrial Style Closet',
-                'Luxury Dressing Room'
+                'Luxury Dressing Room',
             ],
             'living_room' => [
                 'Scandinavian Dining Table',
@@ -49,7 +49,7 @@ class ProductFactory extends Factory
                 'Minimalist Bookshelf',
                 'Classic Dining Chair Set',
                 'Industrial Side Table',
-                'Luxury Entertainment Unit'
+                'Luxury Entertainment Unit',
             ],
             'accessories' => [
                 'Premium Cabinet Handles',
@@ -59,8 +59,8 @@ class ProductFactory extends Factory
                 'Modern Door Hinges',
                 'Elegant Knob Collection',
                 'Smart Storage Solutions',
-                'Designer Hardware Set'
-            ]
+                'Designer Hardware Set',
+            ],
         ];
 
         // Randomly select from all categories
@@ -69,7 +69,7 @@ class ProductFactory extends Factory
 
         return [
             'name' => $name,
-            'slug' => \Illuminate\Support\Str::slug($name) . '-' . $this->faker->unique()->numberBetween(1000, 9999),
+            'slug' => \Illuminate\Support\Str::slug($name).'-'.$this->faker->unique()->numberBetween(1000, 9999),
             'description' => $this->faker->paragraph(),
         ];
     }

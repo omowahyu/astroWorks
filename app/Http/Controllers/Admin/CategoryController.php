@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
 
 class CategoryController extends Controller
 {
@@ -21,7 +21,7 @@ class CategoryController extends Controller
             ->paginate(15);
 
         return Inertia::render('dashboard/categories/index', [
-            'categories' => $categories
+            'categories' => $categories,
         ]);
     }
 
@@ -40,7 +40,7 @@ class CategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories',
-            'is_accessory' => 'boolean'
+            'is_accessory' => 'boolean',
         ]);
 
         Category::create($validated);
@@ -55,7 +55,7 @@ class CategoryController extends Controller
     public function edit(Category $category): Response
     {
         return Inertia::render('dashboard/categories/edit', [
-            'category' => $category->load('products:id,name')
+            'category' => $category->load('products:id,name'),
         ]);
     }
 
@@ -65,8 +65,8 @@ class CategoryController extends Controller
     public function update(Request $request, Category $category): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
-            'is_accessory' => 'boolean'
+            'name' => 'required|string|max:255|unique:categories,name,'.$category->id,
+            'is_accessory' => 'boolean',
         ]);
 
         $category->update($validated);

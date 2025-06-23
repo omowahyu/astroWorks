@@ -53,7 +53,7 @@ interface DynamicImageSingleProps {
         main_thumbnail: ProductImageData | null;
     };
     /** Specific image to display (overrides index-based selection) */
-    specificImage?: any;
+    specificImage?: ProductImageData;
 }
 
 const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
@@ -66,10 +66,8 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
                                                                    rounded = '',
                                                                    mobileRounded,
                                                                    desktopRounded,
-                                                                   useDatabase = true,
                                                                    preferThumbnail = false,
                                                                    imageType = 'thumbnail',
-                                                                   deviceType = 'auto',
                                                                    productImages,
                                                                    specificImage
                                                                }) => {
@@ -133,7 +131,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
     const filterImagesByDevice = useCallback((images: ProductImageData[] | undefined | null, targetDevice: string) => {
         if (!images || !Array.isArray(images)) return [];
         return images.filter(img => {
-            const imgDeviceType = (img as any).device_type || 'desktop';
+            const imgDeviceType = (img as ProductImageData & { device_type?: string }).device_type || 'desktop';
             return imgDeviceType === targetDevice;
         });
     }, []);
@@ -149,7 +147,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
 
         // If specificImage is provided, use it directly
         if (specificImage) {
-            const deviceType = (specificImage as any).device_type || 'desktop';
+            const deviceType = (specificImage as ProductImageData & { device_type?: string }).device_type || 'desktop';
 
             if (deviceType === 'mobile') {
                 setMobileImageUrl(specificImage.image_url);
@@ -191,7 +189,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
 
         // Select mobile image
         let mobileImage: ProductImageData | null = null;
-        if (preferThumbnail && productImages.main_thumbnail && (productImages.main_thumbnail as any).device_type === 'mobile') {
+        if (preferThumbnail && productImages.main_thumbnail && (productImages.main_thumbnail as ProductImageData & { device_type?: string }).device_type === 'mobile') {
             mobileImage = productImages.main_thumbnail;
         } else if (imageType === 'thumbnail' && mobileImages.thumbnails.length > 0) {
             mobileImage = mobileImages.thumbnails[0];
@@ -203,7 +201,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
 
         // Select desktop image
         let desktopImage: ProductImageData | null = null;
-        if (preferThumbnail && productImages.main_thumbnail && (productImages.main_thumbnail as any).device_type === 'desktop') {
+        if (preferThumbnail && productImages.main_thumbnail && (productImages.main_thumbnail as ProductImageData & { device_type?: string }).device_type === 'desktop') {
             desktopImage = productImages.main_thumbnail;
         } else if (imageType === 'thumbnail' && desktopImages.thumbnails.length > 0) {
             desktopImage = desktopImages.thumbnails[0];
@@ -221,7 +219,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
 
             // Try main_thumbnail regardless of device_type
             if (productImages.main_thumbnail && productImages.main_thumbnail.image_url?.trim()) {
-                const mainThumbDeviceType = (productImages.main_thumbnail as any).device_type || 'desktop';
+                const mainThumbDeviceType = (productImages.main_thumbnail as ProductImageData & { device_type?: string }).device_type || 'desktop';
                 if (debug) {
                     console.log('🖼️ Using main_thumbnail as fallback, device_type:', mainThumbDeviceType);
                 }
@@ -246,14 +244,14 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
                 if (debug) {
                     console.log('🖼️ Available images for fallback:', allImages.map(img => ({
                         id: img.id,
-                        device_type: (img as any).device_type || 'desktop',
+                        device_type: (img as ProductImageData & { device_type?: string }).device_type || 'desktop',
                         image_type: img.image_type
                     })));
                 }
 
                 if (allImages.length > 0) {
                     const firstImage = allImages[Math.min(index - 1, allImages.length - 1)] || allImages[0];
-                    const imageDeviceType = (firstImage as any).device_type || 'desktop';
+                    const imageDeviceType = (firstImage as ProductImageData & { device_type?: string }).device_type || 'desktop';
                     if (debug) {
                         console.log('🖼️ Using first available image as fallback, device_type:', imageDeviceType, 'image:', firstImage);
                     }
@@ -286,7 +284,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
                 hasAnyImage,
                 mobileImagesCount: mobileImages.thumbnails.length + mobileImages.gallery.length + mobileImages.hero.length,
                 desktopImagesCount: desktopImages.thumbnails.length + desktopImages.gallery.length + desktopImages.hero.length,
-                mainThumbnailDeviceType: productImages.main_thumbnail ? (productImages.main_thumbnail as any).device_type || 'desktop' : 'none'
+                mainThumbnailDeviceType: productImages.main_thumbnail ? (productImages.main_thumbnail as ProductImageData & { device_type?: string }).device_type || 'desktop' : 'none'
             });
         }
     }, [productId, imageType, preferThumbnail, index, debug, productImages, specificImage, filterImagesByDevice]);
@@ -333,7 +331,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
     }, [debug, productId]);
 
     // Handle image load error
-    const handleImageError = useCallback((isMobile: boolean = false): void => {
+    const handleImageError = useCallback((): void => {
         if (debug) console.warn('🖼️ Image failed to load for:', productId);
         setImageError(true);
     }, [debug, productId]);
@@ -400,7 +398,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
           block md:hidden
         `}
                 onLoad={handleMobileImageLoad}
-                onError={() => handleImageError(true)}
+                onError={handleImageError}
                 loading="lazy"
                 style={{ willChange: 'opacity' }}
             />
@@ -419,7 +417,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
           hidden md:block
         `}
                 onLoad={handleDesktopImageLoad}
-                onError={() => handleImageError(false)}
+                onError={handleImageError}
                 loading="lazy"
                 style={{ willChange: 'opacity' }}
             />

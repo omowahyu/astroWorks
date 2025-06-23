@@ -1,5 +1,3 @@
-import { Award } from "lucide-react"
-
 export default function FeaturesSection() {
     return (
         <section className="py-12 bg-gray-50">

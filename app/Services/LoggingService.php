@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class LoggingService
 {
@@ -22,7 +22,7 @@ class LoggingService
             'ip_address' => request()?->ip(),
             'user_agent' => request()?->userAgent(),
             'timestamp' => now()->toISOString(),
-            'context' => $context
+            'context' => $context,
         ];
 
         $message = $message ?? "Operation: {$operation}";
@@ -42,7 +42,7 @@ class LoggingService
         $context = [
             'image_data' => $imageData,
             'memory_usage' => memory_get_usage(true),
-            'memory_peak' => memory_get_peak_usage(true)
+            'memory_peak' => memory_get_peak_usage(true),
         ];
 
         self::logOperation("image.{$operation}", $level, $context, $message);
@@ -59,7 +59,7 @@ class LoggingService
     ): void {
         $context = [
             'product_id' => $productId,
-            'data' => $data
+            'data' => $data,
         ];
 
         self::logOperation("product.{$operation}", $level, $context);
@@ -74,12 +74,12 @@ class LoggingService
         array $metrics = []
     ): void {
         $executionTime = microtime(true) - $startTime;
-        
+
         $context = [
             'execution_time_ms' => round($executionTime * 1000, 2),
             'memory_usage' => memory_get_usage(true),
             'memory_peak' => memory_get_peak_usage(true),
-            'metrics' => $metrics
+            'metrics' => $metrics,
         ];
 
         self::logOperation("performance.{$operation}", 'info', $context);
@@ -99,7 +99,7 @@ class LoggingService
             'user_agent' => request()?->userAgent(),
             'referer' => request()?->header('referer'),
             'session_id' => session()->getId(),
-            'context' => $context
+            'context' => $context,
         ];
 
         Log::log($level, "Security event: {$event}", $securityContext);
@@ -120,7 +120,7 @@ class LoggingService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'content_length' => $request->header('content-length'),
-            'context' => $context
+            'context' => $context,
         ];
 
         self::logOperation('api.request', 'info', $requestData);
@@ -137,7 +137,7 @@ class LoggingService
         $dbContext = [
             'table' => $table,
             'operation' => $operation,
-            'context' => $context
+            'context' => $context,
         ];
 
         self::logOperation("database.{$operation}", 'info', $dbContext);
@@ -155,7 +155,7 @@ class LoggingService
             'file_path' => $filePath,
             'operation' => $operation,
             'file_exists' => file_exists($filePath),
-            'context' => $context
+            'context' => $context,
         ];
 
         self::logOperation("file.{$operation}", 'info', $fileContext);
@@ -173,7 +173,7 @@ class LoggingService
             'validator' => $validator,
             'errors' => $errors,
             'input_keys' => array_keys($input), // Don't log sensitive input values
-            'input_count' => count($input)
+            'input_count' => count($input),
         ];
 
         self::logOperation('validation.failed', 'warning', $context);
@@ -190,7 +190,7 @@ class LoggingService
         $cacheContext = [
             'cache_key' => $key,
             'operation' => $operation,
-            'context' => $context
+            'context' => $context,
         ];
 
         self::logOperation("cache.{$operation}", 'debug', $cacheContext);
@@ -208,7 +208,7 @@ class LoggingService
             'job_class' => $jobClass,
             'operation' => $operation,
             'queue' => config('queue.default'),
-            'context' => $context
+            'context' => $context,
         ];
 
         self::logOperation("job.{$operation}", 'info', $jobContext);

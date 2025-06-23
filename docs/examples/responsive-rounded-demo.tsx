@@ -226,4 +226,4 @@ const ResponsiveRoundedDemo: React.FC = () => {
     );
 };
 
-export default ResponsiveRoundedDemo;`
+export default ResponsiveRoundedDemo;

@@ -74,7 +74,6 @@ interface DynamicImageGalleryProps {
 
 const DynamicImageGallery: React.FC<DynamicImageGalleryProps> = ({
                                                                      productId,
-                                                                     name,
                                                                      className = '',
                                                                      autoAdvance = false,
                                                                      autoAdvanceInterval = 5000,
@@ -113,7 +112,7 @@ const DynamicImageGallery: React.FC<DynamicImageGalleryProps> = ({
 
     // ==================== UTILITY FUNCTIONS ====================
 
-    const debugLog = useCallback((message: string, ...args: any[]) => {
+    const debugLog = useCallback((message: string, ...args: unknown[]) => {
         if (debug) {
             console.log(`🖼️ ${message}`, ...args);
         }

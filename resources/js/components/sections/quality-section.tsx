@@ -11,7 +11,7 @@ export default function QualitySection() {
                             skandinavia
                         </p>
                         <div className="flex justify-center items-center mt-12 h-full overflow-x-auto">
-                            <img src="/images/statics/company/JaminanTermurah.svg" alt="freeDesign&Cepat" className="object-cover w-full h-56" />
+                            <img src="/images/statics/company/JaminanTermurah.svg" alt="freeDesign&Cepat" className="object-cover w-full h-26 lg:h-56" />
                         </div>
                     </div>
                     <div className=" bg-linear-to-br from-[#D3EAF7] to-[#F8F8F8] text-black p-2 lg:p-12 flex flex-col items-center justify-start ">

@@ -2,11 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\PaymentSetting;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
-use App\Models\PaymentSetting;
 
 class HandleInertiaRequests extends Middleware
 {

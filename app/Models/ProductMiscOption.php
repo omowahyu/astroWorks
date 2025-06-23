@@ -2,13 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
- * 
- *
  * @property int $id
  * @property int $product_id
  * @property string $label
@@ -18,6 +16,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property-read \App\Models\Product $product
+ *
  * @method static \Database\Factories\ProductMiscOptionFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ProductMiscOption newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ProductMiscOption newQuery()
@@ -33,6 +32,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ProductMiscOption whereValue($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ProductMiscOption withTrashed()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ProductMiscOption withoutTrashed()
+ *
  * @mixin \Eloquent
  */
 class ProductMiscOption extends Model
@@ -42,7 +42,6 @@ class ProductMiscOption extends Model
 
     protected $fillable = ['product_id', 'label', 'value', 'is_default'];
 
-
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<\App\Models\Product>
      */
@@ -50,7 +49,6 @@ class ProductMiscOption extends Model
     {
         return $this->belongsTo(Product::class);
     }
-
 
     protected static function booted(): void
     {

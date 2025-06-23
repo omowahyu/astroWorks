@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Product;
 use App\Models\ProductImage;
+use Illuminate\Database\Seeder;
 
 class ProductImageSeeder extends Seeder
 {
@@ -24,7 +24,7 @@ class ProductImageSeeder extends Seeder
                 'image_type' => ProductImage::TYPE_THUMBNAIL,
                 'device_type' => 'desktop',
                 'aspect_ratio' => 1.33, // 4:3 ratio
-                'sort_order' => 0
+                'sort_order' => 0,
             ]);
 
             // Create mobile thumbnail image
@@ -35,7 +35,7 @@ class ProductImageSeeder extends Seeder
                 'image_type' => ProductImage::TYPE_THUMBNAIL,
                 'device_type' => 'mobile',
                 'aspect_ratio' => 0.8, // 4:5 ratio
-                'sort_order' => 0
+                'sort_order' => 0,
             ]);
 
             // Create 1 hero image
@@ -46,7 +46,7 @@ class ProductImageSeeder extends Seeder
                 'image_type' => ProductImage::TYPE_HERO,
                 'device_type' => 'desktop',
                 'aspect_ratio' => 1.78, // 16:9 ratio
-                'sort_order' => 1
+                'sort_order' => 1,
             ]);
 
             // Create mobile hero image
@@ -57,7 +57,7 @@ class ProductImageSeeder extends Seeder
                 'image_type' => ProductImage::TYPE_HERO,
                 'device_type' => 'mobile',
                 'aspect_ratio' => 0.8, // 4:5 ratio
-                'sort_order' => 1
+                'sort_order' => 1,
             ]);
 
             // Create 3-5 gallery images
@@ -75,7 +75,7 @@ class ProductImageSeeder extends Seeder
                     'image_type' => ProductImage::TYPE_GALLERY,
                     'device_type' => 'desktop',
                     'aspect_ratio' => 1.78, // 16:9 ratio
-                    'sort_order' => $i + 2 // Start after thumbnail and hero
+                    'sort_order' => $i + 2, // Start after thumbnail and hero
                 ]);
 
                 // Mobile gallery image
@@ -86,7 +86,7 @@ class ProductImageSeeder extends Seeder
                     'image_type' => ProductImage::TYPE_GALLERY,
                     'device_type' => 'mobile',
                     'aspect_ratio' => 0.8, // 4:5 ratio
-                    'sort_order' => $i + 2 // Start after thumbnail and hero
+                    'sort_order' => $i + 2, // Start after thumbnail and hero
                 ]);
             }
         }
