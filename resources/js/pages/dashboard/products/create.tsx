@@ -30,6 +30,7 @@ interface UnitType {
 }
 
 interface MiscOption {
+    id?: string;
     label: string;
     value: string;
     is_default: boolean;
@@ -148,7 +149,15 @@ export default function ProductCreate({ categories }: Props) {
     };
 
     const addMiscOption = () => {
-        setMiscOptions([...miscOptions, { label: '', value: '', is_default: false }]);
+        console.log('🔧 Adding misc option. Current options:', miscOptions);
+        const newOptions = [...miscOptions, {
+            id: `misc_${Date.now()}_${Math.random()}`,
+            label: '',
+            value: '',
+            is_default: false
+        }];
+        console.log('🔧 New options array:', newOptions);
+        setMiscOptions(newOptions);
     };
 
     const removeMiscOption = (index: number) => {
@@ -157,8 +166,10 @@ export default function ProductCreate({ categories }: Props) {
     };
 
     const updateMiscOption = (index: number, field: keyof MiscOption, value: string | boolean) => {
+        console.log('🔧 Updating misc option:', { index, field, value, currentOptions: miscOptions });
         const newMiscOptions = [...miscOptions];
         newMiscOptions[index] = { ...newMiscOptions[index], [field]: value };
+        console.log('🔧 Updated options array:', newMiscOptions);
         setMiscOptions(newMiscOptions);
     };
 
@@ -370,7 +381,7 @@ export default function ProductCreate({ categories }: Props) {
                                 <p className="text-sm text-muted-foreground">No misc options added yet.</p>
                             ) : (
                                 miscOptions.map((miscOption, index) => (
-                                    <div key={index} className="flex items-end space-x-4 p-4 border rounded-lg">
+                                    <div key={miscOption.id || index} className="flex items-end space-x-4 p-4 border rounded-lg">
                                         <div className="flex-1">
                                             <Label htmlFor={`misc-label-${index}`}>Label</Label>
                                             <Input

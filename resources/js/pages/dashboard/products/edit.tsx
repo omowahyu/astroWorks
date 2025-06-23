@@ -296,7 +296,14 @@ export default function ProductEdit({ product, categories }: Props) {
     };
 
     const addMiscOption = () => {
-        const newMiscOptions = [...(data.misc_options as MiscOption[]), { label: '', value: '', is_default: false }];
+        console.log('🔧 Adding misc option. Current options:', data.misc_options);
+        const newMiscOptions = [...(data.misc_options as MiscOption[]), {
+            id: `misc_${Date.now()}_${Math.random()}`,
+            label: '',
+            value: '',
+            is_default: false
+        }];
+        console.log('🔧 New options array:', newMiscOptions);
         setData('misc_options', newMiscOptions);
      };
 
@@ -306,8 +313,10 @@ export default function ProductEdit({ product, categories }: Props) {
      };
 
      const updateMiscOption = (index: number, field: keyof MiscOption, value: string | boolean) => {
+         console.log('🔧 Updating misc option:', { index, field, value, currentOptions: data.misc_options });
          const newMiscOptions = [...(data.misc_options as MiscOption[])];
          newMiscOptions[index] = { ...newMiscOptions[index], [field]: value };
+         console.log('🔧 Updated options array:', newMiscOptions);
          setData('misc_options', newMiscOptions);
      };
 
@@ -637,7 +646,7 @@ export default function ProductEdit({ product, categories }: Props) {
                          </CardHeader>
                          <CardContent className="space-y-4">
                              {(data.misc_options as MiscOption[]).map((option, index) => (
-                                 <div key={index} className="flex items-center space-x-4 p-4 border rounded-lg">
+                                 <div key={option.id || option.name || index} className="flex items-center space-x-4 p-4 border rounded-lg">
                                      <div className="flex-1">
                                          <Input
                                              placeholder="Option label"
