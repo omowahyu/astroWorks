@@ -3,6 +3,7 @@ import { Head, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Minus } from 'lucide-react';
+import DynamicImageSingle from '@/components/image/dynamic-image-single';
 
 interface CartItem {
     product_id: number;
@@ -168,11 +169,20 @@ export default function Cart() {
                                         {/* Main Product */}
                                         <div className="flex items-center justify-between bg-white p-4 rounded-lg border">
                                             <div className="flex items-center space-x-4">
-                                                <img
-                                                    src={`https://picsum.photos/seed/${item.product_id}/80/80`}
-                                                    alt={item.product_name}
-                                                    className="w-16 h-16 object-cover rounded-lg"
-                                                />
+                                                <div className="w-16 h-16 rounded-lg overflow-hidden">
+                                                    <DynamicImageSingle
+                                                        productId={item.product_id.toString()}
+                                                        alt={item.product_name}
+                                                        className="w-full h-full"
+                                                        mobileRounded="lg"
+                                                        desktopRounded="lg"
+                                                        useDatabase={true}
+                                                        preferThumbnail={true}
+                                                        imageType="thumbnail"
+                                                        deviceType="auto"
+                                                        debug={false}
+                                                    />
+                                                </div>
                                                 <div>
                                                     <h4 className="font-semibold text-gray-900">{item.product_name}</h4>
                                                     <p className="text-sm text-gray-600">{item.unit_type_label}</p>
@@ -211,11 +221,20 @@ export default function Cart() {
                                                 {Object.entries(item.accessories).map(([accessoryId, acc]) => (
                                                     <div key={accessoryId} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                                                         <div className="flex items-center space-x-3">
-                                                            <img
-                                                                src={`https://picsum.photos/seed/${accessoryId}/60/60`}
-                                                                alt={acc.name}
-                                                                className="w-12 h-12 object-cover rounded-lg"
-                                                            />
+                                                            <div className="w-12 h-12 rounded-lg overflow-hidden">
+                                                                <DynamicImageSingle
+                                                                    productId={accessoryId}
+                                                                    alt={acc.name}
+                                                                    className="w-full h-full"
+                                                                    mobileRounded="lg"
+                                                                    desktopRounded="lg"
+                                                                    useDatabase={true}
+                                                                    preferThumbnail={true}
+                                                                    imageType="thumbnail"
+                                                                    deviceType="auto"
+                                                                    debug={false}
+                                                                />
+                                                            </div>
                                                             <div>
                                                                 <h5 className="font-medium text-gray-900">{acc.name}</h5>
                                                                 <p className="text-sm text-gray-600">{acc.unit_type.label}</p>

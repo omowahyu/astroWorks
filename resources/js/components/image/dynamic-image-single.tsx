@@ -359,7 +359,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
         return () => observerRef.current?.disconnect();
     }, [setupIntersectionObserver]);
 
-    // Load image immediately when productImages are available (prioritize immediate loading)
+    // Load image immediately when productImages are available (no lazy loading for better performance)
     useEffect(() => {
         if (productId && productImages && !hasLoadedOnce) {
             if (debug) {
@@ -369,17 +369,6 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
             loadImageFromProps();
         }
     }, [productId, productImages, hasLoadedOnce, loadImageFromProps, debug]);
-
-    // Fallback: Load image when component becomes visible (for lazy loading)
-    useEffect(() => {
-        if (productId && productImages && isIntersecting && !hasLoadedOnce) {
-            if (debug) {
-                console.log('🖼️ DynamicImageSingle: Loading image on intersection for product:', productId);
-            }
-            setHasLoadedOnce(true);
-            loadImageFromProps();
-        }
-    }, [productId, productImages, isIntersecting, hasLoadedOnce, loadImageFromProps, debug]);
 
     // Reset loading states when URLs change
     useEffect(() => setMobileImageLoaded(false), [mobileImageUrl]);

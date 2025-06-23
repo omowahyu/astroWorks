@@ -101,16 +101,26 @@ export default function ProductShow() {
   const dynamicProductTitle = useMemo(() => {
     let title = product.name;
 
+    // Debug logging
+    console.log('🔍 Dynamic Title Debug:', {
+      productName: product.name,
+      selectedMiscOptions,
+      selectedUnitType,
+      selectedAccessories
+    });
+
     // Add selected misc options (all of them)
     Object.entries(selectedMiscOptions).forEach(([label, value]) => {
       if (value && value.trim()) {
         title += ` ${value}`;
+        console.log('✅ Added misc option:', label, '=', value);
       }
     });
 
     // Add selected unit type
     if (selectedUnitType) {
       title += ` ${selectedUnitType.label}`;
+      console.log('✅ Added unit type:', selectedUnitType.label);
     }
 
     // Add accessories
@@ -119,7 +129,10 @@ export default function ProductShow() {
       .map(item => item.accessory.name)
       .join(' + ');
 
-    return accessoryNames ? `${title} + ${accessoryNames}` : title;
+    const finalTitle = accessoryNames ? `${title} + ${accessoryNames}` : title;
+    console.log('🎯 Final dynamic title:', finalTitle);
+
+    return finalTitle;
   }, [product.name, selectedMiscOptions, selectedUnitType, selectedAccessories]);
 
   const basePrice = useMemo(() => {
