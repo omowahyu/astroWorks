@@ -60,7 +60,7 @@ interface DynamicImageGalleryProps {
     /** Enable debug logging */
     debug?: boolean;
     /** Filter images by device type */
-    deviceTypeFilter?: 'mobile' | 'desktop' | 'all';
+    deviceTypeFilter?: 'mobile' | 'desktop' | 'all' | 'auto';
     /** Product images data passed from Inertia */
     productImages?: {
         thumbnails: GalleryImageData[];
@@ -137,7 +137,10 @@ const DynamicImageGallery: React.FC<DynamicImageGalleryProps> = ({
 
     const filterImagesByDeviceType = useCallback((images: GalleryImageData[]) => {
         if (deviceTypeFilter === 'all') return images;
-        const targetDeviceType = deviceTypeFilter || currentDeviceType;
+
+        // If 'auto', use current device type for filtering
+        const targetDeviceType = deviceTypeFilter === 'auto' ? currentDeviceType : (deviceTypeFilter || currentDeviceType);
+
         return images.filter(img => (img.device_type || 'desktop') === targetDeviceType);
     }, [deviceTypeFilter, currentDeviceType]);
 

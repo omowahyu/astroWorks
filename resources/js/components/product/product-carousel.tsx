@@ -325,7 +325,7 @@ const ProductCarousel: React.FC<Props> = ({ className = "", categoriesWithProduc
                                                 preferThumbnail={true}
                                                 imageType="thumbnail"
                                                 productImages={product.images}
-                                                debug={product.id === 8}
+                                                debug={false}
                                             />
                                         </div>
 

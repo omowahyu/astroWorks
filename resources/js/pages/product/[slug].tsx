@@ -359,11 +359,11 @@ export default function ProductShow() {
                     productId={product.id.toString()}
                     name={product.name}
                     className="w-full aspect-[4/5] md:aspect-[16/9]"
-                    mobileRounded="full"
+                    mobileRounded="none"
                     desktopRounded="2xl"
                     useDatabase={true}
-                    deviceTypeFilter="all"
-                    debug={true}
+                    deviceTypeFilter="auto"
+                    debug={false}
                     productImages={product.images}
                   />
                 ) : (
@@ -371,11 +371,12 @@ export default function ProductShow() {
                     productId={product.id.toString()}
                     alt={product.name}
                     className="w-full aspect-[4/5] md:aspect-[16/9]"
-                    mobileRounded="full"
+                    mobileRounded="none"
                     desktopRounded="2xl"
                     useDatabase={true}
                     preferThumbnail={false}
                     imageType="gallery"
+                    deviceType="auto"
                     productImages={product.images}
                   />
                 )}
