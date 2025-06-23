@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Plus, Trash2, X } from 'lucide-react';
 import DeviceImageUpload from '@/components/image/device-image-upload';
+import { toast } from 'sonner';
 
 interface Category {
     id: number;
@@ -94,7 +95,9 @@ export default function ProductCreate({ categories }: Props) {
         // Validate unit types before submission
         const hasEmptyUnitTypes = unitTypes.some(ut => !ut.label.trim() || !ut.price.trim());
         if (hasEmptyUnitTypes) {
-            alert('Please fill in all unit type labels and prices before submitting.');
+            toast.error('Validation Error', {
+                description: 'Please fill in all unit type labels and prices before submitting.'
+            });
             return;
         }
 
@@ -105,7 +108,19 @@ export default function ProductCreate({ categories }: Props) {
             misc_options: miscOptions
         };
 
-        post('/dashboard/products', submissionData);
+        post('/dashboard/products', submissionData, {
+            onSuccess: () => {
+                toast.success('Product created successfully', {
+                    description: `"${data.name}" has been added to your products`
+                });
+            },
+            onError: (errors) => {
+                toast.error('Failed to create product', {
+                    description: 'Please check the form and try again'
+                });
+                console.error('Product creation errors:', errors);
+            }
+        });
     };
 
     const addUnitType = () => {

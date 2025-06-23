@@ -101,9 +101,9 @@ export default function ProductShow() {
   const dynamicProductTitle = useMemo(() => {
     let title = product.name;
 
-    // Add selected misc options
+    // Add selected misc options (all of them)
     Object.entries(selectedMiscOptions).forEach(([label, value]) => {
-      if (label.toLowerCase().includes('tema') || label.toLowerCase().includes('warna')) {
+      if (value && value.trim()) {
         title += ` ${value}`;
       }
     });
@@ -182,7 +182,7 @@ export default function ProductShow() {
     // Prepare main product data
     const mainProduct = {
       product_id: product.id,
-      product_name: product.name,
+      product_name: dynamicProductTitle, // Use dynamic title with selected options
       product_image: product.images?.main_thumbnail?.image_url || '',
       unit_type_id: selectedUnitType.id,
       unit_type_label: selectedUnitType.label,
@@ -207,7 +207,7 @@ export default function ProductShow() {
     // Create cart batch
     const cartBatch = {
       batch_id: Date.now(), // Unique batch identifier
-      batch_name: product.name, // Main product name as batch name
+      batch_name: dynamicProductTitle, // Use dynamic title with selected options
       main_product: mainProduct,
       accessories: accessoriesData,
       batch_total: finalTotal
@@ -224,7 +224,7 @@ export default function ProductShow() {
         alert('Failed to add to cart. Please try again.');
       }
     });
-  }, [product, selectedUnitType, selectedMiscOptions, selectedAccessories, quantity, basePrice, finalTotal, router]);
+  }, [product, selectedUnitType, selectedMiscOptions, selectedAccessories, quantity, basePrice, finalTotal, dynamicProductTitle, router]);
 
   return (
     <>
@@ -459,9 +459,9 @@ export default function ProductShow() {
                       {product.misc_options.map((option) => (
                         <button
                           key={option.id}
-                          onClick={() => handleMiscOptionChange('color_theme', option.value)}
+                          onClick={() => handleMiscOptionChange(option.label, option.value)}
                           className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
-                            selectedMiscOptions['color_theme'] === option.value
+                            selectedMiscOptions[option.label] === option.value
                               ? 'border-blue-500 bg-blue-50 text-blue-700'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}

@@ -138,6 +138,9 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
 
     // Load device-specific image data from Inertia props
     const loadImageFromProps = useCallback((): void => {
+        if (debug) {
+            console.log('🖼️ DynamicImageSingle: Starting loadImageFromProps for product:', productId);
+        }
         setLoading(true);
 
         if (debug) {
@@ -356,21 +359,27 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
         return () => observerRef.current?.disconnect();
     }, [setupIntersectionObserver]);
 
-    // Load image when component becomes visible or when productImages prop changes
-    useEffect(() => {
-        if (productId && productImages && isIntersecting && !hasLoadedOnce) {
-            setHasLoadedOnce(true);
-            loadImageFromProps();
-        }
-    }, [productId, productImages, isIntersecting, hasLoadedOnce, loadImageFromProps]);
-
-    // Load image immediately if productImages are available
+    // Load image immediately when productImages are available (prioritize immediate loading)
     useEffect(() => {
         if (productId && productImages && !hasLoadedOnce) {
+            if (debug) {
+                console.log('🖼️ DynamicImageSingle: Loading image immediately for product:', productId);
+            }
             setHasLoadedOnce(true);
             loadImageFromProps();
         }
-    }, [productId, productImages, hasLoadedOnce, loadImageFromProps]);
+    }, [productId, productImages, hasLoadedOnce, loadImageFromProps, debug]);
+
+    // Fallback: Load image when component becomes visible (for lazy loading)
+    useEffect(() => {
+        if (productId && productImages && isIntersecting && !hasLoadedOnce) {
+            if (debug) {
+                console.log('🖼️ DynamicImageSingle: Loading image on intersection for product:', productId);
+            }
+            setHasLoadedOnce(true);
+            loadImageFromProps();
+        }
+    }, [productId, productImages, isIntersecting, hasLoadedOnce, loadImageFromProps, debug]);
 
     // Reset loading states when URLs change
     useEffect(() => setMobileImageLoaded(false), [mobileImageUrl]);
@@ -399,7 +408,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
         `}
                 onLoad={handleMobileImageLoad}
                 onError={handleImageError}
-                loading="lazy"
+                loading="eager"
                 style={{ willChange: 'opacity' }}
             />
 
@@ -418,7 +427,7 @@ const DynamicImageSingle: React.FC<DynamicImageSingleProps> = ({
         `}
                 onLoad={handleDesktopImageLoad}
                 onError={handleImageError}
-                loading="lazy"
+                loading="eager"
                 style={{ willChange: 'opacity' }}
             />
 

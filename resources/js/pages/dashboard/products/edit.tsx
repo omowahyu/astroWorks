@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Plus, Trash2, Upload, X, GripVertical } from 'lucide-react';
 import UnifiedImageManager from '@/components/image/unified-image-manager';
+import { toast } from 'sonner';
 
 interface Category {
     id: number;
@@ -175,7 +176,9 @@ export default function ProductEdit({ product, categories }: Props) {
         // Validate unit types before submission
         const hasEmptyUnitTypes = (data.unit_types as UnitType[]).some(ut => !ut.label.trim() || !ut.price.trim());
         if (hasEmptyUnitTypes) {
-            alert('Please fill in all unit type labels and prices before submitting.');
+            toast.error('Validation Error', {
+                description: 'Please fill in all unit type labels and prices before submitting.'
+            });
             return;
         }
 
@@ -208,6 +211,10 @@ export default function ProductEdit({ product, categories }: Props) {
                 preserveState: true,
                 preserveScroll: true,
                 onSuccess: () => {
+                    toast.success('Product updated successfully', {
+                        description: `"${data.name}" has been updated`
+                    });
+
                     // Clear the uploaded images from state after successful submission
                     setData('mobile_images', [] as File[]);
                     setData('desktop_images', [] as File[]);
@@ -221,6 +228,9 @@ export default function ProductEdit({ product, categories }: Props) {
                     setDeletedImageIds([]);
                 },
                 onError: (errors) => {
+                    toast.error('Failed to update product', {
+                        description: 'Please check the form and try again'
+                    });
                     console.error('Validation errors:', errors);
                     // Preserve image state on validation error
                     // Images remain in both data state and preview state
@@ -242,7 +252,15 @@ export default function ProductEdit({ product, categories }: Props) {
             router.post(`/dashboard/products/${product.id}`, submissionData as any, {
                 preserveState: true,
                 preserveScroll: true,
+                onSuccess: () => {
+                    toast.success('Product updated successfully', {
+                        description: `"${data.name}" has been updated`
+                    });
+                },
                 onError: (errors: any) => {
+                    toast.error('Failed to update product', {
+                        description: 'Please check the form and try again'
+                    });
                     console.error('Validation errors:', errors);
                     // Preserve all state on validation error
                 },
