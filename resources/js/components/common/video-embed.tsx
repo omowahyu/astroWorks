@@ -25,7 +25,7 @@ const VideoEmbed = ({
     video,
     videoId,
     width = '100%',
-    height = '315',
+    height = '360',
     autoplay = true,
     loop = true,
     muted = true,
